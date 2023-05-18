@@ -460,7 +460,7 @@ class ArchiveDirectory(Directory):
         if os.path.exists(projects_info):
             shutil.copy2(projects_info,d)
         for a in os.listdir(self._path):
-            if a == 'projects.info':
+            if a in ('projects.info','manifest.txt'):
                 continue
             if a.endswith('.md5'):
                 continue
