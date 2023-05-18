@@ -398,6 +398,7 @@ class MultiProjectRun(Directory):
 
 class ArchiveFile:
     """
+    Class to handle archive files
     """
     def __init__(self,f):
         self._path = os.path.abspath(f)
@@ -418,6 +419,7 @@ class ArchiveFile:
 
 class ArchiveDirectory(Directory):
     """
+    Class to handle archive directories
     """
     def __init__(self,d):
         Directory.__init__(self,d)
