@@ -16,6 +16,7 @@ import os
 import shutil
 import math
 import stat
+import json
 from pathlib import Path
 from bcftbx.Md5sum import md5sum
 from auto_process_ngs.command import Command
@@ -423,7 +424,7 @@ class ArchiveDirectory(Directory):
     """
     def __init__(self,d):
         Directory.__init__(self,d)
-        if not os.path.exists(os.path.join(self.path,'archive.md5')):
+        if not os.path.isdir(os.path.join(self.path,'.ngsarchive')):
             raise NgsArchiveException("%s: not an archive directory" %
                                       self.path)
 
@@ -447,6 +448,7 @@ class ArchiveDirectory(Directory):
             extracted files have read/write permissions
             for the user (default: True)
         """
+        # Determine and check extraction directories
         if not extract_dir:
             extract_dir = os.getcwd()
         extract_dir = os.path.abspath(extract_dir)
@@ -461,19 +463,26 @@ class ArchiveDirectory(Directory):
                                       "directory in destination '%s' "
                                       "directory" % (self._path,
                                                      extract_dir))
+        # Get metadata
+        ngsarchive_dir = os.path.join(self._path,".ngsarchive")
+        json_file = os.path.join(ngsarchive_dir,"archive_contents.json")
+        with open(json_file,'rt') as fp:
+            archive_contents = json.load(fp)
+        # Create destination directory
         os.mkdir(d)
-        projects_info = os.path.join(self._path,'projects.info')
-        if os.path.exists(projects_info):
-            shutil.copy2(projects_info,d)
-        for a in os.listdir(self._path):
-            if a in ('projects.info','manifest.txt'):
-                continue
-            if a.endswith('.md5'):
-                continue
+        # Copy file artefacts
+        for f in archive_contents['files']:
+            print("-- copying %s" % f)
+            f = os.path.join(self._path,f)
+            shutil.copy2(f,d)
+        # Unpack individual archive files
+        for a in archive_contents['archives']:
+            print("-- unpacking %s" % a)
             a = os.path.join(self._path,a)
             ArchiveFile(a).unpack(extract_dir)
         # Do checksum verification on unpacked archive
         if verify:
+            print("-- verifying checksums")
             for md5file in [os.path.join(self._path,f)
                             for f in list(
                                     filter(lambda x: x.endswith('.md5')
@@ -484,6 +493,7 @@ class ArchiveDirectory(Directory):
                                              "failed" % md5file)
         # Ensure all files etc have read/write permission
         if set_read_write:
+            print("-- updating permissions to read-write")
             for o in Directory(d).walk():
                 s = os.stat(o)
                 os.chmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
@@ -568,8 +578,11 @@ def make_archive_dir(d,fmt,out_dir=None,sub_dirs=None,
     archive_dir = os.path.join(os.path.abspath(out_dir),
                                d.basename+".archive")
     os.mkdir(archive_dir)
+    # Create .ngsarchive subdir
+    ngsarchive_dir = os.path.join(archive_dir,".ngsarchive")
+    os.mkdir(ngsarchive_dir)
     # Create manifest file
-    manifest = os.path.join(archive_dir,"manifest.txt")
+    manifest = os.path.join(ngsarchive_dir,"manifest.txt")
     with open(manifest,'wt') as fp:
         for o in d.walk():
             o = Path(o)
@@ -579,19 +592,26 @@ def make_archive_dir(d,fmt,out_dir=None,sub_dirs=None,
                 owner=owner,
                 group=group,
                 obj=o.relative_to(d.path)))
+    # Record contents
+    archive_contents = {
+        'archives': [],
+        'files': [],
+    }
     # Make archive
     if not sub_dirs:
         # Put all content into a single archive
         md5file = os.path.join(archive_dir,"%s.md5" % d.basename)
         Directory.get_checksums(d,md5file)
-        Directory.make_archive(d,fmt,archive_dir)
+        a = Directory.make_archive(d,fmt,archive_dir)
+        archive_contents['archives'].append(os.path.basename(str(a)))
     else:
         # Make archives for each subdir
         for s in sub_dirs:
             dd = Directory(os.path.join(d.path,s))
             md5file = os.path.join(archive_dir,"%s.md5" % s)
             dd.get_checksums(md5file,include_parent=True)
-            dd.make_archive(fmt,archive_dir,include_parent=True)
+            a = dd.make_archive(fmt,archive_dir,include_parent=True)
+            archive_contents['archives'].append(os.path.basename(str(a)))
         # Put additional miscellaneous artefacts into a separate
         # archive
         if misc_objects:
@@ -611,8 +631,9 @@ def make_archive_dir(d,fmt,out_dir=None,sub_dirs=None,
                 md5file = os.path.join(archive_dir,
                                        "%s.md5" % misc_archive_name)
                 dd.get_checksums(md5file)
-                dd.make_archive(fmt,archive_dir,
-                                archive_name=misc_archive_name)
+                a = dd.make_archive(fmt,archive_dir,
+                                    archive_name=misc_archive_name)
+                archive_contents['archives'].append(os.path.basename(str(a)))
             finally:
                 shutil.rmtree(dd.parent_dir)
         # Copy in extra files
