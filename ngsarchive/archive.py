@@ -15,6 +15,7 @@
 import os
 import shutil
 import math
+import stat
 from pathlib import Path
 from bcftbx.Md5sum import md5sum
 from auto_process_ngs.command import Command
@@ -431,7 +432,7 @@ class ArchiveDirectory(Directory):
         raise NgsArchiveException("%s: can't archive an archive "
                                   "directory" % self.path)
 
-    def unpack(self,extract_dir=None,verify=True):
+    def unpack(self,extract_dir=None,verify=True,set_read_write=True):
         """
         Unpacks the archive
 
@@ -439,7 +440,10 @@ class ArchiveDirectory(Directory):
           extract_dir (str): directory to extract
             archive into (default: cwd)
           verify (bool): if True then verify checksums
-            for extracted archives
+            for extracted archives (default: True)
+          set_read_write (bool): if True then ensure
+            extracted files have read/write permissions
+            for the user (default: True)
         """
         if not extract_dir:
             extract_dir = os.getcwd()
@@ -466,6 +470,7 @@ class ArchiveDirectory(Directory):
                 continue
             a = os.path.join(self._path,a)
             ArchiveFile(a).unpack(extract_dir)
+        # Do checksum verification on unpacked archive
         if verify:
             for md5file in [os.path.join(self._path,f)
                             for f in list(
@@ -475,6 +480,11 @@ class ArchiveDirectory(Directory):
                 if not verify_checksums(md5file,root_dir=extract_dir):
                    raise NgsArchiveException("%s: checksum verification "
                                              "failed" % md5file)
+        # Ensure all files etc have read/write permission
+        if set_read_write:
+            for o in Directory(d).walk():
+                s = os.stat(o)
+                os.chmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
         # Return the appropriate wrapper instance
         return get_rundir_instance(d)
 
