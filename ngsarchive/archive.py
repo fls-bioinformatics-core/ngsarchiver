@@ -424,7 +424,8 @@ class ArchiveDirectory(Directory):
     """
     def __init__(self,d):
         Directory.__init__(self,d)
-        if not os.path.isdir(os.path.join(self.path,'.ngsarchive')):
+        self._ngsarchive_dir = os.path.join(self.path,'.ngsarchive')
+        if not os.path.isdir(self._ngsarchive_dir):
             raise NgsArchiveException("%s: not an archive directory" %
                                       self.path)
 
@@ -464,8 +465,8 @@ class ArchiveDirectory(Directory):
                                       "directory" % (self._path,
                                                      extract_dir))
         # Get metadata
-        ngsarchive_dir = os.path.join(self._path,".ngsarchive")
-        json_file = os.path.join(ngsarchive_dir,"archive_contents.json")
+        json_file = os.path.join(self._ngsarchive_dir,
+                                 "archive_contents.json")
         with open(json_file,'rt') as fp:
             archive_contents = json.load(fp)
         # Create destination directory
@@ -509,10 +510,10 @@ class ArchiveDirectory(Directory):
         recorded in the checksum file when the archive
         was created.
         """
-        md5file = os.path.join(self._path,"archive.md5")
+        md5file = os.path.join(self._ngsarchive_dir,"archive.md5")
         if not os.path.isfile(md5file):
             raise NgsArchiveException("%s: no MD5 checksum file" % self)
-        return verify_checksums(md5file,root_dir=self._path)
+        return verify_checksums(md5file,root_dir=self._path,verbose=True)
         
     def __repr__(self):
         return self._path
@@ -642,21 +643,36 @@ def make_archive_dir(d,fmt,out_dir=None,sub_dirs=None,
                 if not os.path.isabs(f):
                     f = os.path.join(d.path,f)
                 shutil.copy2(f,archive_dir)
+                archive_contents['files'].append(os.path.basename(f))
     # Checksums for archive contents
-    file_list = os.listdir(archive_dir)
-    with open(os.path.join(archive_dir,"archive.md5"),'wt') as fp:
+    file_list = archive_contents['archives'] + archive_contents['files']
+    with open(os.path.join(ngsarchive_dir,"archive.md5"),'wt') as fp:
         for f in file_list:
             fp.write("%s  %s\n" % (md5sum(os.path.join(archive_dir,f)),
                                    f))
+    # Write archive contents to JSON file
+    json_file = os.path.join(ngsarchive_dir,"archive_contents.json")
+    with open(json_file,'wt') as fp:
+        json.dump(archive_contents,fp,indent=2)
     return ArchiveDirectory(archive_dir)
 
-def verify_checksums(md5file,root_dir=None):
+def verify_checksums(md5file,root_dir=None,verbose=False):
     """
+    Verify MD5 checksums from a file
+
+    Arguments:
+      md5file (str): path to file with MD5 checksums
+      root_dir (str): if supplied then will be
+        prepended to paths in the checksum file
+      verbose (bool): if True then report files
+        being checked (default: False)
     """
     with open(md5file,'rt') as fp:
         for line in fp:
             try:
                 chksum,path = line.rstrip('\n').split('  ')
+                if verbose:
+                    print("-- checking MD5 sum for %s" % path)
                 if root_dir:
                     path = os.path.join(root_dir,path)
                 if not os.path.exists(path):
