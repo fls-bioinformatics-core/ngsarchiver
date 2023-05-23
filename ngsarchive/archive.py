@@ -71,14 +71,25 @@ class Directory:
         return int(size)
 
     @property
-    def readable(self):
+    def unreadable_files(self):
+        """
+        Return files etc that are not readable
+        """
+        for o in self.walk():
+            if not os.access(o,os.R_OK):
+                yield o
+
+    @property
+    def is_readable(self):
         """
         Check if all files and subdirectories are readable
         """
-        return self.check_mode(os.R_OK)
+        for o in self.unreadable_files:
+            return False
+        return True
 
     @property
-    def writeable(self):
+    def is_writeable(self):
         """
         Check if all files and subdirectories are writeable
         """
@@ -87,7 +98,7 @@ class Directory:
     @property
     def external_symlinks(self):
         """
-        Check if any symlinks point outside the directory
+        Return symlinks that point outside the directory
         """
         for o in self.walk():
             if Path(o).is_symlink():
@@ -95,9 +106,15 @@ class Directory:
                 try:
                     Path(target).relative_to(self._path)
                 except ValueError:
-                    #print("%s: symlink points outside of "
-                    #      "directory" % o)
-                    return True
+                    yield o
+
+    @property
+    def has_external_symlinks(self):
+        """
+        Check if any symlinks point outside of directory
+        """
+        for o in self.external_symlinks:
+            return True
         return False
 
     def check_mode(self,mode):
