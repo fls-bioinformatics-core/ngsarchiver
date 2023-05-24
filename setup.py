@@ -14,8 +14,7 @@ for pattern in ('bin/*.py',):
     scripts.extend(glob(pattern))
 
 # Installation requirements
-install_requires = ['genomics-bcftbx',
-                    'auto-process-ngs']
+install_requires = []
 
 # Setup for installation etc
 from setuptools import setup
