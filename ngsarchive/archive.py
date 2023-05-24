@@ -19,8 +19,8 @@ import json
 import time
 import tarfile
 import hashlib
+import subprocess
 from pathlib import Path
-from auto_process_ngs.command import Command
 from .exceptions import NgsArchiveException
 
 #######################################################################
@@ -76,6 +76,13 @@ class Directory:
         for o in self.walk():
             size += os.path.getsize(os.path.join(self._path,o))
         return int(size)
+
+    @property
+    def du_size(self):
+        """
+        Return total size of directory in bytes
+        """
+        return du_size(self._path)
 
     @property
     def unreadable_files(self):
@@ -884,12 +891,15 @@ def du_size(p):
     """
     Return total size of directory in bytes
     """
-    du_cmd = Command('du','-s','--block-size=1',p)
-    retcode,output = du_cmd.subprocess_check_output()
-    if retcode != 0:
-        raise Exception("%s: 'du' failed" % p)
-    size = int(output.split('\t')[0])
-    return size
+    du_cmd = ['du','-s','--block-size=1',p]
+    try:
+        output = subprocess.check_output(du_cmd,
+                                         cwd=None,
+                                         stderr=subprocess.STDOUT,
+                                         universal_newlines=True)
+        return int(output.split('\t')[0])
+    except subprocess.CalledProcessError as ex:
+        raise Exception("%s: 'du' failed: %s" % (p,ex))
 
 def format_size(size,units='K',human_readable=False):
     """
