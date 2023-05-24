@@ -122,9 +122,9 @@ def main():
                 logger.critical("readability and/or symlink issues")
                 return 1
         print("Archiving %s..." % d)
-        a = d.make_archive('gztar')
-        print("Archive file: %s (%s)" % (a,format_size(a.size,
-                                                       human_readable=True)))
+        a = d.make_archive()
+        print("Archive: %s (%s)" % (a,format_size(a.size,
+                                                  human_readable=True)))
 
     # 'Verify' subcommand
     if args.subcommand == 'verify':
