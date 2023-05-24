@@ -18,10 +18,16 @@ import stat
 import json
 import time
 import tarfile
+import hashlib
 from pathlib import Path
-from bcftbx.Md5sum import md5sum
 from auto_process_ngs.command import Command
 from .exceptions import NgsArchiveException
+
+#######################################################################
+# Module constants
+#######################################################################
+
+MD5_BLOCKSIZE = 1024*1024
 
 #######################################################################
 # Classes
@@ -685,6 +691,37 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     with open(json_file,'wt') as fp:
         json.dump(archive_contents,fp,indent=2)
     return ArchiveDirectory(archive_dir)
+
+def md5sum(f):
+    """
+    Return MD5 digest for a file or stream
+
+    This implements the md5sum checksum generation using he
+    hashlib module.
+
+    Arguments:
+      f (str): name of the file to generate the checksum from,
+        or a file-like object opened for reading in binary
+        mode.
+
+    Returns:
+      String: MD5 digest for the named file.
+    """
+    chksum = hashlib.md5()
+    close_fp = False
+    try:
+        fp = open(f,"rb")
+        close_fp = True
+    except TypeError:
+        fp = f
+    while True:
+        buf = fp.read(MD5_BLOCKSIZE)
+        if not buf:
+            break
+        chksum.update(buf)
+    if close_fp:
+        fp.close()
+    return chksum.hexdigest()
 
 def verify_checksums(md5file,root_dir=None,verbose=False):
     """
