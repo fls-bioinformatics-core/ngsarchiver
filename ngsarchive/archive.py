@@ -302,19 +302,23 @@ class GenericRun(Directory):
     def __init__(self,d):
         Directory.__init__(self,d)
 
-    def make_archive(self,out_dir=None):
+    def make_archive(self,out_dir=None,volume_size=None):
         """
         Makes an archive directory
 
         Arguments:
           out_dir (str): directory under which the archive
             will be created
+          volume_size (int/str): if set then creates a
+            multi-volume archive with the specified
+            volume size
 
         Returns:
           ArchiveDirectory: object representing the generated
             archive directory.
         """
-        return make_archive_dir(self,out_dir=out_dir)
+        return make_archive_dir(self,out_dir=out_dir,
+                                volume_size=volume_size)
 
 class MultiSubdirRun(Directory):
     """
@@ -338,20 +342,24 @@ class MultiSubdirRun(Directory):
                                           self._path)
         self._sub_dirs = sub_dirs
 
-    def make_archive(self,out_dir=None):
+    def make_archive(self,out_dir=None,volume_size=None):
         """
         Makes an archive directory
 
         Arguments:
           out_dir (str): directory under which the archive
             will be created
+          volume_size (int/str): if set then creates a
+            multi-volume archive with the specified
+            volume size
 
         Returns:
           ArchiveDirectory: object representing the generated
             archive directory.
         """
         return make_archive_dir(self,out_dir=out_dir,
-                                sub_dirs=self._sub_dirs)
+                                sub_dirs=self._sub_dirs,
+                                volume_size=volume_size)
 
 class MultiProjectRun(Directory):
     """
@@ -404,13 +412,16 @@ class MultiProjectRun(Directory):
         """
         return [a for a in self._processing_artefacts]
 
-    def make_archive(self,out_dir=None):
+    def make_archive(self,out_dir=None,volume_size=None):
         """
         Makes an archive directory
 
         Arguments:
           out_dir (str): directory under which the archive
             will be created
+          volume_size (int/str): if set then creates a
+            multi-volume archive with the specified
+            volume size
 
         Returns:
           ArchiveDirectory: object representing the generated
@@ -420,7 +431,8 @@ class MultiProjectRun(Directory):
                                 sub_dirs=self.project_dirs,
                                 misc_objects=self._processing_artefacts,
                                 misc_archive_name="processing",
-                                extra_files=(self._projects_info,))
+                                extra_files=(self._projects_info,),
+                                volume_size=volume_size)
 
 class ArchiveFile:
     """
@@ -569,7 +581,7 @@ def get_rundir_instance(d):
 
 def make_archive_dir(d,out_dir=None,sub_dirs=None,
                      misc_objects=None,misc_archive_name="miscellenous",
-                     extra_files=None,multi_volume=False):
+                     extra_files=None,volume_size=None):
     """
     Create an archive directory
 
@@ -590,11 +602,16 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
       extra_files (list): optional, if supplied then
         each specified file will be copied to the
         archive directory without archiving
+      volume_size (int/str): if set then creates a
+        multi-volume archive using the specified
+        volume size
 
     Returns:
       ArchiveDirectory: object representing the generated
         archive directory.
     """
+    # Multi-volume archive?
+    multi_volume = (volume_size is not None)
     # Make top level archive dir
     if not out_dir:
         out_dir = os.getcwd()
@@ -619,6 +636,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     archive_contents = {
         'archives': [],
         'files': [],
+        'multi_volume': multi_volume,
+        'volume_size': volume_size,
     }
     # Make archive
     if not sub_dirs:
@@ -633,7 +652,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
             a = make_archive_multitgz(archive_basename,
                                       d.path,
                                       base_dir=d.basename,
-                                      size="250M")
+                                      size=volume_size)
             for a_ in a:
                 archive_contents['archives'].append(os.path.basename(str(a_)))
     else:
@@ -652,34 +671,49 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 a = make_archive_multitgz(archive_basename,
                                           dd.path,
                                           base_dir=prefix,
-                                          size="250M")
+                                          size=volume_size)
                 for a_ in a:
                     archive_contents['archives'].\
                         append(os.path.basename(str(a_)))
-        # Put additional miscellaneous artefacts into a separate
-        # archive
+        # Collect miscellaneous artefacts into a separate archive
         if misc_objects:
-            tmp_dir = os.path.join(archive_dir,
-                                   "tmp_%s" % misc_archive_name,
-                                   d.basename)
-            os.makedirs(tmp_dir)
-            dd = Directory(tmp_dir)
-            try:
-                for o in misc_objects:
-                    o = os.path.join(d.path,o)
-                    if os.path.isdir(o):
-                        dst = os.path.join(tmp_dir,os.path.basename(o))
-                        shutil.copytree(o,dst,symlinks=True)
-                    else:
-                        shutil.copy2(o,tmp_dir,follow_symlinks=False)
-                md5file = os.path.join(archive_dir,
-                                       "%s.md5" % misc_archive_name)
-                dd.get_checksums(md5file)
-                a = dd.make_archive("gztar",archive_dir,
-                                    archive_name=misc_archive_name)
+            # Collect individual artefacts
+            file_list = []
+            for o in misc_objects:
+                o = os.path.join(d.path,o)
+                file_list.append(o)
+                if os.path.isdir(o):
+                    for o_ in Directory(o).walk():
+                        file_list.append(os.path.join(o,o_))
+            print("Collected %d miscellaneous objects" % len(file_list))
+            # Make MD5 file
+            md5file = os.path.join(archive_dir,
+                                   "%s.md5" % misc_archive_name)
+            prefix = d.basename
+            with open(md5file,'wt') as fp:
+                for f in file_list:
+                    if not os.path.isfile(f):
+                        continue
+                    ff = os.path.join(prefix,
+                                      os.path.relpath(f,d.path))
+                    fp.write("%s  %s\n" % (md5sum(f),ff))
+            # Make archive(s)
+            archive_basename = os.path.join(archive_dir,misc_archive_name)
+            if not multi_volume:
+                a = make_archive_tgz(archive_basename,
+                                     d.path,
+                                     base_dir=prefix,
+                                     file_list=file_list)
                 archive_contents['archives'].append(os.path.basename(str(a)))
-            finally:
-                shutil.rmtree(dd.parent_dir)
+            else:
+                a = make_archive_multitgz(archive_basename,
+                                          d.path,
+                                          base_dir=prefix,
+                                          file_list=file_list,
+                                          size=volume_size)
+                for a_ in a:
+                    archive_contents['archives'].\
+                        append(os.path.basename(str(a_)))
         # Copy in extra files
         if extra_files:
             for f in extra_files:
@@ -759,7 +793,8 @@ def verify_checksums(md5file,root_dir=None,verbose=False):
                 print("%s: bad checksum line" % line.rstrip('\n'))
         return True
 
-def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz"):
+def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
+                     file_list=None):
     """
     Make a 'gztar' archive from the contents of a directory
 
@@ -782,6 +817,8 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz"):
     root_dir = d.path
     with tarfile.open(archive_name,'w:gz') as tgz:
         for o in d.walk():
+            if file_list and o not in file_list:
+                continue
             arcname = os.path.relpath(o,root_dir)
             if base_dir:
                 arcname = os.path.join(base_dir,arcname)
@@ -789,7 +826,7 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz"):
     return archive_name
 
 def make_archive_multitgz(base_name,root_dir,base_dir=None,
-                          size="250M",ext="tar.gz"):
+                          size="250M",ext="tar.gz",file_list=None):
     """
     Make a multi-volume 'gztar' archive of directory contents
 
@@ -836,6 +873,8 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
     archive_list = []
     tgz = None
     for o in d.walk():
+        if file_list and o not in file_list:
+            continue
         if not tgz:
             archive_name = "%s.%02d.%s" % (base_name,indx,ext)
             tgz = tarfile.open(archive_name,'w:gz')
