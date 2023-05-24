@@ -11,12 +11,13 @@
 # Imports
 #######################################################################
 
-
 import os
 import shutil
 import math
 import stat
 import json
+import time
+import tarfile
 from pathlib import Path
 from bcftbx.Md5sum import md5sum
 from auto_process_ngs.command import Command
@@ -701,6 +702,134 @@ def verify_checksums(md5file,root_dir=None,verbose=False):
             except ValueError:
                 print("%s: bad checksum line" % line.rstrip('\n'))
         return True
+
+def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz"):
+    """
+    Make a 'gztar' archive from the contents of a directory
+
+    Arguments:
+      base_name (str): base name of output archive file
+        (can include leading path)
+      root_dir (str): path to the directory which will
+        archived; archive contents will be relative to
+        this path
+      base_dir (str): optional path to be prepended to
+        the paths of the archive contents
+      ext (str): optionally explicitly specify the archive
+        file extension (default: 'tar.gz')
+
+    Returns:
+      String: archive name.
+    """
+    d = Directory(root_dir)
+    archive_name = "%s.%s" % (base_name,ext)
+    root_dir = d.path
+    with tarfile.open(archive_name,'w:gz') as tgz:
+        for o in d.walk():
+            arcname = os.path.relpath(o,root_dir)
+            if base_dir:
+                arcname = os.path.join(base_dir,arcname)
+            tgz.add(o,arcname=arcname,recursive=False)
+    return archive_name
+
+def make_archive_multitgz(base_name,root_dir,base_dir=None,
+                          size="250M",ext="tar.gz"):
+    """
+    Make a multi-volume 'gztar' archive of directory contents
+
+    Creates a set of one or more tar.gz files ("volumes")
+    which together store the contents of the specified
+    directory.
+
+    Each volume is named 'BASE_NAME.NN.tar.gz', where
+    'NN' is a volume number, for example:
+
+    ``example.01.tar.gz``
+
+    The 'size' arguments sets an approximate limit on the
+    size of each volume, with new volumes being created
+    each time the previous one exceeds this limit.
+
+    Arguments:
+      base_name (str): base name of output archive file
+        (can include leading path)
+      root_dir (str): path to the directory which will
+        archived; archive contents will be relative to
+        this path
+      base_dir (str): optional path to be prepended to
+        the paths of the archive contents
+      size (int/str): specifies the approximate volume
+        size; if an integer then is a number of bytes,
+        otherwise can be a string of the form '1G', '100M'
+        etc (default: '250M')
+      ext (str): optionally explicitly specify the archive
+        file extension (default: 'tar.gz')
+
+    Returns:
+      List: list of the archive volumes.
+    """
+    try:
+        max_size = int(str(size))
+    except ValueError:
+        units = str(size)[-1].upper()
+        p = "KMGTP".index(units) + 1
+        max_size = int(str(size)[:-1]) * int(math.pow(1024,p))
+    d = Directory(root_dir)
+    indx = 0
+    archive_name = None
+    archive_list = []
+    tgz = None
+    for o in d.walk():
+        if not tgz:
+            archive_name = "%s.%02d.%s" % (base_name,indx,ext)
+            tgz = tarfile.open(archive_name,'w:gz')
+            archive_list.append(archive_name)
+        arcname = os.path.relpath(o,root_dir)
+        if base_dir:
+            arcname = os.path.join(base_dir,arcname)
+        tgz.add(o,arcname=arcname,recursive=False)
+        if os.path.getsize(archive_name) > max_size:
+            indx += 1
+            tgz.close()
+            tgz = None
+    if tgz:
+        tgz.close()
+    return archive_list
+
+def unpack_archive_multitgz(archive_list,extract_dir=None):
+    """
+    Unpack a multi-volume 'gztar' archive
+
+    Arguments:
+      archive_list (list): list of archive volumes to
+        unpack
+      extract_dir (str): specifies directory to unpack
+        volumes into (default: current directory)
+    """
+    if extract_dir is None:
+        extract_dir = os.getcwd()
+    for a in archive_list:
+        print("Extracting %s..." % a)
+        # Use this rather than 'tgz.extractall()' to deal
+        # with potential permissions issues (for example
+        # if a read-only directory appears in multiple
+        # volumes)
+        with tarfile.open(a,'r:gz',errorlevel=1) as tgz:
+            for o in tgz:
+                try:
+                    tgz.extract(o,path=extract_dir,set_attrs=False)
+                except Exception as ex:
+                    print("Exception extracting '%s' from '%s': %s"
+                          % (o.name,a,ex))
+                    raise ex
+    atime = time.time()
+    for a in archive_list:
+        print("Updating attributes from %s..." % a)
+        with tarfile.open(a,'r:gz',errorlevel=1) as tgz:
+            for o in tgz:
+                o_ = os.path.join(extract_dir,o.name)
+                os.chmod(o_,o.mode)
+                os.utime(o_,(atime,o.mtime))
 
 def du_size(p):
     """
