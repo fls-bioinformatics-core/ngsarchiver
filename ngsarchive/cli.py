@@ -51,6 +51,15 @@ def main():
                                   help="Make archive of a directory")
     parser_archive.add_argument('dir',
                                 help="path to directory")
+    parser_archive.add_argument('-o','--out-dir',metavar='OUT_DIR',
+                                action='store',dest='out_dir',
+                                help="create archive under OUT_DIR "
+                                "(default: current directory)")
+    parser_archive.add_argument('-s','--volume-size',metavar='SIZE',
+                                action='store',dest='volume_size',
+                                help="create multi-volume subarchives "
+                                "with approx limit of SIZE (e.g. "
+                                "'100M', '25G' etc)")
     parser_archive.add_argument('--force',action='store_true',
                                 help="ignore problems about unreadable "
                                 "files and external symlinks")
@@ -66,6 +75,10 @@ def main():
                                   help="Unpack (extract) an archive")
     parser_unpack.add_argument('archive',
                                help="path to archive directory")
+    parser_unpack.add_argument('-o','--out-dir',metavar='OUT_DIR',
+                               action='store',dest='out_dir',
+                               help="unpack archive under OUT_DIR "
+                               "(default: current directory)")
 
     # 'verify_copy' command
     parser_verify_copy = s.add_parser('verify_copy',
@@ -121,10 +134,20 @@ def main():
             else:
                 logger.critical("readability and/or symlink issues")
                 return 1
+        print("Archiving settings:")
+        print("-- destination : %s" % ('CWD' if not args.out_dir
+                                       else args.out_dir))
+        if args.volume_size:
+            print("-- multi-volume: yes")
+            print("-- volume size : %s" % args.volume_size)
+        else:
+            print("-- multi-volume: no")
         print("Archiving %s..." % d)
-        a = d.make_archive()
-        print("Archive: %s (%s)" % (a,format_size(a.size,
-                                                  human_readable=True)))
+        a = d.make_archive(out_dir=args.out_dir,
+                           volume_size=args.volume_size)
+        print("Created archive: %s (%s)" % (a,
+                                            format_size(a.size,
+                                                        human_readable=True)))
 
     # 'Verify' subcommand
     if args.subcommand == 'verify':
@@ -140,10 +163,11 @@ def main():
     # 'Unpack' subcommand
     if args.subcommand == 'unpack':
         a = ArchiveDirectory(args.archive)
-        print("Unpacking %s" % a)
-        d = a.unpack()
-        print("Directory: %s" % d)
-        return 1
+        print("Unpacking archive: %s" % a)
+        print("Destination      : %s" % ('CWD' if not args.out_dir
+                                         else args.out_dir))
+        d = a.unpack(extract_dir=args.out_dir)
+        print("Unpacked directory: %s" % d)
 
     # 'Verify_copy' subcommand
     if args.subcommand == 'verify_copy':
