@@ -731,6 +731,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     json_file = os.path.join(ngsarchive_dir,"archive_contents.json")
     with open(json_file,'wt') as fp:
         json.dump(archive_contents,fp,indent=2)
+    # Update the attributes on the archive directory
+    shutil.copystat(d.path,archive_dir)
     return ArchiveDirectory(archive_dir)
 
 def md5sum(f):
