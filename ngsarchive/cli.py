@@ -11,7 +11,6 @@
 # Imports
 #######################################################################
 
-import os
 import logging
 from argparse import ArgumentParser
 from .archive import ArchiveDirectory
@@ -100,9 +99,7 @@ def main():
         print("Path: %s" % d.path)
         print("Type: %s" % d.__class__.__name__)
         print("Size: %s" % format_size(size,human_readable=True))
-        compressed_file_size = 0
-        for f in d.compressed_files:
-            compressed_file_size += os.path.getsize(f)
+        compressed_file_size = d.getsize(d.compressed_files)
         print("Compressed contents: %s [%.1f%%]" %
               (format_size(compressed_file_size,human_readable=True),
               float(compressed_file_size)/float(size)*100.0))

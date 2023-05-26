@@ -72,10 +72,7 @@ class Directory:
         """
         Return total size of directory in bytes
         """
-        size = 0
-        for o in self.walk():
-            size += os.path.getsize(os.path.join(self._path,o))
-        return int(size)
+        return self.getsize(self.walk())
 
     @property
     def du_size(self):
@@ -185,6 +182,29 @@ class Directory:
         for o in self.unknown_uids:
             return True
         return False
+
+    def getsize(self,file_list):
+        """
+        Return total size of all objects in a list
+
+        This method attempts to identify objects with
+        the same inode number, and only counts their
+        size once (regardless of the number of times
+        they appear).
+        """
+        size = 0
+        inodes = set()
+        for o in file_list:
+            o_ = os.path.join(self._path,o)
+            st = os.lstat(o_)
+            if st.st_nlink == 1:
+                size += st.st_size
+            else:
+                inode = st.st_ino
+                if inode not in inodes:
+                    size += st.st_size
+                    inodes.add(inode)
+        return int(size)
 
     def check_mode(self,mode):
         """
@@ -937,13 +957,13 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
     for o in d.walk():
         if file_list and o not in file_list:
             continue
-        if archive_name and (os.path.getsize(archive_name) >
-                             (max_size - os.path.getsize(o))):
+        if archive_name and (getsize(archive_name) >
+                             (max_size - getsize(o))):
             indx += 1
             tgz.close()
             tgz = None
         if not tgz:
-            if os.path.getsize(o) > max_size:
+            if getsize(o) > max_size:
                 raise NgsArchiveException("%s: object is larger than "
                                           "volume size" % o)
             archive_name = "%s.%02d.%s" % (base_name,indx,ext)
@@ -991,6 +1011,18 @@ def unpack_archive_multitgz(archive_list,extract_dir=None):
                 o_ = os.path.join(extract_dir,o.name)
                 os.chmod(o_,o.mode)
                 os.utime(o_,(atime,o.mtime))
+
+def getsize(p):
+    """
+    Return the size of a filesystem object
+
+    Uses the 'lstat' function so symlinks will have
+    their actual size reported (rather than the size
+    of the target).
+
+    Should be used in preference to 'os.path.getsize'.
+    """
+    return os.lstat(p).st_size
 
 def du_size(p):
     """
