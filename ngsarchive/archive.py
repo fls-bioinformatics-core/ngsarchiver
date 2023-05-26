@@ -131,6 +131,27 @@ class Directory:
             return True
         return False
 
+    @property
+    def hard_linked_files(self):
+        """
+        Return files that are hard links
+
+        Yields objects that are files and that have a
+        link count greater than one.
+        """
+        for o in self.walk():
+            if os.path.isfile(o) and os.stat(o).st_nlink > 1:
+                yield o
+
+    @property
+    def has_hard_linked_files(self):
+        """
+        Check if directory contains hard links
+        """
+        for o in self.hard_linked_files:
+            return True
+        return False
+
     def check_mode(self,mode):
         """
         Check if all files and subdirectories have 'mode'

@@ -113,9 +113,17 @@ def main():
                 has_external_symlinks = True
             if not has_external_symlinks:
                 print("-- no external symlinks")
+            print("Hard linked files:")
+            has_hard_links = False
+            for f in d.hard_linked_files:
+                print("-- %s" % f)
+                has_hard_links = True
+            if not has_hard_linked_files:
+                print("-- no hard linked files")
         else:
-            print("Readable : %s" % d.is_readable)
+            print("Unreadable files : %s" % (not d.is_readable))
             print("External symlinks: %s" % d.has_external_symlinks)
+            print("Hard linked files: %s" % d.has_hard_linked_files)
 
     # 'Archive' subcommand
     if args.subcommand == "archive":
@@ -126,14 +134,24 @@ def main():
         print("-- size          : %s" % format_size(size,
                                                     human_readable=True))
         is_readable = d.is_readable
-        print("-- readable      : %s" % is_readable)
+        print("-- unreadable files : %s" % (not is_readable))
         has_external_symlinks = d.has_external_symlinks
-        print("-- external links: %s" % has_external_symlinks)
+        print("-- external symlinks: %s" % has_external_symlinks)
+        has_hard_linked_files = d.has_hard_linked_files
+        print("-- hard linked files: %s" % has_hard_linked_files)
         if has_external_symlinks or not is_readable:
+            msg = "Readability or symlink issues detected"
             if args.force:
-                logger.warning("readability and/or symlink issues (ignored)")
+                logger.warning("%s (ignored)" % msg)
             else:
-                logger.critical("readability and/or symlink issues")
+                logger.critical(msg)
+                return 1
+        if has_hard_linked_files and args.volume_size:
+            msg = "Hard links detected with multi-volume archiving"
+            if args.force:
+                logger.warning("%s (ignored)" % msg)
+            else:
+                logger.critical(msg)
                 return 1
         print("Archiving settings:")
         print("-- destination : %s" % ('CWD' if not args.out_dir
