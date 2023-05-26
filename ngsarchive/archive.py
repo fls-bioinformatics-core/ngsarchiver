@@ -152,6 +152,19 @@ class Directory:
             return True
         return False
 
+    @property
+    def compressed_files(self):
+        """
+        Return files that are compressed
+
+        Yields paths to files that end with '.gz', '.bz2'
+        or '.zip'
+        """
+        for o in self.walk():
+            if os.path.isfile(o) and \
+               o.split('.')[-1] in ('gz','bz2','zip'):
+                yield o
+
     def check_mode(self,mode):
         """
         Check if all files and subdirectories have 'mode'
