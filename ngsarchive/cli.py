@@ -120,9 +120,10 @@ def main():
     # 'Archive' subcommand
     if args.subcommand == "archive":
         d = get_rundir_instance(args.dir)
+        size = d.size
         print("Checking %s..." % d)
         print("-- type          : %s" % d.__class__.__name__)
-        print("-- size          : %s" % format_size(d.size,
+        print("-- size          : %s" % format_size(size,
                                                     human_readable=True))
         is_readable = d.is_readable
         print("-- readable      : %s" % is_readable)
@@ -145,9 +146,11 @@ def main():
         print("Archiving %s..." % d)
         a = d.make_archive(out_dir=args.out_dir,
                            volume_size=args.volume_size)
-        print("Created archive: %s (%s)" % (a,
-                                            format_size(a.size,
-                                                        human_readable=True)))
+        archive_size = a.size
+        print("Created archive: %s (%s) [%.1f%% compression]" %
+              (a,
+               format_size(archive_size,human_readable=True),
+               float(archive_size)/float(size)*100.0))
 
     # 'Verify' subcommand
     if args.subcommand == 'verify':
