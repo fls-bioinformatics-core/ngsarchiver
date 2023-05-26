@@ -128,10 +128,17 @@ def main():
                 has_hard_links = True
             if not has_hard_linked_files:
                 print("-- no hard linked files")
+            has_unknown_uids = False
+            for f in d.unknown_uids:
+                print("-- %s" % f)
+                has_unknown_uids = True
+            if not has_unknown_uids:
+                print("-- no files with unknown UIDs")
         else:
             print("Unreadable files : %s" % (not d.is_readable))
             print("External symlinks: %s" % d.has_external_symlinks)
             print("Hard linked files: %s" % d.has_hard_linked_files)
+            print("Unknown UIDs     : %s" % d.has_unknown_uids)
 
     # 'Archive' subcommand
     if args.subcommand == "archive":
@@ -147,6 +154,8 @@ def main():
         print("-- external symlinks: %s" % has_external_symlinks)
         has_hard_linked_files = d.has_hard_linked_files
         print("-- hard linked files: %s" % has_hard_linked_files)
+        has_unknown_uids = d.has_unknown_uids
+        print("-- unknown UIDs     : %s" % has_unknown_uids)
         if has_external_symlinks or not is_readable:
             msg = "Readability or symlink issues detected"
             if args.force:

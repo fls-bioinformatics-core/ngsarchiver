@@ -165,6 +165,27 @@ class Directory:
                o.split('.')[-1] in ('gz','bz2','zip'):
                 yield o
 
+    @property
+    def unknown_uids(self):
+        """
+        Return paths that have unrecognised UIDs
+        """
+        for o in self.walk():
+            try:
+                Path(o).owner()
+            except KeyError:
+                # UID not in the system database
+                yield o
+
+    @property
+    def has_unknown_uids(self):
+        """
+        Check if any paths have unrecognised UIDs
+        """
+        for o in self.unknown_uids:
+            return True
+        return False
+
     def check_mode(self,mode):
         """
         Check if all files and subdirectories have 'mode'
@@ -660,7 +681,11 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     with open(manifest,'wt') as fp:
         for o in d.walk():
             o = Path(o)
-            owner = Path(o).owner()
+            try:
+                owner = Path(o).owner()
+            except KeyError:
+                # Unknown user, fall back to UID
+                owner = os.stat(o,follow_symlinks=False).st_uid
             group = Path(o).group()
             fp.write("{owner}\t{group}\t{obj}\n".format(
                 owner=owner,
