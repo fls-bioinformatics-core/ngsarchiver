@@ -9,7 +9,7 @@ Copyright (C) University of Manchester 2023 Peter Briggs
 # Hack to acquire all scripts that we want to
 # install into 'bin'
 from glob import glob
-scripts = []
+scripts = ['bin/archiver']
 for pattern in ('bin/*.py',):
     scripts.extend(glob(pattern))
 
