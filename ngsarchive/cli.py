@@ -58,8 +58,8 @@ def main():
     parser_archive.add_argument('-s','--volume-size',metavar='SIZE',
                                 action='store',dest='volume_size',
                                 help="create multi-volume subarchives "
-                                "with approx limit of SIZE (e.g. "
-                                "'100M', '25G' etc)")
+                                "with each subarchiver no greater "
+                                "than SIZE (e.g. '100M', '25G' etc)")
     parser_archive.add_argument('--force',action='store_true',
                                 help="ignore problems about unreadable "
                                 "files and external symlinks")

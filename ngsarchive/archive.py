@@ -877,7 +877,15 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
     for o in d.walk():
         if file_list and o not in file_list:
             continue
+        if archive_name and (os.path.getsize(archive_name) >
+                             (max_size - os.path.getsize(o))):
+            indx += 1
+            tgz.close()
+            tgz = None
         if not tgz:
+            if os.path.getsize(o) > max_size:
+                raise NgsArchiveException("%s: object is larger than "
+                                          "volume size" % o)
             archive_name = "%s.%02d.%s" % (base_name,indx,ext)
             tgz = tarfile.open(archive_name,'w:gz')
             archive_list.append(archive_name)
@@ -885,10 +893,6 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
         if base_dir:
             arcname = os.path.join(base_dir,arcname)
         tgz.add(o,arcname=arcname,recursive=False)
-        if os.path.getsize(archive_name) > max_size:
-            indx += 1
-            tgz.close()
-            tgz = None
     if tgz:
         tgz.close()
     return archive_list
