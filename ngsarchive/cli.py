@@ -149,12 +149,14 @@ def main():
         print("-- unreadable files : %s" % (not is_readable))
         has_external_symlinks = d.has_external_symlinks
         print("-- external symlinks: %s" % has_external_symlinks)
-        has_hard_linked_files = d.has_hard_linked_files
-        print("-- hard linked files: %s" % has_hard_linked_files)
         has_unknown_uids = d.has_unknown_uids
         print("-- unknown UIDs     : %s" % has_unknown_uids)
-        if has_external_symlinks or not is_readable:
-            msg = "Readability or symlink issues detected"
+        has_hard_linked_files = d.has_hard_linked_files
+        print("-- hard linked files: %s" % has_hard_linked_files)
+        if has_external_symlinks or \
+           not is_readable or \
+           has_unknown_uids:
+            msg = "Readability, symlink and/or UID issues detected"
             if args.force:
                 logger.warning("%s (ignored)" % msg)
             else:
@@ -179,7 +181,7 @@ def main():
         a = d.make_archive(out_dir=args.out_dir,
                            volume_size=args.volume_size)
         archive_size = a.size
-        print("Created archive: %s (%s) [%.1f%% compression]" %
+        print("Created archive: %s (%s) [%.1f%%]" %
               (a,
                format_size(archive_size,human_readable=True),
                float(archive_size)/float(size)*100.0))
