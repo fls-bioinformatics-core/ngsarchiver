@@ -20,6 +20,7 @@ import time
 import tarfile
 import hashlib
 import subprocess
+import fnmatch
 from pathlib import Path
 from .exceptions import NgsArchiveException
 
@@ -553,6 +554,51 @@ class ArchiveDirectory(Directory):
         """
         raise NgsArchiveException("%s: can't archive an archive "
                                   "directory" % self.path)
+
+    def search(self,name=None,path=None,case_insensitive=False):
+        """
+        Search archive contents
+
+        Searches the paths in the archive using the
+        supplied shell-style pattern(s).
+
+        Arguments:
+          name (str): if supplied then is matched against
+            only the filename part of the path for each
+            member of the archive (i.e. with leading
+            directory name removed)
+          path (str): if supplied then is matched against
+            the complete path for each member of the
+            archive
+          case_insensitive (bool): if True then search
+            will be case-insensitive (default: False,
+            search is case sensitive)
+        """
+        if not name and not path:
+            # Nothing to do
+            return
+        md5_files = [os.path.join(self.path,f)
+                     for f in os.listdir(self.path)
+                     if f.endswith('.md5')]
+        if case_insensitive:
+            if name:
+                name = name.lower()
+            if path:
+                path = path.lower()
+        for f in md5_files:
+            with open(f,'rt') as fp:
+                for line in fp:
+                    p = '  '.join(line.rstrip('\n').split('  ')[1:])
+                    if case_insensitive:
+                        p_ = p.lower()
+                    else:
+                        p_ = p
+                    if name:
+                        if fnmatch.fnmatch(os.path.basename(p_),name):
+                            yield p
+                    if path:
+                        if fnmatch.fnmatch(p_,path):
+                            yield p
 
     def unpack(self,extract_dir=None,verify=True,set_read_write=True):
         """

@@ -90,6 +90,21 @@ def main():
     parser_verify_copy.add_argument('dir2',
                                     help="path to second directory")
 
+    # 'search' command
+    parser_search = s.add_parser('search',
+                                 help="search within one or more archives")
+    parser_search.add_argument('archives',
+                               nargs="+",metavar="archive",
+                               help="path to archive directory")
+    parser_search.add_argument('-name',metavar='pattern',action='store',
+                               help="pattern to match base of file names")
+    parser_search.add_argument('-path',metavar='pattern',action='store',
+                               help="pattern to match full paths")
+    parser_search.add_argument('-i',dest='case_insensitive',
+                               action='store_true',
+                               help="use case-insensitive pattern matching "
+                               "(default is to respect case)")
+
     # Parse the arguments
     args = p.parse_args()
     
@@ -222,3 +237,16 @@ def main():
         else:
             print("-- failed")
             return 1
+
+    # 'Search' subcommand
+    if args.subcommand == 'search':
+        include_archive_name = len(args.archives) > 1
+        for archive_dir in args.archives:
+            d = ArchiveDirectory(archive_dir)
+            for f in d.search(name=args.name,
+                              path=args.path,
+                              case_insensitive=args.case_insensitive):
+                if include_archive_name:
+                    print("%s:%s" % (d.path,f))
+                else:
+                    print(f)
