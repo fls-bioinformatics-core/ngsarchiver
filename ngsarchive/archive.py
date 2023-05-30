@@ -183,7 +183,7 @@ class Directory:
             return True
         return False
 
-    def getsize(self,file_list):
+    def getsize(self,file_list,blocksize=512):
         """
         Return total size of all objects in a list
 
@@ -198,11 +198,17 @@ class Directory:
             o_ = os.path.join(self._path,o)
             st = os.lstat(o_)
             if st.st_nlink == 1:
-                size += st.st_size
+                if blocksize:
+                    size += st.st_blocks * blocksize
+                else:
+                    size += st.st_size
             else:
                 inode = st.st_ino
                 if inode not in inodes:
-                    size += st.st_size
+                    if blocksize:
+                        size += st.st_blocks * blocksize
+                    else:
+                        size += st.st_size
                     inodes.add(inode)
         return int(size)
 
@@ -1012,7 +1018,7 @@ def unpack_archive_multitgz(archive_list,extract_dir=None):
                 os.chmod(o_,o.mode)
                 os.utime(o_,(atime,o.mtime))
 
-def getsize(p):
+def getsize(p,blocksize=512):
     """
     Return the size of a filesystem object
 
@@ -1021,7 +1027,14 @@ def getsize(p):
     of the target).
 
     Should be used in preference to 'os.path.getsize'.
+
+    Arguments:
+      blocksize (int): if supplied then size will
+        the number of blocks multipled by the
+        supplied value (default: 512)
     """
+    if blocksize:
+        return os.lstat(p).st_blocks * blocksize
     return os.lstat(p).st_size
 
 def du_size(p):
