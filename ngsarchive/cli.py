@@ -14,6 +14,7 @@
 import logging
 from argparse import ArgumentParser
 from .archive import ArchiveDirectory
+from .archive import convert_size_to_bytes
 from .archive import format_size
 from .archive import get_rundir_instance
 
@@ -169,17 +170,22 @@ def main():
             else:
                 logger.critical(msg)
                 return 1
+        volume_size = args.volume_size
+        if volume_size and convert_size_to_bytes(volume_size) > size:
+            logger.warning("volume size larger than uncompressed "
+                           "size, disabling multi-volume archive")
+            volume_size = None
         print("Archiving settings:")
         print("-- destination : %s" % ('CWD' if not args.out_dir
                                        else args.out_dir))
-        if args.volume_size:
+        if volume_size:
             print("-- multi-volume: yes")
-            print("-- volume size : %s" % args.volume_size)
+            print("-- volume size : %s" % volume_size)
         else:
             print("-- multi-volume: no")
         print("Archiving %s..." % d)
         a = d.make_archive(out_dir=args.out_dir,
-                           volume_size=args.volume_size)
+                           volume_size=volume_size)
         archive_size = a.size
         print("Created archive: %s (%s) [%.1f%%]" %
               (a,

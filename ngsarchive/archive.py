@@ -949,13 +949,8 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
     Returns:
       List: list of the archive volumes.
     """
-    try:
-        max_size = int(str(size))
-    except ValueError:
-        units = str(size)[-1].upper()
-        p = "KMGTP".index(units) + 1
-        max_size = int(str(size)[:-1]) * int(math.pow(1024,p))
     d = Directory(root_dir)
+    max_size = convert_size_to_bytes(size)
     indx = 0
     archive_name = None
     archive_list = []
@@ -1050,6 +1045,21 @@ def du_size(p):
         return int(output.split('\t')[0])
     except subprocess.CalledProcessError as ex:
         raise Exception("%s: 'du' failed: %s" % (p,ex))
+
+def convert_size_to_bytes(size):
+    """
+    Return generic size string converted to bytes
+
+    Arguments:
+      size (str): can be an integer or a string of the
+        form '1.4G' etc
+    """
+    try:
+        return int(str(size))
+    except ValueError:
+        units = str(size)[-1].upper()
+        p = "KMGTP".index(units) + 1
+        return int(str(size)[:-1]) * int(math.pow(1024,p))
 
 def format_size(size,units='K',human_readable=False):
     """
