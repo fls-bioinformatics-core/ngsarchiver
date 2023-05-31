@@ -710,6 +710,40 @@ class ArchiveDirectory(Directory):
     def __repr__(self):
         return self._path
 
+class ArchiveDirMember:
+    """
+    Class representing a member of an archive directory
+
+    Has the following properties:
+
+    - 'path': path of the member within the archive
+    - 'archive': subarchive name that contains the
+      member
+    - 'md5': the MD5 checksum for the member
+
+    Arguments:
+      path (str): path of the member
+      archive (str): subarchive name (without leading
+        directory)
+      md5 (str): MD5 checksum
+    """
+    def __init__(self,path,archive,md5):
+        self._path = path
+        self._archive = archive
+        self._md5 = md5
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def archive(self):
+        return self._archive
+
+    @property
+    def md5(self):
+        return self._md5
+
 #######################################################################
 # Functions
 #######################################################################
