@@ -247,6 +247,6 @@ def main():
                               path=args.path,
                               case_insensitive=args.case_insensitive):
                 if include_archive_name:
-                    print("%s:%s" % (d.path,f))
+                    print("%s:%s" % (d.path,f.path))
                 else:
-                    print(f)
+                    print(f.path)

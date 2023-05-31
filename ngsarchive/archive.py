@@ -592,7 +592,8 @@ class ArchiveDirectory(Directory):
         Search archive contents
 
         Searches the paths in the archive using the
-        supplied shell-style pattern(s).
+        supplied shell-style pattern(s) and returns
+        the matches as ArchiveDirMember instances.
 
         Arguments:
           name (str): if supplied then is matched against
@@ -622,10 +623,10 @@ class ArchiveDirectory(Directory):
                 p_ = p
             if name:
                 if fnmatch.fnmatch(os.path.basename(p_),name):
-                    yield p
+                    yield m
             if path:
                 if fnmatch.fnmatch(p_,path):
-                    yield p
+                    yield m
 
     def unpack(self,extract_dir=None,verify=True,set_read_write=True):
         """
