@@ -21,8 +21,16 @@ import tarfile
 import hashlib
 import subprocess
 import fnmatch
+import logging
 from pathlib import Path
 from .exceptions import NgsArchiveException
+
+#######################################################################
+# Logger
+#######################################################################
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level="INFO",format='%(levelname)s: %(message)s')
 
 #######################################################################
 # Module constants
