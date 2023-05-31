@@ -523,6 +523,18 @@ class ArchiveFile:
     def __init__(self,f):
         self._path = os.path.abspath(f)
 
+    def list(self):
+        """
+        List the names (paths) stored in the archive
+        """
+        if self._path.endswith('.tar.gz'):
+            with tarfile.open(self._path,'r:gz') as tgz:
+                for name in tgz.getnames():
+                    yield name
+        else:
+            raise NotImplementedError("%s: 'list' not implemented for "
+                                      "archive type" % self._path)
+
     def unpack(self,extract_dir=None):
         """
         Unpacks the archive
