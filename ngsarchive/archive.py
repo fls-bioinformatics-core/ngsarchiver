@@ -636,6 +636,62 @@ class ArchiveDirectory(Directory):
                 if fnmatch.fnmatch(p_,path):
                     yield m
 
+    def extract_files(self,name,extract_dir=None,include_path=False):
+        """
+        Extract a subset of files based on supplied pattern
+
+        Arguments:
+          name (str): pattern to match either basename or full
+            path of archive members to be extracted
+          extract_dir (str): if supplied then extracted files
+            will be created relative to this directory (defaults
+            to current directory)
+          include_path (str): if True then files will be
+            extracted with their paths preserved (default is not
+            to preserve leading directories)
+        """
+        if not extract_dir:
+            extract_dir = os.getcwd()
+        for m in self.search(name=name,path=name):
+            if include_path:
+                # Destination includes with leading path
+                f = os.path.join(extract_dir,m.path)
+            else:
+                # Destination doesn't include leading path
+                f = os.path.join(extract_dir,os.path.basename(m.path))
+            if os.path.exists(f):
+                logger.warning("%s: file '%s' already exists, skipping" %
+                               (self.path,f))
+                continue
+            with tarfile.open(m.archive,'r:gz') as tgz:
+                # Get information on archive member
+                tgzf = tgz.getmember(m.path)
+                if tgzf.isdir():
+                    logger.warning("%s: '%s' is directory, skipping" %
+                                   (self.path,m.path))
+                    continue
+                print("-- extracting '%s' (%s)" %
+                      (m.path,
+                       format_size(tgzf.size,human_readable=True)))
+                if include_path:
+                    # Extract with leading path
+                    tgz.extract(m.path,path=extract_dir,set_attrs=False)
+                else:
+                    # Extract without leading path
+                    tgzfp = tgz.extractfile(m.path)
+                    with open(f,'wb') as fp:
+                        fp.write(tgzfp.read())
+                    tgzfp.close()
+                # Set initial permissions
+                os.chmod(f,tgzf.mode)
+            # Update permissions to include read/write
+            os.chmod(f,os.stat(f).st_mode | stat.S_IRUSR | stat.S_IWUSR)
+            # Verify MD5 sum
+            if md5sum(f) != m.md5:
+                raise NgsArchiveException("%s: MD5 check failed "
+                                          "when extracting '%s'" %
+                                          (self.path,m.path))
+
     def unpack(self,extract_dir=None,verify=True,set_read_write=True):
         """
         Unpacks the archive
