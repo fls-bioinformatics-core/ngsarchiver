@@ -802,8 +802,6 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     # Make archive
     if not sub_dirs:
         # Put all content into a single archive
-        md5file = os.path.join(archive_dir,"%s.md5" % d.basename)
-        Directory.get_checksums(d,md5file)
         if not multi_volume:
             a = Directory.make_archive(d,'gztar',archive_dir)
             archive_contents['archives'].append(os.path.basename(str(a)))
@@ -819,8 +817,6 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         # Make archives for each subdir
         for s in sub_dirs:
             dd = Directory(os.path.join(d.path,s))
-            md5file = os.path.join(archive_dir,"%s.md5" % s)
-            dd.get_checksums(md5file,include_parent=True)
             if not multi_volume:
                 a = dd.make_archive("gztar",archive_dir,include_parent=True)
                 archive_contents['archives'].append(os.path.basename(str(a)))
@@ -847,19 +843,9 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                         file_list.append(os.path.join(o,o_))
             print("-- archiving %d miscellaneous objects under '%s'" %
                   (len(file_list),misc_archive_name))
-            # Make MD5 file
-            md5file = os.path.join(archive_dir,
-                                   "%s.md5" % misc_archive_name)
-            prefix = d.basename
-            with open(md5file,'wt') as fp:
-                for f in file_list:
-                    if not os.path.isfile(f):
-                        continue
-                    ff = os.path.join(prefix,
-                                      os.path.relpath(f,d.path))
-                    fp.write("%s  %s\n" % (md5sum(f),ff))
             # Make archive(s)
             archive_basename = os.path.join(archive_dir,misc_archive_name)
+            prefix = d.basename
             if not multi_volume:
                 a = make_archive_tgz(archive_basename,
                                      d.path,
@@ -882,6 +868,16 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                     f = os.path.join(d.path,f)
                 shutil.copy2(f,archive_dir)
                 archive_contents['files'].append(os.path.basename(f))
+    # Generate checksums for each subarchive
+    for a in archive_contents['archives']:
+        subarchive = ArchiveFile(os.path.join(archive_dir,a))
+        md5file = os.path.join(archive_dir,
+                               "%s.md5" % a[:-len('.tar.gz')])
+        with open(md5file,'wt') as fp:
+            for f in subarchive.list():
+                ff = os.path.join(d.parent_dir,f)
+                if os.path.isfile(ff):
+                    fp.write("%s  %s\n" % (md5sum(ff),f))
     # Checksums for archive contents
     file_list = archive_contents['archives'] + archive_contents['files']
     with open(os.path.join(ngsarchive_dir,"archive.md5"),'wt') as fp:
