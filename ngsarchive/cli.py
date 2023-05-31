@@ -105,6 +105,25 @@ def main():
                                help="use case-insensitive pattern matching "
                                "(default is to respect case)")
 
+    # 'extract_files' command
+    parser_extract_files = s.add_parser('extract_files',
+                                        help="extract specific files from an "
+                                        "archive")
+    parser_extract_files.add_argument('archive',
+                                      help="path to archive directory")
+    parser_extract_files.add_argument('-name',action='store',
+                                      help="name or pattern to match base "
+                                      "of file names to be extracted")
+    parser_extract_files.add_argument('-o','--out-dir',metavar='OUT_DIR',
+                                      action='store',dest='out_dir',
+                                      help="extract files into OUT_DIR "
+                                      "(default: current directory)")
+    parser_extract_files.add_argument('-k','--keep-path',
+                                      action='store_true',
+                                      help="preserve the leading directory "
+                                      "paths when extracting files (default "
+                                      "is to drop leading paths)")
+
     # Parse the arguments
     args = p.parse_args()
     
@@ -250,3 +269,10 @@ def main():
                     print("%s:%s" % (d.path,f.path))
                 else:
                     print(f.path)
+
+    # 'Extract_files' subcommand
+    if args.subcommand == 'extract_files':
+        a = ArchiveDirectory(args.archive)
+        a.extract_files(args.name,
+                        extract_dir=args.out_dir,
+                        include_path=args.keep_path)
