@@ -571,13 +571,8 @@ class ArchiveDirectory(Directory):
         """
         List contents of the archive
 
-        Returns each of the members of the archive as a
-        tuple:
-
-        (PATH,SUBARCHIVE)
-
-        where PATH is the path of the member and SUBARCHIVE
-        is the subarchive that the member is located in.
+        Returns each of the members of the archive as an
+        'ArchiveDirMember' instance.
         """
         md5_files = [os.path.join(self.path,f)
                      for f in os.listdir(self.path)
@@ -586,8 +581,11 @@ class ArchiveDirectory(Directory):
             archive_name = os.path.basename(f)[:-len('.md5')]
             with open(f,'rt') as fp:
                 for line in fp:
-                    yield ('  '.join(line.rstrip('\n').split('  ')[1:]),
-                           archive_name)
+                    yield ArchiveDirMember(
+                        path='  '.join(line.rstrip('\n').split('  ')[1:]),
+                        archive=os.path.join(self.path,
+                                             archive_name+'.tar.gz'),
+                        md5=line.split('  ')[0])
 
     def search(self,name=None,path=None,case_insensitive=False):
         """
@@ -617,7 +615,7 @@ class ArchiveDirectory(Directory):
             if path:
                 path = path.lower()
         for m in self.list():
-            p = m[0]
+            p = m.path
             if case_insensitive:
                 p_ = p.lower()
             else:
