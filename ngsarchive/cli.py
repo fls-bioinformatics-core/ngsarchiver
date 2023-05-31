@@ -242,8 +242,8 @@ def main():
     if args.subcommand == 'search':
         include_archive_name = len(args.archives) > 1
         for archive_dir in args.archives:
-            d = ArchiveDirectory(archive_dir)
-            for f in d.search(name=args.name,
+            a = ArchiveDirectory(archive_dir)
+            for f in a.search(name=args.name,
                               path=args.path,
                               case_insensitive=args.case_insensitive):
                 if include_archive_name:
