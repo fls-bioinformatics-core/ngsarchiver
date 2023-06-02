@@ -17,6 +17,7 @@ from .archive import ArchiveDirectory
 from .archive import convert_size_to_bytes
 from .archive import format_size
 from .archive import get_rundir_instance
+from . import get_version
 
 #######################################################################
 # Logger
@@ -34,6 +35,7 @@ def main():
     """
     # Top-level parser
     p = ArgumentParser(description="NGS data archiving utility")
+    p.add_argument('--version',action='version',version=get_version())
 
     # Subcommands
     s = p.add_subparsers(dest='subcommand')
