@@ -68,6 +68,9 @@ def main():
                                 "used when creating archives (1-9, "
                                 "higher value means more compression) "
                                 "(default: 6)")
+    parser_archive.add_argument('-g','--group',action='store',
+                                help="set the group on the final "
+                                "archive")
     parser_archive.add_argument('--force',action='store_true',
                                 help="ignore problems about unreadable "
                                 "files and external symlinks")
@@ -225,11 +228,16 @@ def main():
         else:
             print("-- multi-volume: no")
         print("-- compression : %s" % args.compresslevel)
+        print("-- group       : %s" % ('<default>' if not args.group
+                                       else args.group))
         print("Archiving %s..." % d)
         a = d.make_archive(out_dir=args.out_dir,
                            volume_size=volume_size,
                            compresslevel=args.compresslevel)
         archive_size = a.size
+        if args.group:
+            print("Setting group to '%s'..." % args.group)
+            a.chown(group=args.group)
         print("Created archive: %s (%s) [%.1f%%]" %
               (a,
                format_size(archive_size,human_readable=True),
