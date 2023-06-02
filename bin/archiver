@@ -4,6 +4,14 @@
 #     Copyright (C) University of Manchester 2023 Peter Briggs
 #
 import sys
-from ngsarchive.cli import main
+try:
+     from ngsarchive.cli import main
+except ImportError:
+     # Hack to try and make library modules available
+     from os.path import normpath
+     from os.path import dirname
+     __NGSARCHIVE_LIB = normpath(dirname(dirname(__file__)))
+     sys.path.append(__NGSARCHIVE_LIB)
+     from ngsarchive.cli import main
 if __name__ == "__main__":
      sys.exit(main())
