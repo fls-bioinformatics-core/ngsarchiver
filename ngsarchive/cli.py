@@ -61,6 +61,13 @@ def main():
                                 help="create multi-volume subarchives "
                                 "with each subarchiver no greater "
                                 "than SIZE (e.g. '100M', '25G' etc)")
+    parser_archive.add_argument('-l','--compress-level',metavar='LEVEL',
+                                action='store',dest='compresslevel',
+                                type=int,default=6,
+                                help="specify gzip compression level "
+                                "used when creating archives (1-9, "
+                                "higher value means more compression) "
+                                "(default: 6)")
     parser_archive.add_argument('--force',action='store_true',
                                 help="ignore problems about unreadable "
                                 "files and external symlinks")
@@ -217,9 +224,11 @@ def main():
             print("-- volume size : %s" % volume_size)
         else:
             print("-- multi-volume: no")
+        print("-- compression : %s" % args.compresslevel)
         print("Archiving %s..." % d)
         a = d.make_archive(out_dir=args.out_dir,
-                           volume_size=volume_size)
+                           volume_size=volume_size,
+                           compresslevel=args.compresslevel)
         archive_size = a.size
         print("Created archive: %s (%s) [%.1f%%]" %
               (a,
