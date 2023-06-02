@@ -17,6 +17,8 @@ import math
 import stat
 import json
 import time
+import pwd
+import grp
 import tarfile
 import hashlib
 import subprocess
@@ -323,6 +325,30 @@ class Directory:
                 print("%s: present in copy only" % o_)
                 return False
         return True
+
+    def chown(self,owner=None,group=None):
+        """
+        Set owner and/or group on directory and contents
+
+        Arguments:
+          owner (str): name of user to set owner to (set to
+            None to leave owner unchanged)
+          group (str): name of group to set group ownership
+            too (set to None to leave group unchanged)
+        """
+        if not owner and not group:
+            return
+        if owner:
+            uid = pwd.getpwnam(user).pw_uid
+        else:
+            uid = -1
+        if group:
+            gid = grp.getgrnam(group).gr_gid
+        else:
+            gid = -1
+        for o in self.walk():
+            os.chown(o,uid,gid)
+        os.chown(self.path,uid,gid)
 
     def walk(self):
         """
