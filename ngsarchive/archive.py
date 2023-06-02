@@ -392,7 +392,8 @@ class GenericRun(Directory):
     def __init__(self,d):
         Directory.__init__(self,d)
 
-    def make_archive(self,out_dir=None,volume_size=None):
+    def make_archive(self,out_dir=None,volume_size=None,
+                     compresslevel=6):
         """
         Makes an archive directory
 
@@ -402,13 +403,16 @@ class GenericRun(Directory):
           volume_size (int/str): if set then creates a
             multi-volume archive with the specified
             volume size
+          compresslevel (int): optionally specify the
+            gzip compression level (default: 6)
 
         Returns:
           ArchiveDirectory: object representing the generated
             archive directory.
         """
         return make_archive_dir(self,out_dir=out_dir,
-                                volume_size=volume_size)
+                                volume_size=volume_size,
+                                compresslevel=compresslevel)
 
 class MultiSubdirRun(Directory):
     """
@@ -432,7 +436,8 @@ class MultiSubdirRun(Directory):
                                           self._path)
         self._sub_dirs = sub_dirs
 
-    def make_archive(self,out_dir=None,volume_size=None):
+    def make_archive(self,out_dir=None,volume_size=None,
+                     compresslevel=6):
         """
         Makes an archive directory
 
@@ -442,6 +447,8 @@ class MultiSubdirRun(Directory):
           volume_size (int/str): if set then creates a
             multi-volume archive with the specified
             volume size
+          compresslevel (int): optionally specify the
+            gzip compression level (default: 6)
 
         Returns:
           ArchiveDirectory: object representing the generated
@@ -449,7 +456,8 @@ class MultiSubdirRun(Directory):
         """
         return make_archive_dir(self,out_dir=out_dir,
                                 sub_dirs=self._sub_dirs,
-                                volume_size=volume_size)
+                                volume_size=volume_size,
+                                compresslevel=compresslevel)
 
 class MultiProjectRun(Directory):
     """
@@ -502,7 +510,8 @@ class MultiProjectRun(Directory):
         """
         return [a for a in self._processing_artefacts]
 
-    def make_archive(self,out_dir=None,volume_size=None):
+    def make_archive(self,out_dir=None,volume_size=None,
+                     compresslevel=6):
         """
         Makes an archive directory
 
@@ -512,6 +521,8 @@ class MultiProjectRun(Directory):
           volume_size (int/str): if set then creates a
             multi-volume archive with the specified
             volume size
+          compresslevel (int): optionally specify the
+            gzip compression level (default: 6)
 
         Returns:
           ArchiveDirectory: object representing the generated
@@ -522,7 +533,8 @@ class MultiProjectRun(Directory):
                                 misc_objects=self._processing_artefacts,
                                 misc_archive_name="processing",
                                 extra_files=(self._projects_info,),
-                                volume_size=volume_size)
+                                volume_size=volume_size,
+                                compresslevel=compresslevel)
 
 class ArchiveFile:
     """
@@ -834,7 +846,8 @@ def get_rundir_instance(d):
 
 def make_archive_dir(d,out_dir=None,sub_dirs=None,
                      misc_objects=None,misc_archive_name="miscellenous",
-                     extra_files=None,volume_size=None):
+                     extra_files=None,volume_size=None,
+                     compresslevel=6):
     """
     Create an archive directory
 
@@ -858,6 +871,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
       volume_size (int/str): if set then creates a
         multi-volume archive using the specified
         volume size
+      compresslevel (int): optionally specify the
+        gzip compression level (default: 6)
 
     Returns:
       ArchiveDirectory: object representing the generated
@@ -900,31 +915,39 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     if not sub_dirs:
         # Put all content into a single archive
         if not multi_volume:
-            a = Directory.make_archive(d,'gztar',archive_dir)
+            archive_basename = os.path.join(archive_dir,d.basename)
+            a = make_archive_tgz(archive_basename,
+                                 d.path,
+                                 base_dir=d.basename,
+                                 compresslevel=compresslevel)
             archive_contents['archives'].append(os.path.basename(str(a)))
         else:
-            archive_basename = os.path.join(archive_dir,d.basename)
             a = make_archive_multitgz(archive_basename,
                                       d.path,
                                       base_dir=d.basename,
-                                      size=volume_size)
+                                      size=volume_size,
+                                      compresslevel=compresslevel)
             for a_ in a:
                 archive_contents['archives'].append(os.path.basename(str(a_)))
     else:
         # Make archives for each subdir
         for s in sub_dirs:
             dd = Directory(os.path.join(d.path,s))
+            archive_basename = os.path.join(archive_dir,dd.basename)
+            prefix = os.path.join(os.path.basename(dd.parent_dir),
+                                  dd.basename)
             if not multi_volume:
-                a = dd.make_archive("gztar",archive_dir,include_parent=True)
+                a = make_archive_tgz(archive_basename,
+                                     dd.path,
+                                     base_dir=prefix,
+                                     compresslevel=compresslevel)
                 archive_contents['archives'].append(os.path.basename(str(a)))
             else:
-                archive_basename = os.path.join(archive_dir,dd.basename)
-                prefix = os.path.join(os.path.basename(dd.parent_dir),
-                                      dd.basename)
                 a = make_archive_multitgz(archive_basename,
                                           dd.path,
                                           base_dir=prefix,
-                                          size=volume_size)
+                                          size=volume_size,
+                                          compresslevel=compresslevel)
                 for a_ in a:
                     archive_contents['archives'].\
                         append(os.path.basename(str(a_)))
@@ -947,14 +970,16 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 a = make_archive_tgz(archive_basename,
                                      d.path,
                                      base_dir=prefix,
-                                     file_list=file_list)
+                                     file_list=file_list,
+                                     compresslevel=compresslevel)
                 archive_contents['archives'].append(os.path.basename(str(a)))
             else:
                 a = make_archive_multitgz(archive_basename,
                                           d.path,
                                           base_dir=prefix,
                                           file_list=file_list,
-                                          size=volume_size)
+                                          size=volume_size,
+                                          compresslevel=compresslevel)
                 for a_ in a:
                     archive_contents['archives'].\
                         append(os.path.basename(str(a_)))
@@ -1050,7 +1075,7 @@ def verify_checksums(md5file,root_dir=None,verbose=False):
         return True
 
 def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
-                     file_list=None):
+                     compresslevel=6,file_list=None):
     """
     Make a 'gztar' archive from the contents of a directory
 
@@ -1064,6 +1089,11 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
         the paths of the archive contents
       ext (str): optionally explicitly specify the archive
         file extension (default: 'tar.gz')
+      compresslevel (int): optionally specify the
+        gzip compression level (default: 6)
+      file_list (list): specifies a subset of paths to
+        include in the archive (default: include all
+        paths)
 
     Returns:
       String: archive name.
@@ -1071,7 +1101,8 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
     d = Directory(root_dir)
     archive_name = "%s.%s" % (base_name,ext)
     root_dir = d.path
-    with tarfile.open(archive_name,'w:gz') as tgz:
+    with tarfile.open(archive_name,'w:gz',compresslevel=compresslevel) \
+         as tgz:
         for o in d.walk():
             if file_list and o not in file_list:
                 continue
@@ -1082,7 +1113,8 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
     return archive_name
 
 def make_archive_multitgz(base_name,root_dir,base_dir=None,
-                          size="250M",ext="tar.gz",file_list=None):
+                          size="250M",ext="tar.gz",compresslevel=6,
+                          file_list=None):
     """
     Make a multi-volume 'gztar' archive of directory contents
 
@@ -1113,6 +1145,11 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
         etc (default: '250M')
       ext (str): optionally explicitly specify the archive
         file extension (default: 'tar.gz')
+      compresslevel (int): optionally specify the
+        gzip compression level (default: 6)
+      file_list (list): specifies a subset of paths to
+        include in the archive (default: include all
+        paths)
 
     Returns:
       List: list of the archive volumes.
@@ -1126,17 +1163,19 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
     for o in d.walk():
         if file_list and o not in file_list:
             continue
+        size = getsize(o)
         if archive_name and (getsize(archive_name) >
-                             (max_size - getsize(o))):
+                             (max_size - size)):
             indx += 1
             tgz.close()
             tgz = None
         if not tgz:
-            if getsize(o) > max_size:
+            if size > max_size:
                 raise NgsArchiveException("%s: object is larger than "
                                           "volume size" % o)
             archive_name = "%s.%02d.%s" % (base_name,indx,ext)
-            tgz = tarfile.open(archive_name,'w:gz')
+            tgz = tarfile.open(archive_name,'w:gz',
+                               compresslevel=compresslevel)
             archive_list.append(archive_name)
         arcname = os.path.relpath(o,root_dir)
         if base_dir:
