@@ -74,6 +74,9 @@ def main():
     parser_archive.add_argument('--force',action='store_true',
                                 help="ignore problems about unreadable "
                                 "files and external symlinks")
+    parser_archive.add_argument('--check',action='store_true',
+                                help="check for and warn about potential "
+                                "issues; don't perform archiving")
 
     # 'verify' command
     parser_verify = s.add_parser('verify',
@@ -186,6 +189,7 @@ def main():
     if args.subcommand == "archive":
         d = get_rundir_instance(args.dir)
         size = d.size
+        check_status = 0
         print("Checking %s..." % d)
         print("-- type          : %s" % d.__class__.__name__)
         print("-- size          : %s" % format_size(size,
@@ -202,14 +206,20 @@ def main():
            not is_readable or \
            has_unknown_uids:
             msg = "Readability, symlink and/or UID issues detected"
-            if args.force:
+            if args.check:
+                logger.warning(msg)
+                check_status = 1
+            elif args.force:
                 logger.warning("%s (ignored)" % msg)
             else:
                 logger.critical(msg)
                 return 1
         if has_hard_linked_files and args.volume_size:
             msg = "Hard links detected with multi-volume archiving"
-            if args.force:
+            if args.check:
+                logger.warning(msg)
+                check_status = 1
+            elif args.force:
                 logger.warning("%s (ignored)" % msg)
             else:
                 logger.critical(msg)
@@ -219,6 +229,13 @@ def main():
             logger.warning("volume size larger than uncompressed "
                            "size, disabling multi-volume archive")
             volume_size = None
+        if args.check:
+            if check_status == 0:
+                print("Checks: OK")
+            else:
+                print("Checks: FAILED")
+            # Stop here
+            return check_status
         print("Archiving settings:")
         print("-- destination : %s" % ('CWD' if not args.out_dir
                                        else args.out_dir))
