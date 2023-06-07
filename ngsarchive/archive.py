@@ -1166,7 +1166,11 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
             arcname = os.path.relpath(o,root_dir)
             if base_dir:
                 arcname = os.path.join(base_dir,arcname)
-            tgz.add(o,arcname=arcname,recursive=False)
+            try:
+                tgz.add(o,arcname=arcname,recursive=False)
+            except Exception as ex:
+                raise NgsArchiveException("%s: unable to add '%s' to "
+                                          "archive: %s" % (d.path,o,ex))
     return archive_name
 
 def make_archive_multitgz(base_name,root_dir,base_dir=None,
@@ -1220,7 +1224,12 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
     for o in d.walk():
         if file_list and o not in file_list:
             continue
-        size = getsize(o)
+        try:
+            size = getsize(o)
+        except Exception as ex:
+            raise NgsArchiveException("%s: unable to get size of '%s' "
+                                      "for multi-volume archiving: %s"
+                                      % (d.path,o,ex))
         if archive_name and (getsize(archive_name) >
                              (max_size - size)):
             indx += 1
@@ -1237,7 +1246,12 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
         arcname = os.path.relpath(o,root_dir)
         if base_dir:
             arcname = os.path.join(base_dir,arcname)
-        tgz.add(o,arcname=arcname,recursive=False)
+        try:
+            tgz.add(o,arcname=arcname,recursive=False)
+        except Exception as ex:
+            raise NgsArchiveException("%s: unable to add '%s' to "
+                                      "multi-volume archive: %s"
+                                      % (d.path,o,ex))
     if tgz:
         tgz.close()
     return archive_list
