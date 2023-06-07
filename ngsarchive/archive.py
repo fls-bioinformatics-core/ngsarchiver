@@ -605,6 +605,15 @@ class ArchiveDirectory(Directory):
         if not os.path.isdir(self._ngsarchive_dir):
             raise NgsArchiveException("%s: not an archive directory" %
                                       self.path)
+        self._json_file = os.path.join(self._ngsarchive_dir,
+                                       "archive_metadata.json")
+        try:
+            with open(self._json_file,'rt') as fp:
+                self._archive_metadata = json.loads(fp.read())
+        except Exception as ex:
+            raise NgsArchiveException("%s: failed to load archive "
+                                      "metadata from '%s': %s" %
+                                      (self.path,self._json_file,ex))
 
     def make_archive(self,*args,**kws):
         """
@@ -758,21 +767,16 @@ class ArchiveDirectory(Directory):
                                       "directory in destination '%s' "
                                       "directory" % (self._path,
                                                      extract_dir))
-        # Get metadata
-        json_file = os.path.join(self._ngsarchive_dir,
-                                 "archive_contents.json")
-        with open(json_file,'rt') as fp:
-            archive_contents = json.load(fp)
         # Create destination directory
         os.mkdir(d)
         # Copy file artefacts
-        for f in archive_contents['files']:
+        for f in self._archive_metadata['files']:
             print("-- copying %s" % f)
             f = os.path.join(self._path,f)
             shutil.copy2(f,d)
         # Unpack individual archive files
         unpack_archive_multitgz([os.path.join(self._path,a)
-                                 for a in archive_contents['archives']],
+                                 for a in self._archive_metadata['archives']],
                                 extract_dir)
         # Do checksum verification on unpacked archive
         if verify:
@@ -935,7 +939,9 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 group=group,
                 obj=o.relative_to(d.path)))
     # Record contents
-    archive_contents = {
+    archive_metadata = {
+        'name': d.basename,
+        'source': d.path,
         'archives': [],
         'files': [],
         'multi_volume': multi_volume,
@@ -950,7 +956,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                  d.path,
                                  base_dir=d.basename,
                                  compresslevel=compresslevel)
-            archive_contents['archives'].append(os.path.basename(str(a)))
+            archive_metadata['archives'].append(os.path.basename(str(a)))
         else:
             a = make_archive_multitgz(archive_basename,
                                       d.path,
@@ -958,7 +964,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                       size=volume_size,
                                       compresslevel=compresslevel)
             for a_ in a:
-                archive_contents['archives'].append(os.path.basename(str(a_)))
+                archive_metadata['archives'].append(os.path.basename(str(a_)))
     else:
         # Make archives for each subdir
         for s in sub_dirs:
@@ -971,7 +977,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                      dd.path,
                                      base_dir=prefix,
                                      compresslevel=compresslevel)
-                archive_contents['archives'].append(os.path.basename(str(a)))
+                archive_metadata['archives'].append(os.path.basename(str(a)))
             else:
                 a = make_archive_multitgz(archive_basename,
                                           dd.path,
@@ -979,7 +985,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                           size=volume_size,
                                           compresslevel=compresslevel)
                 for a_ in a:
-                    archive_contents['archives'].\
+                    archive_metadata['archives'].\
                         append(os.path.basename(str(a_)))
         # Collect miscellaneous artefacts into a separate archive
         if misc_objects:
@@ -1002,7 +1008,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                      base_dir=prefix,
                                      file_list=file_list,
                                      compresslevel=compresslevel)
-                archive_contents['archives'].append(os.path.basename(str(a)))
+                archive_metadata['archives'].append(os.path.basename(str(a)))
             else:
                 a = make_archive_multitgz(archive_basename,
                                           d.path,
@@ -1011,7 +1017,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                           size=volume_size,
                                           compresslevel=compresslevel)
                 for a_ in a:
-                    archive_contents['archives'].\
+                    archive_metadata['archives'].\
                         append(os.path.basename(str(a_)))
         # Copy in extra files
         if extra_files:
@@ -1019,9 +1025,9 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 if not os.path.isabs(f):
                     f = os.path.join(d.path,f)
                 shutil.copy2(f,archive_dir)
-                archive_contents['files'].append(os.path.basename(f))
+                archive_metadata['files'].append(os.path.basename(f))
     # Generate checksums for each subarchive
-    for a in archive_contents['archives']:
+    for a in archive_metadata['archives']:
         subarchive = ArchiveFile(os.path.join(archive_dir,a))
         md5file = os.path.join(archive_dir,
                                "%s.md5" % a[:-len('.tar.gz')])
@@ -1031,15 +1037,15 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 if os.path.isfile(ff):
                     fp.write("%s  %s\n" % (md5sum(ff),f))
     # Checksums for archive contents
-    file_list = archive_contents['archives'] + archive_contents['files']
+    file_list = archive_metadata['archives'] + archive_metadata['files']
     with open(os.path.join(ngsarchive_dir,"archive.md5"),'wt') as fp:
         for f in file_list:
             fp.write("%s  %s\n" % (md5sum(os.path.join(archive_dir,f)),
                                    f))
     # Write archive contents to JSON file
-    json_file = os.path.join(ngsarchive_dir,"archive_contents.json")
+    json_file = os.path.join(ngsarchive_dir,"archive_metadata.json")
     with open(json_file,'wt') as fp:
-        json.dump(archive_contents,fp,indent=2)
+        json.dump(archive_metadata,fp,indent=2)
     # Update the attributes on the archive directory
     shutil.copystat(d.path,archive_dir)
     return ArchiveDirectory(archive_dir)
