@@ -42,7 +42,7 @@ def main():
 
     # 'info' command
     parser_info = s.add_parser('info',
-                               help="Get information on a directory")
+                               help="get information on a directory")
     parser_info.add_argument('dir',
                              help="path to directory")
     parser_info.add_argument('--list',action='store_true',
@@ -51,7 +51,7 @@ def main():
 
     # 'archive' command
     parser_archive = s.add_parser('archive',
-                                  help="Make archive of a directory")
+                                  help="make archive copy of a directory")
     parser_archive.add_argument('dir',
                                 help="path to directory")
     parser_archive.add_argument('-o','--out-dir',metavar='OUT_DIR',
@@ -82,13 +82,15 @@ def main():
 
     # 'verify' command
     parser_verify = s.add_parser('verify',
-                                  help="Verify an archive directory")
+                                  help="verify integrity of an archive "
+                                 "directory")
     parser_verify.add_argument('archive',
                                help="path to archive directory")
 
     # 'unpack' command
     parser_unpack = s.add_parser('unpack',
-                                  help="Unpack (extract) an archive")
+                                  help="unpack (extract) all files from an "
+                                 "archive")
     parser_unpack.add_argument('archive',
                                help="path to archive directory")
     parser_unpack.add_argument('-o','--out-dir',metavar='OUT_DIR',
@@ -96,14 +98,14 @@ def main():
                                help="unpack archive under OUT_DIR "
                                "(default: current directory)")
 
-    # 'verify_copy' command
-    parser_verify_copy = s.add_parser('verify_copy',
-                                      help="check one directory against "
-                                      "another")
-    parser_verify_copy.add_argument('dir1',
-                                    help="path to first directory")
-    parser_verify_copy.add_argument('dir2',
-                                    help="path to second directory")
+    # 'compare' command
+    parser_compare = s.add_parser('compare',
+                                  help="check one directory against "
+                                  "another")
+    parser_compare.add_argument('dir1',
+                                help="path to first directory")
+    parser_compare.add_argument('dir2',
+                                help="path to second directory")
 
     # 'search' command
     parser_search = s.add_parser('search',
@@ -120,24 +122,24 @@ def main():
                                help="use case-insensitive pattern matching "
                                "(default is to respect case)")
 
-    # 'extract_files' command
-    parser_extract_files = s.add_parser('extract_files',
-                                        help="extract specific files from an "
-                                        "archive")
-    parser_extract_files.add_argument('archive',
-                                      help="path to archive directory")
-    parser_extract_files.add_argument('-name',action='store',
-                                      help="name or pattern to match base "
-                                      "of file names to be extracted")
-    parser_extract_files.add_argument('-o','--out-dir',metavar='OUT_DIR',
-                                      action='store',dest='out_dir',
-                                      help="extract files into OUT_DIR "
-                                      "(default: current directory)")
-    parser_extract_files.add_argument('-k','--keep-path',
-                                      action='store_true',
-                                      help="preserve the leading directory "
-                                      "paths when extracting files (default "
-                                      "is to drop leading paths)")
+    # 'extract' command
+    parser_extract = s.add_parser('extract',
+                                  help="extract specific files from an "
+                                  "archive")
+    parser_extract.add_argument('archive',
+                                help="path to archive directory")
+    parser_extract.add_argument('-name',action='store',
+                                help="name or pattern to match base "
+                                "of file names to be extracted")
+    parser_extract.add_argument('-o','--out-dir',metavar='OUT_DIR',
+                                action='store',dest='out_dir',
+                                help="extract files into OUT_DIR "
+                                "(default: current directory)")
+    parser_extract.add_argument('-k','--keep-path',
+                                action='store_true',
+                                help="preserve the leading directory "
+                                "paths when extracting files (default "
+                                "is to drop leading paths)")
 
     # Parse the arguments
     args = p.parse_args()
@@ -282,10 +284,10 @@ def main():
         d = a.unpack(extract_dir=args.out_dir)
         print("Unpacked directory: %s" % d)
 
-    # 'Verify_copy' subcommand
-    if args.subcommand == 'verify_copy':
+    # 'Compare' subcommand
+    if args.subcommand == 'compare':
         d1 = get_rundir_instance(args.dir1)
-        print("Verifying %s against %s" % (d1,args.dir2))
+        print("Comparing %s against %s" % (d1,args.dir2))
         if d1.verify_copy(args.dir2):
             print("-- ok")
             return 0
@@ -306,8 +308,8 @@ def main():
                 else:
                     print(f.path)
 
-    # 'Extract_files' subcommand
-    if args.subcommand == 'extract_files':
+    # 'Extract' subcommand
+    if args.subcommand == 'extract':
         a = ArchiveDirectory(args.archive)
         a.extract_files(args.name,
                         extract_dir=args.out_dir,
