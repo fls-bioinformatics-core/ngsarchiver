@@ -922,10 +922,14 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
             o = Path(o)
             try:
                 owner = Path(o).owner()
-            except KeyError:
+            except (KeyError,FileNotFoundError):
                 # Unknown user, fall back to UID
                 owner = os.stat(o,follow_symlinks=False).st_uid
-            group = Path(o).group()
+            try:
+                group = Path(o).group()
+            except (KeyError,FileNotFoundError):
+                # Unknown group, fall back to GID
+                group = os.stat(o,follow_symlinks=False).st_gid
             fp.write("{owner}\t{group}\t{obj}\n".format(
                 owner=owner,
                 group=group,
