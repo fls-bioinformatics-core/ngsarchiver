@@ -629,6 +629,17 @@ class ArchiveDirectory(Directory):
         Returns each of the members of the archive as an
         'ArchiveDirMember' instance.
         """
+        # Members outside archive files
+        md5s = {}
+        with open(os.path.join(self._ngsarchive_dir,"archive.md5"),'rt') as fp:
+            for line in fp:
+                f = '  '.join(line.rstrip('\n').split('  ')[1:])
+                if f in self._archive_metadata['files']:
+                    yield ArchiveDirMember(
+                        path=os.path.join(self._archive_metadata['name'],f),
+                        archive='file',
+                        md5=line.split('  ')[0])
+        # Members inside archive files
         md5_files = [os.path.join(self.path,f)
                      for f in os.listdir(self.path)
                      if f.endswith('.md5')]
@@ -701,7 +712,7 @@ class ArchiveDirectory(Directory):
             extract_dir = os.getcwd()
         for m in self.search(name=name,path=name):
             if include_path:
-                # Destination includes with leading path
+                # Destination includes leading path
                 f = os.path.join(extract_dir,m.path)
             else:
                 # Destination doesn't include leading path
@@ -710,25 +721,35 @@ class ArchiveDirectory(Directory):
                 logger.warning("%s: file '%s' already exists, skipping" %
                                (self.path,f))
                 continue
-            with tarfile.open(m.archive,'r:gz') as tgz:
-                # Get information on archive member
-                tgzf = tgz.getmember(m.path)
-                if tgzf.isdir():
-                    logger.warning("%s: '%s' is directory, skipping" %
-                                   (self.path,m.path))
-                    continue
+            if m.archive == 'file':
+                # Top level file
+                fsrc = os.path.join(self.path,os.path.basename(m.path))
                 print("-- extracting '%s' (%s)" %
                       (m.path,
-                       format_size(tgzf.size,human_readable=True)))
-                if include_path:
-                    # Extract with leading path
-                    tgz.extract(m.path,path=extract_dir,set_attrs=False)
-                else:
-                    # Extract without leading path
-                    tgzfp = tgz.extractfile(m.path)
-                    with open(f,'wb') as fp:
-                        fp.write(tgzfp.read())
-                    tgzfp.close()
+                       format_size(getsize(fsrc),human_readable=True)))
+                os.makedirs(os.path.dirname(f),exist_ok=True)
+                shutil.copy2(fsrc,os.path.join(os.path.dirname(f)))
+            else:
+                # Subarchive member
+                with tarfile.open(m.archive,'r:gz') as tgz:
+                    # Get information on archive member
+                    tgzf = tgz.getmember(m.path)
+                    if tgzf.isdir():
+                        logger.warning("%s: '%s' is directory, skipping" %
+                                       (self.path,m.path))
+                        continue
+                    print("-- extracting '%s' (%s)" %
+                          (m.path,
+                           format_size(tgzf.size,human_readable=True)))
+                    if include_path:
+                        # Extract with leading path
+                        tgz.extract(m.path,path=extract_dir,set_attrs=False)
+                    else:
+                        # Extract without leading path
+                        tgzfp = tgz.extractfile(m.path)
+                        with open(f,'wb') as fp:
+                            fp.write(tgzfp.read())
+                        tgzfp.close()
                 # Set initial permissions
                 os.chmod(f,tgzf.mode)
             # Update permissions to include read/write
