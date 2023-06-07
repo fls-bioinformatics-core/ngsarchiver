@@ -940,8 +940,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     # Make archive
     if not sub_dirs:
         # Put all content into a single archive
+        archive_basename = os.path.join(archive_dir,d.basename)
         if not multi_volume:
-            archive_basename = os.path.join(archive_dir,d.basename)
             a = make_archive_tgz(archive_basename,
                                  d.path,
                                  base_dir=d.basename,
