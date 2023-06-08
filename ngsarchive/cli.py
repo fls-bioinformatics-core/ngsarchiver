@@ -255,7 +255,7 @@ def main():
         print("-- compression : %s" % args.compresslevel)
         print("-- group       : %s" % ('<default>' if not args.group
                                        else args.group))
-        print("Archiving %s..." % d)
+        print("Making archive from %s..." % d)
         a = d.make_archive(out_dir=args.out_dir,
                            volume_size=volume_size,
                            compresslevel=args.compresslevel)
