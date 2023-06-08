@@ -155,6 +155,10 @@ def main():
         print("Compressed contents: %s [%.1f%%]" %
               (format_size(compressed_file_size,human_readable=True),
               float(compressed_file_size)/float(size)*100.0))
+        if isinstance(d,ArchiveDirectory):
+            for item in d.archive_metadata:
+                print("-- %s: %s" % (item,d.archive_metadata[item]))
+            return
         if args.list:
             print("Unreadable files:")
             is_readable = True
