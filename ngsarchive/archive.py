@@ -615,6 +615,14 @@ class ArchiveDirectory(Directory):
                                       "metadata from '%s': %s" %
                                       (self.path,self._json_file,ex))
 
+    @property
+    def archive_metadata(self):
+        """
+        Return dictionary with archive metadata
+        """
+        return { k : self._archive_metadata[k]
+                 for k in self._archive_metadata }
+
     def make_archive(self,*args,**kws):
         """
         Disable the archiving method inherited from base class
