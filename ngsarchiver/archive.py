@@ -1033,8 +1033,6 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 if os.path.isdir(o):
                     for o_ in Directory(o).walk():
                         file_list.append(os.path.join(o,o_))
-            print("-- archiving %d miscellaneous objects under '%s'" %
-                  (len(file_list),misc_archive_name))
             # Make archive(s)
             archive_basename = os.path.join(archive_dir,misc_archive_name)
             prefix = d.basename
