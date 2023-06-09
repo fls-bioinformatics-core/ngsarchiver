@@ -19,6 +19,7 @@ import json
 import time
 import pwd
 import grp
+import time
 import tarfile
 import hashlib
 import fnmatch
@@ -888,6 +889,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         'source': d.path,
         'subarchives': [],
         'files': [],
+        'user': os.getlogin(),
+        'creation_date': None,
         'multi_volume': multi_volume,
         'volume_size': volume_size,
         'compression_level': compresslevel,
@@ -975,20 +978,23 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 archive_metadata['files'].append(os.path.basename(f))
     # Generate checksums for each subarchive
     for a in archive_metadata['subarchives']:
-        subarchive = ArchiveFile(os.path.join(archive_dir,a))
+        subarchive = os.path.join(archive_dir,a)
         md5file = os.path.join(archive_dir,
                                "%s.md5" % a[:-len('.tar.gz')])
         with open(md5file,'wt') as fp:
-            for f in subarchive.list():
-                ff = os.path.join(d.parent_dir,f)
-                if os.path.isfile(ff):
-                    fp.write("%s  %s\n" % (md5sum(ff),f))
+            with tarfile.open(subarchive,'r:gz') as tgz:
+                for f in tgz.getnames():
+                    ff = os.path.join(d.parent_dir,f)
+                    if os.path.isfile(ff):
+                        fp.write("%s  %s\n" % (md5sum(ff),f))
     # Checksums for archive contents
     file_list = archive_metadata['subarchives'] + archive_metadata['files']
     with open(os.path.join(ngsarchiver_dir,"archive.md5"),'wt') as fp:
         for f in file_list:
             fp.write("%s  %s\n" % (md5sum(os.path.join(archive_dir,f)),
                                    f))
+    # Update the creation date
+    archive_metadata['creation_date'] = time.strftime("%Y-%m-%d %H:%M:%S")
     # Write archive contents to JSON file
     json_file = os.path.join(ngsarchiver_dir,"archive_metadata.json")
     with open(json_file,'wt') as fp:
