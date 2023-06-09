@@ -108,7 +108,10 @@ class Directory:
         """
         Check if all files and subdirectories are writeable
         """
-        return self.check_mode(os.W_OK)
+        for o in self.walk():
+            if not os.access(o,os.W_OK):
+                return False
+        return True
 
     @property
     def external_symlinks(self):
@@ -215,15 +218,6 @@ class Directory:
                         size += st.st_size
                     inodes.add(inode)
         return int(size)
-
-    def check_mode(self,mode):
-        """
-        Check if all files and subdirectories have 'mode'
-        """
-        for o in self.walk():
-            if not os.access(o,mode):
-                return False
-        return True
 
     def check_group(self,group):
         """
