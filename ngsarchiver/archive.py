@@ -647,20 +647,20 @@ class ArchiveDirectory(Directory):
                 if f in self._archive_metadata['files']:
                     yield ArchiveDirMember(
                         path=os.path.join(self._archive_metadata['name'],f),
-                        archive='file',
+                        subarchive='file',
                         md5=line.split('  ')[0])
         # Members inside archive files
         md5_files = [os.path.join(self.path,f)
                      for f in os.listdir(self.path)
                      if f.endswith('.md5')]
         for f in md5_files:
-            archive_name = os.path.basename(f)[:-len('.md5')]
+            subarchive_name = os.path.basename(f)[:-len('.md5')]
             with open(f,'rt') as fp:
                 for line in fp:
                     yield ArchiveDirMember(
                         path='  '.join(line.rstrip('\n').split('  ')[1:]),
-                        archive=os.path.join(self.path,
-                                             archive_name+'.tar.gz'),
+                        subarchive=os.path.join(self.path,
+                                                subarchive_name+'.tar.gz'),
                         md5=line.split('  ')[0])
 
     def search(self,name=None,path=None,case_insensitive=False):
@@ -731,7 +731,7 @@ class ArchiveDirectory(Directory):
                 logger.warning("%s: file '%s' already exists, skipping" %
                                (self.path,f))
                 continue
-            if m.archive == 'file':
+            if m.subarchive == 'file':
                 # Top level file
                 fsrc = os.path.join(self.path,os.path.basename(m.path))
                 print("-- extracting '%s' (%s)" %
@@ -741,7 +741,7 @@ class ArchiveDirectory(Directory):
                 shutil.copy2(fsrc,os.path.join(os.path.dirname(f)))
             else:
                 # Subarchive member
-                with tarfile.open(m.archive,'r:gz') as tgz:
+                with tarfile.open(m.subarchive,'r:gz') as tgz:
                     # Get information on archive member
                     tgzf = tgz.getmember(m.path)
                     if tgzf.isdir():
@@ -806,9 +806,10 @@ class ArchiveDirectory(Directory):
             f = os.path.join(self._path,f)
             shutil.copy2(f,d)
         # Unpack individual archive files
-        unpack_archive_multitgz([os.path.join(self._path,a)
-                                 for a in self._archive_metadata['archives']],
-                                extract_dir)
+        unpack_archive_multitgz(
+            [os.path.join(self._path,a)
+             for a in self._archive_metadata['subarchives']],
+            extract_dir)
         # Do checksum verification on unpacked archive
         if verify:
             print("-- verifying checksums")
@@ -863,9 +864,9 @@ class ArchiveDirMember:
         directory)
       md5 (str): MD5 checksum
     """
-    def __init__(self,path,archive,md5):
+    def __init__(self,path,subarchive,md5):
         self._path = path
-        self._archive = archive
+        self._subarchive = subarchive
         self._md5 = md5
 
     @property
@@ -873,8 +874,8 @@ class ArchiveDirMember:
         return self._path
 
     @property
-    def archive(self):
-        return self._archive
+    def subarchive(self):
+        return self._subarchive
 
     @property
     def md5(self):
@@ -973,7 +974,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     archive_metadata = {
         'name': d.basename,
         'source': d.path,
-        'archives': [],
+        'subarchives': [],
         'files': [],
         'multi_volume': multi_volume,
         'volume_size': volume_size,
@@ -989,7 +990,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                  d.path,
                                  base_dir=d.basename,
                                  compresslevel=compresslevel)
-            archive_metadata['archives'].append(os.path.basename(str(a)))
+            archive_metadata['subarchives'].append(os.path.basename(str(a)))
         else:
             a = make_archive_multitgz(archive_basename,
                                       d.path,
@@ -997,7 +998,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                       size=volume_size,
                                       compresslevel=compresslevel)
             for a_ in a:
-                archive_metadata['archives'].append(os.path.basename(str(a_)))
+                archive_metadata['subarchives'].append(
+                    os.path.basename(str(a_)))
     else:
         # Make archives for each subdir
         for s in sub_dirs:
@@ -1010,7 +1012,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                      dd.path,
                                      base_dir=prefix,
                                      compresslevel=compresslevel)
-                archive_metadata['archives'].append(os.path.basename(str(a)))
+                archive_metadata['subarchives'].append(
+                    os.path.basename(str(a)))
             else:
                 a = make_archive_multitgz(archive_basename,
                                           dd.path,
@@ -1018,7 +1021,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                           size=volume_size,
                                           compresslevel=compresslevel)
                 for a_ in a:
-                    archive_metadata['archives'].\
+                    archive_metadata['subarchives'].\
                         append(os.path.basename(str(a_)))
         # Collect miscellaneous artefacts into a separate archive
         if misc_objects:
@@ -1041,7 +1044,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                      base_dir=prefix,
                                      file_list=file_list,
                                      compresslevel=compresslevel)
-                archive_metadata['archives'].append(os.path.basename(str(a)))
+                archive_metadata['subarchives'].append(
+                    os.path.basename(str(a)))
             else:
                 a = make_archive_multitgz(archive_basename,
                                           d.path,
@@ -1050,7 +1054,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                                           size=volume_size,
                                           compresslevel=compresslevel)
                 for a_ in a:
-                    archive_metadata['archives'].\
+                    archive_metadata['subarchives'].\
                         append(os.path.basename(str(a_)))
         # Copy in extra files
         if extra_files:
@@ -1060,7 +1064,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 shutil.copy2(f,archive_dir)
                 archive_metadata['files'].append(os.path.basename(f))
     # Generate checksums for each subarchive
-    for a in archive_metadata['archives']:
+    for a in archive_metadata['subarchives']:
         subarchive = ArchiveFile(os.path.join(archive_dir,a))
         md5file = os.path.join(archive_dir,
                                "%s.md5" % a[:-len('.tar.gz')])
@@ -1070,7 +1074,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 if os.path.isfile(ff):
                     fp.write("%s  %s\n" % (md5sum(ff),f))
     # Checksums for archive contents
-    file_list = archive_metadata['archives'] + archive_metadata['files']
+    file_list = archive_metadata['subarchives'] + archive_metadata['files']
     with open(os.path.join(ngsarchiver_dir,"archive.md5"),'wt') as fp:
         for f in file_list:
             fp.write("%s  %s\n" % (md5sum(os.path.join(archive_dir,f)),
