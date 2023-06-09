@@ -21,7 +21,6 @@ import pwd
 import grp
 import tarfile
 import hashlib
-import subprocess
 import fnmatch
 import logging
 from pathlib import Path
@@ -85,13 +84,6 @@ class Directory:
         Return total size of directory in bytes
         """
         return self.getsize(self.walk())
-
-    @property
-    def du_size(self):
-        """
-        Return total size of directory in bytes
-        """
-        return du_size(self._path)
 
     @property
     def unreadable_files(self):
@@ -1323,20 +1315,6 @@ def getsize(p,blocksize=512):
     if blocksize:
         return os.lstat(p).st_blocks * blocksize
     return os.lstat(p).st_size
-
-def du_size(p):
-    """
-    Return total size of directory in bytes
-    """
-    du_cmd = ['du','-s','--block-size=1',p]
-    try:
-        output = subprocess.check_output(du_cmd,
-                                         cwd=None,
-                                         stderr=subprocess.STDOUT,
-                                         universal_newlines=True)
-        return int(output.split('\t')[0])
-    except subprocess.CalledProcessError as ex:
-        raise Exception("%s: 'du' failed: %s" % (p,ex))
 
 def convert_size_to_bytes(size):
     """
