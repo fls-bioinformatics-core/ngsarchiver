@@ -1,6 +1,6 @@
 """Description
 
-Setup script to install ngsarchive
+Setup script to install ngsarchiver package
 
 Copyright (C) University of Manchester 2023 Peter Briggs
 
@@ -18,15 +18,15 @@ install_requires = []
 
 # Setup for installation etc
 from setuptools import setup
-import ngsarchive
-setup(name = "ngsarchive",
-      version = ngsarchive.get_version(),
-      description = 'Utility to manage BCF NGS data archive',
+import ngsarchiver
+setup(name = "ngsarchiver",
+      version = ngsarchiver.get_version(),
+      description = 'Utility to archive and manage BCF NGS data',
       long_description = """Utilities to archive, interrogate and recover NGS data held by the BCF from Illumina and SOLiD platforms""",
-      url = 'https://github.com/fls-bioinformatics-core/ngsarchive',
+      url = 'https://github.com/fls-bioinformatics-core/ngsarchiver',
       maintainer = 'Peter Briggs',
       maintainer_email = 'peter.briggs@manchester.ac.uk',
-      packages = ['ngsarchive',],
+      packages = ['ngsarchiver',],
       license = 'AFL-3',
       # Pull in dependencies
       install_requires = install_requires,

@@ -25,7 +25,7 @@ import subprocess
 import fnmatch
 import logging
 from pathlib import Path
-from .exceptions import NgsArchiveException
+from .exceptions import NgsArchiverException
 
 #######################################################################
 # Logger
@@ -54,8 +54,8 @@ class Directory:
     def __init__(self,d):
         self._path = os.path.abspath(d)
         if not os.path.isdir(self._path):
-            raise NgsArchiveException("%s: not a directory" %
-                                      self._path)
+            raise NgsArchiverException("%s: not a directory" %
+                                       self._path)
 
     @property
     def path(self):
@@ -401,9 +401,9 @@ class Directory:
                                                    root_dir,
                                                    base_dir))
         except Exception as ex:
-            raise NgsArchiveException("%s: exception when attempting "
-                                      "to make archive with format "
-                                      "'%s': %s" % (self._path,fmt,ex))
+            raise NgsArchiverException("%s: exception when attempting "
+                                       "to make archive with format "
+                                       "'%s': %s" % (self._path,fmt,ex))
 
     def __repr__(self):
         return self._path
@@ -457,9 +457,9 @@ class MultiSubdirRun(Directory):
             if os.path.isdir(os.path.join(self._path,o)):
                 sub_dirs.append(o)
             else:
-                raise NgsArchiveException("%s: at least one top-level "
-                                          "object is not a directory" %
-                                          self._path)
+                raise NgsArchiverException("%s: at least one top-level "
+                                           "object is not a directory" %
+                                           self._path)
         self._sub_dirs = sub_dirs
 
     def make_archive(self,out_dir=None,volume_size=None,
@@ -498,8 +498,8 @@ class MultiProjectRun(Directory):
         Directory.__init__(self,d)
         projects_info = os.path.join(self._path,"projects.info")
         if not os.path.exists(projects_info):
-            raise NgsArchiveException("%s: 'projects.info' not found" %
-                                      self._path)
+            raise NgsArchiverException("%s: 'projects.info' not found" %
+                                       self._path)
         self._projects_info = projects_info
         project_dirs = []
         with open(self._projects_info,'rt') as fp:
@@ -601,19 +601,19 @@ class ArchiveDirectory(Directory):
     """
     def __init__(self,d):
         Directory.__init__(self,d)
-        self._ngsarchive_dir = os.path.join(self.path,'.ngsarchive')
-        if not os.path.isdir(self._ngsarchive_dir):
-            raise NgsArchiveException("%s: not an archive directory" %
-                                      self.path)
-        self._json_file = os.path.join(self._ngsarchive_dir,
+        self._ngsarchiver_dir = os.path.join(self.path,'.ngsarchiver')
+        if not os.path.isdir(self._ngsarchiver_dir):
+            raise NgsArchiverException("%s: not an archive directory" %
+                                       self.path)
+        self._json_file = os.path.join(self._ngsarchiver_dir,
                                        "archive_metadata.json")
         try:
             with open(self._json_file,'rt') as fp:
                 self._archive_metadata = json.loads(fp.read())
         except Exception as ex:
-            raise NgsArchiveException("%s: failed to load archive "
-                                      "metadata from '%s': %s" %
-                                      (self.path,self._json_file,ex))
+            raise NgsArchiverException("%s: failed to load archive "
+                                       "metadata from '%s': %s" %
+                                       (self.path,self._json_file,ex))
 
     @property
     def archive_metadata(self):
@@ -627,8 +627,8 @@ class ArchiveDirectory(Directory):
         """
         Disable the archiving method inherited from base class
         """
-        raise NgsArchiveException("%s: can't archive an archive "
-                                  "directory" % self.path)
+        raise NgsArchiverException("%s: can't archive an archive "
+                                   "directory" % self.path)
 
     def list(self):
         """
@@ -639,7 +639,8 @@ class ArchiveDirectory(Directory):
         """
         # Members outside archive files
         md5s = {}
-        with open(os.path.join(self._ngsarchive_dir,"archive.md5"),'rt') as fp:
+        archive_md5sums = os.path.join(self._ngsarchiver_dir,"archive.md5")
+        with open(archive_md5sums,'rt') as fp:
             for line in fp:
                 f = '  '.join(line.rstrip('\n').split('  ')[1:])
                 if f in self._archive_metadata['files']:
@@ -764,9 +765,9 @@ class ArchiveDirectory(Directory):
             os.chmod(f,os.stat(f).st_mode | stat.S_IRUSR | stat.S_IWUSR)
             # Verify MD5 sum
             if md5sum(f) != m.md5:
-                raise NgsArchiveException("%s: MD5 check failed "
-                                          "when extracting '%s'" %
-                                          (self.path,m.path))
+                raise NgsArchiverException("%s: MD5 check failed "
+                                           "when extracting '%s'" %
+                                           (self.path,m.path))
 
     def unpack(self,extract_dir=None,verify=True,set_read_write=True):
         """
@@ -786,16 +787,16 @@ class ArchiveDirectory(Directory):
             extract_dir = os.getcwd()
         extract_dir = os.path.abspath(extract_dir)
         if not os.path.isdir(extract_dir):
-            raise NgsArchiveException("%s: destination '%s' doesn't "
-                                      "exist or is not a directory"
-                                      % (self._path,extract_dir))
+            raise NgsArchiverException("%s: destination '%s' doesn't "
+                                       "exist or is not a directory"
+                                       % (self._path,extract_dir))
         d = os.path.join(extract_dir,
                          os.path.basename(self._path)[:-len('.archive')])
         if os.path.exists(d):
-            raise NgsArchiveException("%s: would overwrite existing "
-                                      "directory in destination '%s' "
-                                      "directory" % (self._path,
-                                                     extract_dir))
+            raise NgsArchiverException("%s: would overwrite existing "
+                                       "directory in destination '%s' "
+                                       "directory" % (self._path,
+                                                      extract_dir))
         # Create destination directory
         os.mkdir(d)
         # Copy file artefacts
@@ -816,8 +817,8 @@ class ArchiveDirectory(Directory):
                                            and x != 'archive.md5',
                                            list(os.listdir(self._path))))]:
                 if not verify_checksums(md5file,root_dir=extract_dir):
-                   raise NgsArchiveException("%s: checksum verification "
-                                             "failed" % md5file)
+                   raise NgsArchiverException("%s: checksum verification "
+                                              "failed" % md5file)
         # Ensure all files etc have read/write permission
         if set_read_write:
             print("-- updating permissions to read-write")
@@ -836,9 +837,9 @@ class ArchiveDirectory(Directory):
         recorded in the checksum file when the archive
         was created.
         """
-        md5file = os.path.join(self._ngsarchive_dir,"archive.md5")
+        md5file = os.path.join(self._ngsarchiver_dir,"archive.md5")
         if not os.path.isfile(md5file):
-            raise NgsArchiveException("%s: no MD5 checksum file" % self)
+            raise NgsArchiverException("%s: no MD5 checksum file" % self)
         return verify_checksums(md5file,root_dir=self._path,verbose=True)
         
     def __repr__(self):
@@ -891,15 +892,15 @@ def get_rundir_instance(d):
     """
     try:
         return ArchiveDirectory(d)
-    except NgsArchiveException:
+    except NgsArchiverException:
         pass
     try:
         return MultiProjectRun(d)
-    except NgsArchiveException:
+    except NgsArchiverException:
         pass
     try:
         return MultiSubdirRun(d)
-    except NgsArchiveException:
+    except NgsArchiverException:
         pass
     return GenericRun(d)
 
@@ -945,11 +946,11 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     archive_dir = os.path.join(os.path.abspath(out_dir),
                                d.basename+".archive")
     os.mkdir(archive_dir)
-    # Create .ngsarchive subdir
-    ngsarchive_dir = os.path.join(archive_dir,".ngsarchive")
-    os.mkdir(ngsarchive_dir)
+    # Create .ngsarchiver subdir
+    ngsarchiver_dir = os.path.join(archive_dir,".ngsarchiver")
+    os.mkdir(ngsarchiver_dir)
     # Create manifest file
-    manifest = os.path.join(ngsarchive_dir,"manifest.txt")
+    manifest = os.path.join(ngsarchiver_dir,"manifest.txt")
     with open(manifest,'wt') as fp:
         for o in d.walk():
             o = Path(o)
@@ -1067,12 +1068,12 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                     fp.write("%s  %s\n" % (md5sum(ff),f))
     # Checksums for archive contents
     file_list = archive_metadata['archives'] + archive_metadata['files']
-    with open(os.path.join(ngsarchive_dir,"archive.md5"),'wt') as fp:
+    with open(os.path.join(ngsarchiver_dir,"archive.md5"),'wt') as fp:
         for f in file_list:
             fp.write("%s  %s\n" % (md5sum(os.path.join(archive_dir,f)),
                                    f))
     # Write archive contents to JSON file
-    json_file = os.path.join(ngsarchive_dir,"archive_metadata.json")
+    json_file = os.path.join(ngsarchiver_dir,"archive_metadata.json")
     with open(json_file,'wt') as fp:
         json.dump(archive_metadata,fp,indent=2)
     # Update the attributes on the archive directory
@@ -1177,8 +1178,8 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
             try:
                 tgz.add(o,arcname=arcname,recursive=False)
             except Exception as ex:
-                raise NgsArchiveException("%s: unable to add '%s' to "
-                                          "archive: %s" % (d.path,o,ex))
+                raise NgsArchiverException("%s: unable to add '%s' to "
+                                           "archive: %s" % (d.path,o,ex))
     return archive_name
 
 def make_archive_multitgz(base_name,root_dir,base_dir=None,
@@ -1235,9 +1236,9 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
         try:
             size = getsize(o)
         except Exception as ex:
-            raise NgsArchiveException("%s: unable to get size of '%s' "
-                                      "for multi-volume archiving: %s"
-                                      % (d.path,o,ex))
+            raise NgsArchiverException("%s: unable to get size of '%s' "
+                                       "for multi-volume archiving: %s"
+                                       % (d.path,o,ex))
         if archive_name and (getsize(archive_name) >
                              (max_size - size)):
             indx += 1
@@ -1245,8 +1246,8 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
             tgz = None
         if not tgz:
             if size > max_size:
-                raise NgsArchiveException("%s: object is larger than "
-                                          "volume size" % o)
+                raise NgsArchiverException("%s: object is larger than "
+                                           "volume size" % o)
             archive_name = "%s.%02d.%s" % (base_name,indx,ext)
             tgz = tarfile.open(archive_name,'w:gz',
                                compresslevel=compresslevel)
@@ -1257,9 +1258,9 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
         try:
             tgz.add(o,arcname=arcname,recursive=False)
         except Exception as ex:
-            raise NgsArchiveException("%s: unable to add '%s' to "
-                                      "multi-volume archive: %s"
-                                      % (d.path,o,ex))
+            raise NgsArchiverException("%s: unable to add '%s' to "
+                                       "multi-volume archive: %s"
+                                       % (d.path,o,ex))
     if tgz:
         tgz.close()
     return archive_list
@@ -1361,8 +1362,8 @@ def format_size(size,units='K',human_readable=False):
     elif units:
         units = units.lower()
         if units not in UNITS:
-            raise NgsArchiveException("%s: unrecognised size unit "
-                                      "'%s'" % (self._path,units))
+            raise NgsArchiverException("%s: unrecognised size unit "
+                                       "'%s'" % (self._path,units))
         for u in UNITS:
             size = float(size)/blocksize
             if units == u:

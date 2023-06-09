@@ -1,21 +1,24 @@
-=====================================================
-ngsarchive: utility for managing BCF NGS data archive
-=====================================================
+===============================================
+ngsarchiver: utility for archiving BCF NGS data
+===============================================
 
 --------
 Overview
 --------
 
-``ngsarchive`` is a small Python package that provides
-a utility for managing the archiving of directories
-within the BCF NGS data archive.
+``ngsarchiver`` is a small Python package that
+provides a utility for managing the archiving of
+directories containing Next Generation Sequencing
+(NGS) data within the local data repository of
+the Bioinformatics Core Facility (BCF) at the
+University of Manchester.
 
 Specifically it provides a single executable called
 ``archiver`` which can be used to:
 
 * Archive and compress sequencing and analysis data
-  on a per-run basis
-* Interrogate contents of archives
+  on a per-run (i.e. per-directory) basis
+* Interrogate contents of archived directories
 * Restore archived runs and recover subsets of
   archived data
 
@@ -234,7 +237,7 @@ Within an archive directory there will be:
 - a set of MD5 checksum files with the file extension
   ``.md5``, with one checksum file for each ``.tar.gz``
   and regular file;
-- a hidden subdirectory called ``.ngsarchive`` which
+- a hidden subdirectory called ``.ngsarchiver`` which
   contains additional metadata files (for example a
   JSON file with metadata items, an MD5 file with
   checksums for each of the "visible" archive
