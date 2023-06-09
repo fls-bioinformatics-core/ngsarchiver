@@ -239,28 +239,6 @@ class Directory:
                 return False
         return True
 
-    def get_checksums(self,md5file,include_parent=False):
-        """
-        Write MD5 checksums to a file
-
-        The checksums will be written in the same format
-        as produced by the 'md5sum' utility.
-
-        Arguments:
-          md5file (str): path for file to write MD5 sums to
-          include_parent (str): if True then include the
-            parent directory in the paths written to the
-            checksum file
-        """
-        root_dir = os.path.dirname(self._path)
-        if include_parent:
-            root_dir = os.path.dirname(root_dir)
-        with open(md5file,'wt') as fp:
-            for o in self.walk():
-                if os.path.isfile(o):
-                    rel_path = os.path.relpath(o,root_dir)
-                    fp.write("%s  %s\n" % (md5sum(o),rel_path))
-
     def verify_checksums(self,md5file):
         """
         Verify the directory contents against MD5 sums
