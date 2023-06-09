@@ -571,13 +571,6 @@ class ArchiveDirectory(Directory):
         return { k : self._archive_metadata[k]
                  for k in self._archive_metadata }
 
-    def make_archive(self,*args,**kws):
-        """
-        Disable the archiving method inherited from base class
-        """
-        raise NgsArchiverException("%s: can't archive an archive "
-                                   "directory" % self.path)
-
     def list(self):
         """
         List contents of the archive
