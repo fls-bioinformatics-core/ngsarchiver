@@ -483,39 +483,6 @@ class MultiProjectRun(Directory):
                                 volume_size=volume_size,
                                 compresslevel=compresslevel)
 
-class ArchiveFile:
-    """
-    Class to handle archive files
-    """
-    def __init__(self,f):
-        self._path = os.path.abspath(f)
-
-    def list(self):
-        """
-        List the names (paths) stored in the archive
-        """
-        if self._path.endswith('.tar.gz'):
-            with tarfile.open(self._path,'r:gz') as tgz:
-                for name in tgz.getnames():
-                    yield name
-        else:
-            raise NotImplementedError("%s: 'list' not implemented for "
-                                      "archive type" % self._path)
-
-    def unpack(self,extract_dir=None):
-        """
-        Unpacks the archive
-
-        Arguments:
-          extract_dir (str): directory to extract
-            archive into (default: cwd)
-        """
-        shutil.unpack_archive(self._path,
-                              extract_dir)
-        
-    def __repr__(self):
-        return self._path
-
 class ArchiveDirectory(Directory):
     """
     Class to handle archive directories
