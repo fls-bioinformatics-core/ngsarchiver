@@ -7,6 +7,12 @@ import unittest
 import tempfile
 import shutil
 from ngsarchiver.archive import Directory
+from ngsarchiver.archive import GenericRun
+from ngsarchiver.archive import MultiSubdirRun
+from ngsarchiver.archive import MultiProjectRun
+from ngsarchiver.archive import ArchiveDirectory
+from ngsarchiver.archive import ArchiveDirMember
+from ngsarchiver.archive import get_rundir_instance
 
 # Set to False to keep test output dirs
 REMOVE_TEST_OUTPUTS = True
@@ -301,3 +307,97 @@ class TestDirectory(unittest.TestCase):
                                     "subdir1/ex2.txt",
                                     "subdir1/subdir12",
                                     "subdir1/subdir12/ex3.txt")])
+
+class TestArchiveDirMember(unittest.TestCase):
+
+    def test_archive_dir_member(self):
+        """
+        ArchiveDirMember: check properties
+        """
+        m = ArchiveDirMember("path/to/member",
+                             "subarchive.tar.gz",
+                             "178fce553fbc42451c2fc43f9a965908")
+        self.assertEqual(m.path,"path/to/member")
+        self.assertEqual(m.subarchive,"subarchive.tar.gz")
+        self.assertEqual(m.md5,"178fce553fbc42451c2fc43f9a965908")
+
+class TestGetRundirInstance(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestGetRundirInstance')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_get_rundir_instance_generic_run(self):
+        """
+        get_rundir_instance: returns 'GenericRun' instance
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir2/ex3.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        # Check correct class is returned
+        d = get_rundir_instance(p)
+        self.assertTrue(isinstance(d,GenericRun))
+
+    def test_get_rundir_instance_multi_subdir_run(self):
+        """
+        get_rundir_instance: returns 'MultiSubdirRun' instance
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir2/ex3.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        # Check correct class is returned
+        d = get_rundir_instance(p)
+        self.assertTrue(isinstance(d,MultiSubdirRun))
+
+    def test_get_rundir_instance_multi_project_run(self):
+        """
+        get_rundir_instance: returns 'MultiProjectRun' instance
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("projects.info",type="file",
+                        content="#Header\nProject1\tsome\tstuff\nProject2\tmore\tstuff\n")
+        example_dir.add("Project1/README",type="file")
+        example_dir.add("Project2/README",type="file")
+        example_dir.add("undetermined/README",type="file")
+        example_dir.add("processing_qc.html",type="file")
+        example_dir.create()
+        p = example_dir.path
+        # Check correct class is returned
+        d = get_rundir_instance(p)
+        self.assertTrue(isinstance(d,MultiProjectRun))
+
+    def test_get_rundir_instance_archive_directory(self):
+        """
+        get_rundir_instance: returns 'ArchiveDirectory' instance
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
+        example_dir.add(".ngsarchiver/archive.md5",type="file")
+        example_dir.add(".ngsarchiver/archive_metadata.json",type="file",
+                        content="{}")
+        example_dir.add(".ngsarchiver/manifest.txt",type="file")
+        example_dir.add("Project1.tar.gz",type="file")
+        example_dir.add("Project2.tar.gz",type="file")
+        example_dir.add("undetermined.tar.gz",type="file")
+        example_dir.add("processing.tar.gz",type="file")
+        example_dir.add("Project1.md5",type="file")
+        example_dir.add("Project2.md5",type="file")
+        example_dir.add("undetermined.md5",type="file")
+        example_dir.add("processing.md5",type="file")
+        example_dir.create()
+        p = example_dir.path
+        p = example_dir.path
+        # Check correct class is returned
+        d = get_rundir_instance(p)
+        self.assertTrue(isinstance(d,ArchiveDirectory))
