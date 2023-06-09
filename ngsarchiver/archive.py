@@ -353,51 +353,6 @@ class Directory:
             for name in dirnames:
                 yield os.path.join(dirpath,name)
 
-    def make_archive(self,fmt,out_dir=None,archive_name=None,
-                     include_parent=False):
-        """
-        Makes an archive file from the directory
-
-        Arguments:
-          fmt (str): any of the formats recognised by
-            'shutil.make_archive'
-          out_dir (str): path to output directory where
-            archive file will be written (default: cwd)
-          archive_name (str): base name for archive
-            file (default: same as directory name)
-          include_parent (bool): if True then paths in
-            the archive will include the parent
-            directory (default: False, don't include
-            the parent directory)
-
-        Returns:
-          ArchiveFile: object representing the generated
-            archive file.
-        """
-        if not out_dir:
-            out_dir = os.getcwd()
-        if not archive_name:
-            archive_name = os.path.basename(self._path)
-        base_name = os.path.join(os.path.abspath(out_dir),
-                                 archive_name)
-        if not include_parent:
-            root_dir = os.path.dirname(self._path)
-            base_dir = os.path.basename(self._path)
-        else:
-            parent_dir = os.path.dirname(self._path)
-            root_dir = os.path.dirname(parent_dir)
-            base_dir = os.path.join(os.path.basename(parent_dir),
-                                    os.path.basename(self._path))
-        try:
-            return ArchiveFile(shutil.make_archive(base_name,
-                                                   fmt,
-                                                   root_dir,
-                                                   base_dir))
-        except Exception as ex:
-            raise NgsArchiverException("%s: exception when attempting "
-                                       "to make archive with format "
-                                       "'%s': %s" % (self._path,fmt,ex))
-
     def __repr__(self):
         return self._path
 
