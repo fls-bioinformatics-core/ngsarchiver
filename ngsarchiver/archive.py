@@ -304,7 +304,7 @@ class Directory:
         if not owner and not group:
             return
         if owner:
-            uid = pwd.getpwnam(user).pw_uid
+            uid = pwd.getpwnam(owner).pw_uid
         else:
             uid = -1
         if group:
