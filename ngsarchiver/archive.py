@@ -26,6 +26,7 @@ import fnmatch
 import logging
 from pathlib import Path
 from .exceptions import NgsArchiverException
+from . import get_version
 
 #######################################################################
 # Logger
@@ -976,6 +977,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         'files': [],
         'multi_volume': multi_volume,
         'volume_size': volume_size,
+        'compression_level': compresslevel,
+        'ngsarchiver_version': get_version(),
     }
     # Make archive
     if not sub_dirs:
