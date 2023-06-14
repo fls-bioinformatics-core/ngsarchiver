@@ -57,7 +57,7 @@ for example:
 
 ::
 
-   archiver archive --force /data/runs/230608_SB1266_0008_AHXXBYA
+   archiver info /data/runs/230608_SB1266_0008_AHXXBYA
 
 The specific required and optional arguments will
 depend on the subcommand and are outlined in the sections
@@ -65,6 +65,27 @@ below; alternatively, specifying ``-h`` or ``--help`` with
 a subcommand will bring all available options for that
 command (or with no subcommand, all the available
 subcommands).
+
+----------------------------------
+``info``: characterise a directory
+----------------------------------
+
+Examines a directory and reports characteristics
+such as total size, type (as outlined in the section
+*Archive directory format* below) and whether the
+directory contains external and/or broken symbolic
+links, hard-linked files and so on.
+
+The simplest form of usage is:
+
+::
+
+   archiver info /PATH/TO/DIR
+
+Including the ``--list`` argument will provide more
+detailed information on any "problem" files found
+within the directory, which can then be addressed
+prior to archiving.
 
 ------------------------------
 ``archive``: create an archive
@@ -97,9 +118,21 @@ of the archive directory.
 The format of the archive directory is described
 below in a separate section.
 
+By default there is no limit on the size of ``tar.gz``
+files created within the archive; the ``--size``
+argument allows a limit to be set (e.g.
+``--size 50G``), in which case multiple ``tar.gz``
+files will be created which will not exceed
+this size (aka "multi-volume archives).
 
-Multi-volume archives
-Compresssion levels
+By default the archiving uses ``gzip`` compression
+level 6 (the same default as Linux ``gzip``);
+this is found to give a reasonable trade-off
+between speed and amount of compression. The
+``--compress-level`` argument allows the
+compression level to be explicitly set on the
+command line if a higher or lower level of
+compression is required.
 
 ---------------------------------------
 ``verify``: verifying archive integrity
@@ -298,10 +331,6 @@ when creating an archive:
   in the source where the user running the archiving doesn't
   have read access means that those files cannot be included
   in the archive.
-- **External symlinks**: these are symbolic links which point
-  to files or directories which are outside of the source
-  directory, which can potentially result in broken links
-  when the symlinks are restored from the archive.
 - **Hard links**: depending on the archiving mode, the
   presence of hard links can result in bloating of the
   archive directory, as the hard linked file may be included
@@ -310,6 +339,23 @@ when creating an archive:
   The worst case scenario in this case means that both the
   archive and the unpacked version could be substantially
   larger than the source.
+
+Additionally the following situations may cause issues
+when archives are restored:
+
+- **External symlinks**: these are symbolic links which point
+  to files or directories which are outside of the source
+  directory, which can potentially result in broken links
+  when the symlinks are restored from the archive.
+
+Other situations are highlighted but are unlikely to cause
+problems in themselves when data are restored:
+
+- **Broken symlinks**: these are symbolic links which point
+  to targets that no longer exist on the filesystem.
+- **Unknown user IDs**: where the user name is replaced by
+  a number (user ID aka UID) which doesn't correspond to a
+  known user on the system.
 
 There are currently no workarounds within the archiver for
 any of these issues. It is recommended that where possible
