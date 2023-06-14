@@ -1002,6 +1002,13 @@ def verify_checksums(md5file,root_dir=None,verbose=False):
         prepended to paths in the checksum file
       verbose (bool): if True then report files
         being checked (default: False)
+
+    Returns:
+      Boolean: True if all MD5 checks pass, fail if not
+
+    Raises:
+      NgsArchiverException: if the checksum file has
+        issues (e.g. badly-formatted lines)
     """
     with open(md5file,'rt') as fp:
         for line in fp:
@@ -1017,8 +1024,10 @@ def verify_checksums(md5file,root_dir=None,verbose=False):
                 if md5sum(path) != chksum:
                     print("%s: checksum verification failed" % path)
                     return False
-            except ValueError:
-                print("%s: bad checksum line" % line.rstrip('\n'))
+            except ValueError as ex:
+                raise NgsArchiverException("%s: bad checksum line: %s" %
+                                           (line.rstrip('\n'),
+                                            ex))
         return True
 
 def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
@@ -1128,7 +1137,12 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
         if not tgz:
             if size > max_size:
                 raise NgsArchiverException("%s: object is larger than "
-                                           "volume size" % o)
+                                           "volume size (%s > %s)" %
+                                           (o,
+                                            format_size(size,
+                                                        human_readable=True),
+                                            format_size(max_size,
+                                                        human_readable=True)))
             archive_name = "%s.%02d.%s" % (base_name,indx,ext)
             tgz = tarfile.open(archive_name,'w:gz',
                                compresslevel=compresslevel)
