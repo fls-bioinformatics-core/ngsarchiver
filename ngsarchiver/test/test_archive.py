@@ -170,7 +170,7 @@ class TestDirectory(unittest.TestCase):
         # Build example dir without external symlinks
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
         example_dir.add("ex1.txt",type="file",content="example 1")
-        example_dir.add("symlink1",type="symlink",target="./ext1.txt")
+        example_dir.add("symlink1",type="symlink",target="./ext.txt")
         example_dir.create()
         p = example_dir.path
         # No external symlinks should be detected
@@ -186,6 +186,33 @@ class TestDirectory(unittest.TestCase):
         # External symlink should be detected
         self.assertEqual(list(d.external_symlinks),[external_symlink,])
         self.assertTrue(d.has_external_symlinks)
+
+    def test_directory_broken_symlinks(self):
+        """
+        Directory: check handling of broken symlinks
+        """
+        # Build example dir without external symlinks
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./ex1.txt")
+        example_dir.create()
+        p = example_dir.path
+        # No broken symlinks should be detected and unknown
+        # UID detection should function correctly
+        d = Directory(p)
+        self.assertEqual(list(d.broken_symlinks),[])
+        self.assertFalse(d.has_broken_symlinks)
+        self.assertEqual(list(d.unknown_uids),[])
+        self.assertFalse(d.has_unknown_uids)
+        # Add broken symlink
+        broken_symlink = os.path.join(p,"broken")
+        os.symlink("./missing.txt",broken_symlink)
+        # External symlink should be detected and unknown
+        # UID detection should function correctly
+        self.assertEqual(list(d.broken_symlinks),[broken_symlink,])
+        self.assertTrue(d.has_broken_symlinks)
+        self.assertEqual(list(d.unknown_uids),[])
+        self.assertFalse(d.has_unknown_uids)
 
     def test_directory_readability(self):
         """

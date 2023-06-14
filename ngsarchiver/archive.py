@@ -137,6 +137,26 @@ class Directory:
         return False
 
     @property
+    def broken_symlinks(self):
+        """
+        Return symlinks that point to non-existent targets
+        """
+        for o in self.walk():
+            if Path(o).is_symlink():
+                target = Path(o).resolve()
+                if not Path(target).exists():
+                    yield o
+
+    @property
+    def has_broken_symlinks(self):
+        """
+        Check if any symlinks point to non-existent targets
+        """
+        for o in self.broken_symlinks:
+            return True
+        return False
+
+    @property
     def hard_linked_files(self):
         """
         Return files that are hard links
@@ -177,7 +197,7 @@ class Directory:
         """
         for o in self.walk():
             try:
-                Path(o).owner()
+                pwd.getpwuid(os.lstat(o).st_uid)
             except KeyError:
                 # UID not in the system database
                 yield o
