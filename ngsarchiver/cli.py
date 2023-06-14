@@ -174,6 +174,13 @@ def main():
                 has_external_symlinks = True
             if not has_external_symlinks:
                 print("-- no external symlinks")
+            print("Broken symlinks:")
+            has_broken_symlinks = False
+            for s in d.broken_symlinks:
+                print("-- %s" % s)
+                has_broken_symlinks = True
+            if not has_broken_symlinks:
+                print("-- no broken symlinks")
             print("Hard linked files:")
             has_hard_links = False
             for f in d.hard_linked_files:
@@ -190,6 +197,7 @@ def main():
         else:
             print("Unreadable files : %s" % (not d.is_readable))
             print("External symlinks: %s" % d.has_external_symlinks)
+            print("Broken symlinks  : %s" % d.has_broken_symlinks)
             print("Hard linked files: %s" % d.has_hard_linked_files)
             print("Unknown UIDs     : %s" % d.has_unknown_uids)
 
@@ -206,11 +214,14 @@ def main():
         print("-- unreadable files : %s" % (not is_readable))
         has_external_symlinks = d.has_external_symlinks
         print("-- external symlinks: %s" % has_external_symlinks)
+        has_broken_symlinks = d.has_broken_symlinks
+        print("-- broken symlinks  : %s" % has_broken_symlinks)
         has_unknown_uids = d.has_unknown_uids
         print("-- unknown UIDs     : %s" % has_unknown_uids)
         has_hard_linked_files = d.has_hard_linked_files
         print("-- hard linked files: %s" % has_hard_linked_files)
         if has_external_symlinks or \
+           has_broken_symlinks or \
            not is_readable or \
            has_unknown_uids:
             msg = "Readability, symlink and/or UID issues detected"
