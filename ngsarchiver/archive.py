@@ -1213,7 +1213,7 @@ def convert_size_to_bytes(size):
     except ValueError:
         units = str(size)[-1].upper()
         p = "KMGTP".index(units) + 1
-        return int(str(size)[:-1]) * int(math.pow(1024,p))
+        return int(float(str(size)[:-1])) * int(math.pow(1024,p))
 
 def format_size(size,units='K',human_readable=False):
     """
