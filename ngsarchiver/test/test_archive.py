@@ -534,11 +534,141 @@ class TestMakeArchiveDir(unittest.TestCase):
         if REMOVE_TEST_OUTPUTS:
             shutil.rmtree(self.wd)
 
-    def test_make_archive_dir(self):
+    def test_make_archive_dir_single_archive(self):
         """
-        make_archive_dir: placeholder
+        make_archive_dir: single archive
         """
-        self.skipTest("Not implemented")
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,out_dir=self.wd)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        for item in ("example.tar.gz",
+                     "example.md5",
+                     ".ngsarchiver",
+                     ".ngsarchiver/archive.md5",
+                     ".ngsarchiver/archive_metadata.json",
+                     ".ngsarchiver/manifest.txt",):
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
+
+    def test_make_archive_dir_multiple_subarchives(self):
+        """
+        make_archive_dir: multiple subarchives
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("subdir1/ex1.txt",type="file",content="Some text\n")
+        example_dir.add("subdir2/ex2.txt",type="file",content="Some text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
+                             out_dir=self.wd)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        for item in ("subdir1.tar.gz",
+                     "subdir1.md5",
+                     "subdir2.tar.gz",
+                     "subdir2.md5",
+                     ".ngsarchiver",
+                     ".ngsarchiver/archive.md5",
+                     ".ngsarchiver/archive_metadata.json",
+                     ".ngsarchiver/manifest.txt",):
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
+
+    def test_make_archive_dir_multiple_subarchives_including_misc(self):
+        """
+        make_archive_dir: multiple subarchives (including miscellaneous)
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("subdir1/ex1.txt",type="file",content="Some text\n")
+        example_dir.add("subdir2/ex2.txt",type="file",content="Some text\n")
+        example_dir.add("subdir3/ex3.txt",type="file",content="Some text\n")
+        example_dir.add("ex4.txt",type="file",content="Some text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
+                             misc_objects=('ex4.txt','subdir3'),
+                             out_dir=self.wd)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        for item in ("subdir1.tar.gz",
+                     "subdir1.md5",
+                     "subdir2.tar.gz",
+                     "subdir2.md5",
+                     "miscellaneous.tar.gz",
+                     "miscellaneous.md5",
+                     ".ngsarchiver",
+                     ".ngsarchiver/archive.md5",
+                     ".ngsarchiver/archive_metadata.json",
+                     ".ngsarchiver/manifest.txt",):
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
+
+    def test_make_archive_dir_multiple_subarchives_including_misc_and_extra_files(self):
+        """
+        make_archive_dir: multiple subarchives (including miscellaneous and extra files)
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("subdir1/ex1.txt",type="file",content="Some text\n")
+        example_dir.add("subdir2/ex2.txt",type="file",content="Some text\n")
+        example_dir.add("subdir3/ex3.txt",type="file",content="Some text\n")
+        example_dir.add("ex4.txt",type="file",content="Some text\n")
+        example_dir.add("ex5.txt",type="file",content="Some text\n")
+        example_dir.add("ex6.txt",type="file",content="Some text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
+                             misc_objects=('ex4.txt','subdir3'),
+                             extra_files=('ex5.txt','ex6.txt'),
+                             out_dir=self.wd)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        for item in ("subdir1.tar.gz",
+                     "subdir1.md5",
+                     "subdir2.tar.gz",
+                     "subdir2.md5",
+                     "miscellaneous.tar.gz",
+                     "miscellaneous.md5",
+                     "ex5.txt",
+                     "ex6.txt",
+                     ".ngsarchiver",
+                     ".ngsarchiver/archive.md5",
+                     ".ngsarchiver/archive_metadata.json",
+                     ".ngsarchiver/manifest.txt",):
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
 
 class TestMd5sum(unittest.TestCase):
 

@@ -807,7 +807,7 @@ def get_rundir_instance(d):
     return GenericRun(d)
 
 def make_archive_dir(d,out_dir=None,sub_dirs=None,
-                     misc_objects=None,misc_archive_name="miscellenous",
+                     misc_objects=None,misc_archive_name="miscellaneous",
                      extra_files=None,volume_size=None,
                      compresslevel=6):
     """
