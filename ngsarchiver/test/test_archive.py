@@ -5,6 +5,9 @@ import pwd
 import grp
 import unittest
 import tempfile
+import tarfile
+import random
+import string
 import shutil
 from ngsarchiver.archive import Directory
 from ngsarchiver.archive import GenericRun
@@ -13,6 +16,15 @@ from ngsarchiver.archive import MultiProjectRun
 from ngsarchiver.archive import ArchiveDirectory
 from ngsarchiver.archive import ArchiveDirMember
 from ngsarchiver.archive import get_rundir_instance
+from ngsarchiver.archive import md5sum
+from ngsarchiver.archive import verify_checksums
+from ngsarchiver.archive import make_archive_dir
+from ngsarchiver.archive import make_archive_tgz
+from ngsarchiver.archive import make_archive_multitgz
+from ngsarchiver.archive import getsize
+from ngsarchiver.archive import convert_size_to_bytes
+from ngsarchiver.archive import format_size
+from ngsarchiver.exceptions import NgsArchiverException
 
 # Set to False to keep test output dirs
 REMOVE_TEST_OUTPUTS = True
@@ -48,6 +60,25 @@ class UnittestDir:
                 'target': target,
                 'mode': mode,
             })
+    def add_batch(self,paths,type='file',content=None,target=None,
+                  mode=None):
+        # Add multiple paths with same type, content etc
+        for p in paths:
+            self.add(p,type=type,content=content,target=target,
+                     mode=mode)
+    def list(self,prefix=None):
+        # Return list of (relative) paths
+        paths = set()
+        for c in self._contents:
+            p = c['path']
+            while p:
+                if p not in paths:
+                    if prefix:
+                        paths.add(os.path.join(prefix,p))
+                    else:
+                        paths.add(p)
+                p = os.path.dirname(p)
+        return sorted(list(paths))
     def create(self,top_level=None):
         # Creates and populates the test directory
         # Directory will be created under initial path
@@ -60,7 +91,7 @@ class UnittestDir:
         for c in self._contents:
             p = os.path.join(top_level,c['path'])
             type_ = c['type']
-            print("...creatting '%s' (%s)" % (p,type_))
+            print("...creating '%s' (%s)" % (p,type_))
             if type_ == 'dir':
                 os.makedirs(p,exist_ok=True)
             elif type_ == 'file':
@@ -81,6 +112,11 @@ class UnittestDir:
                 continue
             if c['mode']:
                 os.chmod(p,c['mode'])
+
+def random_text(n):
+    # Return random ASCII text consisting of
+    # n characters
+    return ''.join(random.choice(string.ascii_lowercase) for i in range(n))
 
 class TestDirectory(unittest.TestCase):
 
@@ -308,6 +344,66 @@ class TestDirectory(unittest.TestCase):
                                     "subdir1/subdir12",
                                     "subdir1/subdir12/ex3.txt")])
 
+class TestGenericRun(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestGenericRun')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_genericrun(self):
+        """
+        GenericRun: placeholder
+        """
+        self.skipTest("Not implemented")
+
+class TestMultiSubdirRun(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestMultiSubdirRun')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_multisubdirrun(self):
+        """
+        MultiSubdirRun: placeholder
+        """
+        self.skipTest("Not implemented")
+
+class TestMultiProjectRun(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestMultiProjectRun')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_multiprojectrun(self):
+        """
+        MultiProjectRun: placeholder
+        """
+        self.skipTest("Not implemented")
+
+class TestArchiveDirectory(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestArchiveDirectory')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_archivedirectory(self):
+        """
+        ArchiveDirectory: placeholder
+        """
+        self.skipTest("Not implemented")
+
 class TestArchiveDirMember(unittest.TestCase):
 
     def test_archive_dir_member(self):
@@ -401,3 +497,565 @@ class TestGetRundirInstance(unittest.TestCase):
         # Check correct class is returned
         d = get_rundir_instance(p)
         self.assertTrue(isinstance(d,ArchiveDirectory))
+
+class TestMakeArchiveDir(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestMakeArchiveDir')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_make_archive_dir(self):
+        """
+        make_archive_dir: placeholder
+        """
+        self.skipTest("Not implemented")
+
+class TestMd5sum(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestMd5sum')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_md5sum(self):
+        """
+        md5sum: generates expected MD5 sum for file
+        """
+        # Make example file
+        test_file = os.path.join(self.wd,"example.txt")
+        with open(test_file,'wt') as fp:
+            fp.write("example text\n")
+        # Check MD5 sum
+        self.assertEqual(md5sum(test_file),
+                         "9058c04d83e6715d15574b1b51fadba8")
+
+class TestVerifyChecksums(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestVerifyChecksums')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_verify_checksums(self):
+        """
+        verify_checksums: checksums are correct
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Create checksum file
+        checksums = {
+            'ex1.txt': "8bcc714d327b74a95a166574d0103f5c",
+            'subdir/ex2.txt': "cfac359b4837003003a79a3b237f1d32",
+        }
+        md5file = os.path.join(self.wd,"checksums.txt")
+        with open(md5file,'wt') as fp:
+            for f in checksums:
+                fp.write(
+                    "{checksum}  {path}/{file}\n".format(
+                        path=p,
+                        file=f,
+                        checksum=checksums[f]))
+        # Do verification
+        self.assertTrue(verify_checksums(md5file))
+
+    def test_verify_checksums_with_root_dir(self):
+        """
+        verify_checksums: specify a root directory
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Create checksum file
+        checksums = {
+            'ex1.txt': "8bcc714d327b74a95a166574d0103f5c",
+            'subdir/ex2.txt': "cfac359b4837003003a79a3b237f1d32",
+        }
+        md5file = os.path.join(self.wd,"checksums.txt")
+        with open(md5file,'wt') as fp:
+            for f in checksums:
+                fp.write(
+                    "{checksum}  {file}\n".format(
+                        file=f,
+                        checksum=checksums[f]))
+        # Do verification
+        self.assertTrue(verify_checksums(md5file,root_dir=p))
+
+    def test_verify_checksums_different_md5(self):
+        """
+        verify_checksums: fails when MD5 sums differ
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Create checksum file with 'bad' MD5 sum
+        checksums = {
+            'ex1.txt': "8bcc714d327b74a95a166574d0103f5c",
+            'subdir/ex2.txt': "6b97f2f07bb2b9504978d86264bf1f45",
+        }
+        md5file = os.path.join(self.wd,"checksums.txt")
+        with open(md5file,'wt') as fp:
+            for f in checksums:
+                fp.write(
+                    "{checksum}  {path}/{file}\n".format(
+                        path=p,
+                        file=f,
+                        checksum=checksums[f]))
+        # Do verification
+        self.assertFalse(verify_checksums(md5file))
+
+    def test_verify_checksums_missing_file(self):
+        """
+        verify_checksums: fails when file is missing
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Create checksum file with non-existent file
+        checksums = {
+            'ex1.txt': "8bcc714d327b74a95a166574d0103f5c",
+            'subdir/ex2.txt': "cfac359b4837003003a79a3b237f1d32",
+            'missing.txt': "6b97f2f07bb2b9504978d86264bf1f45",
+        }
+        md5file = os.path.join(self.wd,"checksums.txt")
+        with open(md5file,'wt') as fp:
+            for f in checksums:
+                fp.write(
+                    "{checksum}  {path}/{file}\n".format(
+                        path=p,
+                        file=f,
+                        checksum=checksums[f]))
+        # Do verification
+        self.assertFalse(verify_checksums(md5file))
+
+    def test_verify_checksums_bad_checksum_line(self):
+        """
+        verify_checksums: raises exception for 'bad' checksum line
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Create checksum file bad line
+        checksums = {
+            'ex1.txt': "8bcc714d327b74a95a166574d0103f5c",
+            'subdir/ex2.txt': "cfac359b4837003003a79a3b237f1d32",
+        }
+        md5file = os.path.join(self.wd,"checksums.txt")
+        with open(md5file,'wt') as fp:
+            for f in checksums:
+                fp.write(
+                    "{checksum}  {path}/{file}\n".format(
+                        path=p,
+                        file=f,
+                        checksum=checksums[f]))
+                # Add a 'bad' line
+                fp.write("blah blah\n")
+        # Do verification
+        self.assertRaises(NgsArchiverException,
+                          verify_checksums,
+                          md5file)
+
+class TestMakeArchiveTgz(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestMakeArchiveTgz')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_make_archive_tgz(self):
+        """
+        make_archive_tgz: archive with defaults
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive
+        test_archive = os.path.join(self.wd,"test_archive")
+        test_archive_path = "%s.tar.gz" % test_archive
+        self.assertEqual(make_archive_tgz(test_archive,p),test_archive_path)
+        # Check archive exists
+        self.assertTrue(os.path.exists(test_archive_path))
+        # Check archive contains only expected members
+        expected = set(("ex1.txt",
+                        "subdir",
+                        "subdir/ex2.txt",))
+        members = set()
+        with tarfile.open(test_archive_path,"r:gz") as tgz:
+            for f in tgz.getnames():
+                self.assertTrue(f in expected)
+                members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            self.assertTrue(f in members)
+
+    def test_make_archive_tgz_with_base_dir(self):
+        """
+        make_archive_tgz: archive with base directory
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive
+        test_archive = os.path.join(self.wd,"test_archive")
+        test_archive_path = "%s.tar.gz" % test_archive
+        self.assertEqual(make_archive_tgz(test_archive,p,base_dir="example"),
+                         test_archive_path)
+        # Check archive exists
+        self.assertTrue(os.path.exists(test_archive_path))
+        # Check archive contains only expected members
+        expected = set(("example/ex1.txt",
+                        "example/subdir",
+                        "example/subdir/ex2.txt",))
+        members = set()
+        with tarfile.open(test_archive_path,"r:gz") as tgz:
+            for f in tgz.getnames():
+                self.assertTrue(f in expected)
+                members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            self.assertTrue(f in members)
+
+    def test_make_archive_tgz_with_file_list(self):
+        """
+        make_archive_tgz: specify file list
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text")
+        example_dir.add("subdir/exclude.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive
+        test_archive = os.path.join(self.wd,"test_archive")
+        test_archive_path = "%s.tar.gz" % test_archive
+        included_files = [os.path.join(p,f)
+                          for f in ("ex1.txt",
+                                    "subdir",
+                                    "subdir/ex2.txt")]
+        self.assertEqual(make_archive_tgz(test_archive,p,
+                                          file_list=included_files),
+                         test_archive_path)
+        # Check archive exists
+        self.assertTrue(os.path.exists(test_archive_path))
+        # Check archive contains only expected members
+        expected = set(("ex1.txt",
+                        "subdir",
+                        "subdir/ex2.txt",))
+        members = set()
+        with tarfile.open(test_archive_path,"r:gz") as tgz:
+            for f in tgz.getnames():
+                print(f)
+                self.assertTrue(f in expected)
+                members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            print(f)
+            self.assertTrue(f in members)
+
+    def test_make_archive_tgz_non_default_compression_level(self):
+        """
+        make_archive_tgz: archive with non-default compression level
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive
+        test_archive = os.path.join(self.wd,"test_archive")
+        test_archive_path = "%s.tar.gz" % test_archive
+        self.assertEqual(make_archive_tgz(test_archive,p,
+                                          compresslevel=1),
+                         test_archive_path)
+        # Check archive exists
+        self.assertTrue(os.path.exists(test_archive_path))
+        # Check archive contains only expected members
+        expected = set(("ex1.txt",
+                        "subdir",
+                        "subdir/ex2.txt",))
+        members = set()
+        with tarfile.open(test_archive_path,"r:gz") as tgz:
+            for f in tgz.getnames():
+                self.assertTrue(f in expected)
+                members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            self.assertTrue(f in members)
+
+class TestMakeArchiveMultiTgz(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestMakeArchiveMultiTgz')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_make_archive_multitgz(self):
+        """
+        make_archive_multitgz: archive setting volume size
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add_batch(["ex%d.txt" % ix for ix in range(0,25)],
+                              type="file",content=random_text(10000))
+        example_dir.add_batch(["subdir/ex%d.txt" % ix for ix in range(0,25)],
+                              type="file",content=random_text(10000))
+        example_dir.create()
+        p = example_dir.path
+        # Make archive
+        test_archive = os.path.join(self.wd,"test_archive")
+        test_archive_paths = ["%s.%02d.tar.gz" % (test_archive,ix)
+                              for ix in range(0,2)]
+        self.assertEqual(make_archive_multitgz(test_archive,p,size='16K'),
+                         test_archive_paths)
+        # Check archives contains only expected members
+        expected = set(example_dir.list())
+        members = set()
+        for test_archive_path in test_archive_paths:
+            # Check archive exists
+            self.assertTrue(os.path.exists(test_archive_path))
+            # Check contents
+            with tarfile.open(test_archive_path,"r:gz") as tgz:
+                for f in tgz.getnames():
+                    self.assertTrue(f in expected)
+                    self.assertFalse(f in members)
+                    members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            self.assertTrue(f in members)
+
+    def test_make_archive_multitgz_with_base_dir(self):
+        """
+        make_archive_multitgz: archive with base directory
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add_batch(("ex%d.txt" % ix for ix in range(0,25)),
+                              type="file",content=random_text(10000))
+        example_dir.add_batch(("subdir/ex%d.txt" % ix for ix in range(0,25)),
+                              type="file",content=random_text(10000))
+        example_dir.create()
+        p = example_dir.path
+        # Make archive
+        test_archive = os.path.join(self.wd,"test_archive")
+        test_archive_paths = ["%s.%02d.tar.gz" % (test_archive,ix)
+                              for ix in range(0,2)]
+        self.assertEqual(make_archive_multitgz(test_archive,p,
+                                               base_dir="example",
+                                               size='16K'),
+                         test_archive_paths)
+        # Check archives contains only expected members
+        expected = set(example_dir.list(prefix="example"))
+        members = set()
+        for test_archive_path in test_archive_paths:
+            # Check archive exists
+            self.assertTrue(os.path.exists(test_archive_path))
+            # Check contents
+            with tarfile.open(test_archive_path,"r:gz") as tgz:
+                for f in tgz.getnames():
+                    self.assertTrue(f in expected)
+                    self.assertFalse(f in members)
+                    members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            self.assertTrue(f in members)
+
+    def test_make_archive_multitgz_with_file_list(self):
+        """
+        make_archive_multitgz: archive with file list
+        """
+        # Build example dir
+        text = random_text(5000)
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add_batch(("ex%d.txt" % ix for ix in range(0,50)),
+                              type="file",content=text)
+        example_dir.add_batch(("subdir/ex%d.txt" % ix for ix in range(0,50)),
+                              type="file",content=text)
+        example_dir.create()
+        p = example_dir.path
+        # Overlay example dir with a subset of files
+        # Only needed to generate a list of files
+        overlay_dir = UnittestDir(os.path.join(self.wd,"example"))
+        overlay_dir.add_batch(("ex%d.txt" % ix for ix in range(0,50,2)),
+                              type="file")
+        overlay_dir.add_batch(("subdir/ex%d.txt" % ix for ix in range(0,50,2)),
+                              type="file")
+        # Make archive
+        test_archive = os.path.join(self.wd,"test_archive")
+        test_archive_paths = ["%s.%02d.tar.gz" % (test_archive,ix)
+                              for ix in range(0,1)]
+        included_files = overlay_dir.list(prefix=p)
+        self.assertEqual(make_archive_multitgz(test_archive,p,
+                                               size='16K',
+                                               file_list=included_files),
+                         test_archive_paths)
+        # Check archives contains only expected members
+        expected = set(overlay_dir.list())
+        members = set()
+        for test_archive_path in test_archive_paths:
+            # Check archive exists
+            self.assertTrue(os.path.exists(test_archive_path))
+            # Check contents
+            with tarfile.open(test_archive_path,"r:gz") as tgz:
+                for f in tgz.getnames():
+                    self.assertTrue(f in expected)
+                    self.assertFalse(f in members)
+                    members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            self.assertTrue(f in members)
+
+    def test_make_archive_multitgz_non_default_compression_level(self):
+        """
+        make_archive_multitgz: archive setting volume size
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add_batch(["ex%d.txt" % ix for ix in range(0,25)],
+                              type="file",content=random_text(10000))
+        example_dir.add_batch(["subdir/ex%d.txt" % ix for ix in range(0,25)],
+                              type="file",content=random_text(10000))
+        example_dir.create()
+        p = example_dir.path
+        # Make archive
+        test_archive = os.path.join(self.wd,"test_archive")
+        test_archive_paths = ["%s.%02d.tar.gz" % (test_archive,ix)
+                              for ix in range(0,2)]
+        self.assertEqual(make_archive_multitgz(test_archive,p,
+                                               size='16K',
+                                               compresslevel=1),
+                         test_archive_paths)
+        # Check archives contains only expected members
+        expected = set(example_dir.list())
+        members = set()
+        for test_archive_path in test_archive_paths:
+            # Check archive exists
+            self.assertTrue(os.path.exists(test_archive_path))
+            # Check contents
+            with tarfile.open(test_archive_path,"r:gz") as tgz:
+                for f in tgz.getnames():
+                    self.assertTrue(f in expected)
+                    self.assertFalse(f in members)
+                    members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            self.assertTrue(f in members)
+
+class TestUnpackArchiveMultiTgz(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestUnpackArchiveMultiTgz')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_unpack_archive_multitgz(self):
+        """
+        unpack_archive_multitgz: placeholder
+        """
+        self.skipTest("Not implemented")
+
+class TestGetSize(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestGetSize')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_getsize_file(self):
+        """
+        getsize: get size for regular file
+        """
+        # Make example file
+        test_file = os.path.join(self.wd,"example.txt")
+        with open(test_file,'wt') as fp:
+            fp.write("example text\n")
+        # Check size
+        self.assertEqual(getsize(test_file),4096)
+
+    def test_getsize_symlink(self):
+        """
+        getsize: get size for symlink
+        """
+        # Make example file and symlink
+        test_file = os.path.join(self.wd,"example.txt")
+        with open(test_file,'wt') as fp:
+            fp.write("example text\n")
+        test_symlink = os.path.join(self.wd,"example_symlink.txt")
+        os.symlink("example.txt",test_symlink)
+        # Check size
+        self.assertEqual(getsize(test_symlink),0)
+
+    def test_getsize_dir(self):
+        """
+        getsize: get size for directory
+        """
+        self.assertEqual(getsize(self.wd),4096)
+
+class TestConvertSizeToBytes(unittest.TestCase):
+
+    def test_convert_size_to_bytes(self):
+        """
+        convert_size_to_bytes: handle different inputs
+        """
+        self.assertEqual(convert_size_to_bytes('4.0K'),4096)
+        self.assertEqual(convert_size_to_bytes('4.0M'),4194304)
+        self.assertEqual(convert_size_to_bytes('4.0G'),4294967296)
+        self.assertEqual(convert_size_to_bytes('4.0T'),4398046511104)
+        self.assertEqual(convert_size_to_bytes('4T'),4398046511104)
+
+class TestFormatSize(unittest.TestCase):
+
+    def test_format_size(self):
+        """
+        format_size: convert to specific units
+        """
+        self.assertEqual(format_size(4096,units='K'),4)
+        self.assertEqual(format_size(4194304,units='M'),4)
+        self.assertEqual(format_size(4294967296,units='G'),4)
+        self.assertEqual(format_size(4398046511104,units='T'),4)
+
+    def test_format_size_human_readable(self):
+        """
+        format_size: convert to human readable format
+        """
+        self.assertEqual(format_size(4096,human_readable=True),'4.0K')
+        self.assertEqual(format_size(4194304,human_readable=True),'4.0M')
+        self.assertEqual(format_size(4294967296,human_readable=True),'4.0G')
+        self.assertEqual(format_size(4398046511104,human_readable=True),'4.0T')
