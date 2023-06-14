@@ -1156,13 +1156,10 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
             tgz = None
         if not tgz:
             if size > max_size:
-                raise NgsArchiverException("%s: object is larger than "
-                                           "volume size (%s > %s)" %
-                                           (o,
-                                            format_size(size,
-                                                        human_readable=True),
-                                            format_size(max_size,
-                                                        human_readable=True)))
+                logger.warning("%s: object is larger than volume size "
+                               "for multi-volume archive (%s > %s)" %
+                               (o,format_size(size,human_readable=True),
+                                format_size(max_size,human_readable=True)))
             archive_name = "%s.%02d.%s" % (base_name,indx,ext)
             tgz = tarfile.open(archive_name,'w:gz',
                                compresslevel=compresslevel)
