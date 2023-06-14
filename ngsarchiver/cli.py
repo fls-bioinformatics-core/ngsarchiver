@@ -73,12 +73,12 @@ def main():
     parser_archive.add_argument('-g','--group',action='store',
                                 help="set the group on the final "
                                 "archive")
+    parser_archive.add_argument('-c','--check',action='store_true',
+                                help="check for and warn about potential "
+                                "issues; don't perform archiving")
     parser_archive.add_argument('--force',action='store_true',
                                 help="ignore problems about unreadable "
                                 "files and external symlinks")
-    parser_archive.add_argument('--check',action='store_true',
-                                help="check for and warn about potential "
-                                "issues; don't perform archiving")
 
     # 'verify' command
     parser_verify = s.add_parser('verify',
