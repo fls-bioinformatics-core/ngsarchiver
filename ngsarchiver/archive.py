@@ -972,33 +972,24 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
 
 def md5sum(f):
     """
-    Return MD5 digest for a file or stream
+    Return MD5 digest for a file
 
     This implements the md5sum checksum generation using he
     hashlib module.
 
     Arguments:
-      f (str): name of the file to generate the checksum from,
-        or a file-like object opened for reading in binary
-        mode.
+      f (str): name of the file to generate the checksum for
 
     Returns:
       String: MD5 digest for the named file.
     """
     chksum = hashlib.md5()
-    close_fp = False
-    try:
-        fp = open(f,"rb")
-        close_fp = True
-    except TypeError:
-        fp = f
-    while True:
-        buf = fp.read(MD5_BLOCKSIZE)
-        if not buf:
-            break
-        chksum.update(buf)
-    if close_fp:
-        fp.close()
+    with open(f,"rb") as fp:
+        while True:
+            buf = fp.read(MD5_BLOCKSIZE)
+            if not buf:
+                break
+            chksum.update(buf)
     return chksum.hexdigest()
 
 def verify_checksums(md5file,root_dir=None,verbose=False):
