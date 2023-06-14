@@ -186,8 +186,9 @@ def main():
             for f in d.hard_linked_files:
                 print("-- %s" % f)
                 has_hard_links = True
-            if not has_hard_linked_files:
+            if not has_hard_links:
                 print("-- no hard linked files")
+            print("Unknown UIDs:")
             has_unknown_uids = False
             for f in d.unknown_uids:
                 print("-- %s" % f)
