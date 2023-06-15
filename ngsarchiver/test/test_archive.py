@@ -670,6 +670,196 @@ class TestMakeArchiveDir(unittest.TestCase):
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
 
+    def test_make_archive_dir_multi_volume_single_archive(self):
+        """
+        make_archive_dir: single multi-volume archive
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add_batch(["ex%d.txt" % ix for ix in range(0,1)],
+                              type="file",content=random_text(10000))
+        example_dir.add_batch(["subdir/ex%d.txt" % ix for ix in range(0,1)],
+                              type="file",content=random_text(10000))
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,out_dir=self.wd,volume_size='8K')
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        expected = ("example.00.tar.gz",
+                    "example.01.tar.gz",
+                    "example.00.md5",
+                    "example.01.md5",
+                    ".ngsarchiver",
+                    ".ngsarchiver/archive.md5",
+                    ".ngsarchiver/archive_metadata.json",
+                    ".ngsarchiver/manifest.txt",)
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in a.walk():
+            self.assertTrue(os.path.relpath(item,archive_dir) in expected,
+                            "'%s' not expected" % item)
+
+    def test_make_archive_dir_multi_volume_multiple_subarchives(self):
+        """
+        make_archive_dir: multiple multi-volume subarchives
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add_batch(["subdir1/ex%d.txt" % ix for ix in range(0,2)],
+                              type="file",content=random_text(10000))
+        example_dir.add_batch(["subdir2/ex%d.txt" % ix for ix in range(0,2)],
+                              type="file",content=random_text(10000))
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
+                             out_dir=self.wd,volume_size='8K')
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        expected = ("subdir1.00.tar.gz",
+                    "subdir1.01.tar.gz",
+                    "subdir2.00.tar.gz",
+                    "subdir2.01.tar.gz",
+                    "subdir1.00.md5",
+                    "subdir1.01.md5",
+                    "subdir2.00.md5",
+                    "subdir2.01.md5",
+                    ".ngsarchiver",
+                    ".ngsarchiver/archive.md5",
+                    ".ngsarchiver/archive_metadata.json",
+                    ".ngsarchiver/manifest.txt",)
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in a.walk():
+            self.assertTrue(os.path.relpath(item,archive_dir) in expected,
+                            "'%s' not expected" % item)
+
+    def test_make_archive_dir_multi_volume_multiple_subarchives_including_misc(self):
+        """
+        make_archive_dir: multiple multi-volume subarchives (including miscellaneous)
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add_batch(["subdir1/ex%d.txt" % ix for ix in range(0,2)],
+                              type="file",content=random_text(10000))
+        example_dir.add_batch(["subdir2/ex%d.txt" % ix for ix in range(0,2)],
+                              type="file",content=random_text(10000))
+        example_dir.add_batch(["subdir3/ex%d.txt" % ix for ix in range(0,2)],
+                              type="file",content=random_text(10000))
+        example_dir.add("ex4.txt",type="file",content="Some text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
+                             misc_objects=('ex4.txt','subdir3'),
+                             out_dir=self.wd,
+                             volume_size='8K')
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        expected = ("subdir1.00.tar.gz",
+                    "subdir1.01.tar.gz",
+                    "subdir2.00.tar.gz",
+                    "subdir2.01.tar.gz",
+                    "subdir1.00.md5",
+                    "subdir1.01.md5",
+                    "subdir2.00.md5",
+                    "subdir2.01.md5",
+                    "miscellaneous.00.tar.gz",
+                    "miscellaneous.01.tar.gz",
+                    "miscellaneous.02.tar.gz",
+                    "miscellaneous.00.md5",
+                    "miscellaneous.01.md5",
+                    "miscellaneous.02.md5",
+                    ".ngsarchiver",
+                    ".ngsarchiver/archive.md5",
+                    ".ngsarchiver/archive_metadata.json",
+                    ".ngsarchiver/manifest.txt",)
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in a.walk():
+            self.assertTrue(os.path.relpath(item,archive_dir) in expected,
+                            "'%s' not expected" % item)
+
+    def test_make_archive_dir_multi_volume_multiple_subarchives_including_misc_and_extra_files(self):
+        """
+        make_archive_dir: multiple multi-volume subarchives (including miscellaneous and extra files)
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add_batch(["subdir1/ex%d.txt" % ix for ix in range(0,2)],
+                              type="file",content=random_text(10000))
+        example_dir.add_batch(["subdir2/ex%d.txt" % ix for ix in range(0,2)],
+                              type="file",content=random_text(10000))
+        example_dir.add_batch(["subdir3/ex%d.txt" % ix for ix in range(0,2)],
+                              type="file",content=random_text(10000))
+        example_dir.add("ex4.txt",type="file",content="Some text\n")
+        example_dir.add("ex5.txt",type="file",content="Some text\n")
+        example_dir.add("ex6.txt",type="file",content="Some text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
+                             misc_objects=('ex4.txt','subdir3'),
+                             extra_files=('ex5.txt','ex6.txt'),
+                             out_dir=self.wd,
+                             volume_size='8K')
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        expected = ("subdir1.00.tar.gz",
+                    "subdir1.01.tar.gz",
+                    "subdir2.00.tar.gz",
+                    "subdir2.01.tar.gz",
+                    "subdir1.00.md5",
+                    "subdir1.01.md5",
+                    "subdir2.00.md5",
+                    "subdir2.01.md5",
+                    "miscellaneous.00.tar.gz",
+                    "miscellaneous.01.tar.gz",
+                    "miscellaneous.02.tar.gz",
+                    "miscellaneous.00.md5",
+                    "miscellaneous.01.md5",
+                    "miscellaneous.02.md5",
+                    "ex5.txt",
+                    "ex6.txt",
+                    ".ngsarchiver",
+                    ".ngsarchiver/archive.md5",
+                    ".ngsarchiver/archive_metadata.json",
+                    ".ngsarchiver/manifest.txt",)
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in a.walk():
+            self.assertTrue(os.path.relpath(item,archive_dir) in expected,
+                            "'%s' not expected" % item)
+
 class TestMd5sum(unittest.TestCase):
 
     def setUp(self):
