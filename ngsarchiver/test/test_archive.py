@@ -271,8 +271,8 @@ class TestDirectory(unittest.TestCase):
         hard_link_dst = os.path.join(p,"ex12.txt")
         os.link(hard_link_src,hard_link_dst)
         # External symlink should be detected
-        self.assertEqual(list(d.hard_linked_files),
-                         [hard_link_src,hard_link_dst])
+        self.assertEqual(sorted(list(d.hard_linked_files)),
+                         sorted([hard_link_src,hard_link_dst]))
         self.assertTrue(d.has_hard_linked_files)
 
     def test_directory_check_group(self):
