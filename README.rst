@@ -53,20 +53,26 @@ two operations:
 
 1. Compressing the data where possible (to reduce
    the overall space required to store it), and
-2. Converting to a read-only format which can be
-   restored in whole or in part (so archived data
-   can be recovered back to its original form)
+2. Converting to an essentially read-only format
+   which can be restored in whole or in part (so
+   archived data can be recovered back to its original
+   form)
 
-While the structuring of data into subdirectories
-within each run directory broadly follows conventions
-adopted within the BCF, these conventions can vary
-over time and between platforms and even individual
-analysts. As a result there is a degree of
-non-homogeneity across the datastore, and so
-``ngsarchiver`` adopts a broadly agnostic approach
-which makes minimal assumptions about the data within
-each run directory. Specifically it automatically
-classifies each run directory as one of three types:
+Archiving in this context therefore implies that the
+run directory has reached a point in its lifecycle
+where no new data will be added.
+
+There are broad conventions within the BCF about how
+data is structure Within each run directory; however,
+these conventions can vary over time, between platforms
+and even individual analysts. As a result there is a
+degree of non-homogeneity across run directories
+within the datastore. For this reason so ``ngsarchiver``
+adopts a largely agnostic approach which makes minimal
+assumptions about the internal structure of data within
+each run directory. Specifically each run directory
+it encounters is automatically classified as one of
+three types:
 
 - ``GenericRun`` is a directory with a mixture of files
   and subdirectories at the top-level (and which isn't
@@ -82,8 +88,9 @@ classifies each run directory as one of three types:
   non-project content grouped into an additional
   subarchive.
 
-(The fourth type is ``ArchiveDirectory``, which cannot
-be archived.)
+(The fourth type is ``ArchiveDirectory``, describes
+an archive directory created by ``ngsarchiver`` and
+which therefor cannot be further archived.)
 
 Individual files and directories within the source
 directory are bundled together in one or more ``tar``
@@ -104,8 +111,8 @@ some additional effort using just the standard Linux
 command line tools ``tar``, ``gzip`` and ``md5sum``.
 
 Finally, no functionality is provided for the
-management of the datastore beyond the creation of
-the archive directories; it simply creates archives
+management of the wider datastore beyond the creation
+of the archive directories; it simply creates archives
 and enables their verification and the recovery of
 data. It is up to the user to manage where the
 generated archive directories are stored and what
