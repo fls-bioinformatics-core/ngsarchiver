@@ -9,6 +9,7 @@ import tarfile
 import random
 import string
 import shutil
+import base64
 from ngsarchiver.archive import Directory
 from ngsarchiver.archive import GenericRun
 from ngsarchiver.archive import MultiSubdirRun
@@ -21,6 +22,7 @@ from ngsarchiver.archive import verify_checksums
 from ngsarchiver.archive import make_archive_dir
 from ngsarchiver.archive import make_archive_tgz
 from ngsarchiver.archive import make_archive_multitgz
+from ngsarchiver.archive import unpack_archive_multitgz
 from ngsarchiver.archive import getsize
 from ngsarchiver.archive import convert_size_to_bytes
 from ngsarchiver.archive import format_size
@@ -1330,11 +1332,87 @@ class TestUnpackArchiveMultiTgz(unittest.TestCase):
         if REMOVE_TEST_OUTPUTS:
             shutil.rmtree(self.wd)
 
-    def test_unpack_archive_multitgz(self):
+    def test_unpack_archive_multitgz_single_tar_gz(self):
         """
-        unpack_archive_multitgz: placeholder
+        unpack_archive_multitgz: single .tar.gz file
         """
-        self.skipTest("Not implemented")
+        # Make example tar.gz file
+        example_targz = os.path.join(self.wd,"example.tar.gz")
+        with open(example_targz,'wb') as fp:
+            # Encodes a tar.gz file with the contents in
+            # 'expected' (below)
+            fp.write(base64.b64decode(b'H4sIAAAAAAAAA+2ZYWqDQBCF/Z1TeIJkdxzda/QKpllog6HBbMDjd7QVopKWQJxt2ff9MehCFl6+8Wl8V5/Ojd9lK2IE58r+aF1pbo8jmWXmQpZZI+usqchmebnmpkaul1C3eZ6dj/sf1/12/Z/iv/O/XPeH95ZW+R08lL+T85bkOvLXYJ6/72gbuvDU7+gDriq+n7/IPs2/YJL8zVN3cYfE839p6lf/9tEcfJsH34VN7A0BVZb+27/hP8N/DeB/2kz9t/H7H1df/c+h/2kwzz96/xvyl/nvMP81wPxPm6X/kfsfM/qfIvA/bab+F/H7n6O+/5GcQv9TYJ5/9P435F/IZ8x/DTD/02bpf+z3f4TnP0Xgf9qM/q/h/chD/g///5Mpcf9XAf4DAECafAIvyELwACgAAA=='))
+        expected = ('example',
+                    'example/ex1.txt',
+                    'example/subdir1',
+                    'example/subdir1/ex1.txt',
+                    'example/subdir1/ex2.txt',
+                    'example/subdir2',
+                    'example/subdir2/ex1.txt',
+                    'example/subdir2/ex2.txt',
+                    'example/subdir3',
+                    'example/subdir3/ex1.txt',
+                    'example/subdir3/ex2.txt',)
+        # Unpack the targz file
+        unpack_archive_multitgz((example_targz,),extract_dir=self.wd)
+        # Check unpacked directory
+        self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(os.path.join(self.wd,"example")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+
+    def test_unpack_archive_multitgz_multiple_tar_gz(self):
+        """
+        unpack_archive_multitgz: multiple .tar.gz files
+        """
+        # Make example tar.gz files
+        example_targz_data = [
+            { 'path': os.path.join(self.wd,"subdir1.tar.gz"),
+              'b64content': b'H4sIAAAAAAAAA+3T3QqCMBjG8R13FV5BbnO62+gWNAcVRqILdvkpEYRhnfiB9P+dvAd7YS88PC7k17pycXsvynOjYjED2bE27aeyqXyfL0IZY5JuTZlMSKWVtSJK5zhm6N76vIkiUV+Kr3u/3jfKDfJ3Qe998JP+0QecZWY8f60G+SdGd/nLSa8Y8ef5H6r86E63qnRN5F3wu7UPwqI++69W7r959t/Q/yXQfwAAAAAAAAAAAAAAtu8BVJJOSAAoAAA=',
+              'expected': ('example/subdir1',
+                           'example/subdir1/ex1.txt',
+                           'example/subdir1/ex2.txt',),
+            },
+            { 'path': os.path.join(self.wd,"subdir2.tar.gz"),
+              'b64content': b'H4sIAAAAAAAAA+3T0QqCMBTG8V33FHuCdHO61+gVNAcVRqITfPzmRRCGdaOW9P/dHNg5sAMfx/X5ta5c1HZFeW50JBYQB9amQ1U2jZ/rg1DGmCSMKRvelQ59IdMllhnrWp83Uor6Uryd+9TfKDfK3/V673s/6x9DwFlmpvPXapR/YnTIP551iwl/nv+hyo/udKtK10jver/79kJY1ev9q9+4f8P9r4H7BwAAAAAAAAAAAABg++79kqV0ACgAAA==',
+              'expected': ('example/subdir2',
+                           'example/subdir2/ex1.txt',
+                           'example/subdir2/ex2.txt',),
+            },
+            { 'path': os.path.join(self.wd,"miscellaneous.tar.gz"),
+              'b64content': b'H4sIAAAAAAAAA+3W0QrCIBQGYK97Cp+gHZ3O1+gVtiZULBqbAx8/V0GxqCjmovZ/N4oOdkD+o9bn+7qyifVi6bxjMVCQZaofhdF0O55JwYRSKiUygjQjISlsc4pSzUDXurzhnNW74ul3r/Z/1KrK13ZzqErbcGe9W3y7IJiUveS/7Ypy26RJjH/0ETdGP84/0TX/Rvb5l2GJ6xjFDM08/8Pzt16Ofg+81f9P55+GOfr/FND/5+0+/+O/Az/JvzTI/xSQfwAAAAAAAAAAAAAAAID/cQRHXCooACgAAA==',
+              'expected': ('example/ex1.txt',
+                           'example/subdir3',
+                           'example/subdir3/ex1.txt',
+                           'example/subdir3/ex2.txt',),
+            }
+        ]
+        for targz in example_targz_data:
+            example_targz = targz['path']
+            with open(example_targz,'wb') as fp:
+                fp.write(base64.b64decode(targz['b64content']))
+        # Unpack the targz files
+        example_targzs = [t['path'] for t in example_targz_data]
+        unpack_archive_multitgz(example_targzs,extract_dir=self.wd)
+        # Check unpacked directories
+        self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        all_expected = []
+        for targz in example_targz_data:
+            expected = targz['expected']
+            for item in expected:
+                self.assertTrue(
+                    os.path.exists(os.path.join(self.wd,item)),
+                    "missing '%s'" % item)
+                all_expected.append(item)
+        # Check extra items aren't present
+        for item in Directory(os.path.join(self.wd,"example")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in all_expected,
+                            "'%s' not expected" % item)
 
 class TestGetSize(unittest.TestCase):
 
