@@ -60,10 +60,10 @@ two operations:
 
 Archiving in this context therefore implies that the
 run directory has reached a point in its lifecycle
-where no new data will be added.
+where no new data will be added to it in future.
 
 There are broad conventions within the BCF about how
-data is structure Within each run directory; however,
+data is structured within each run directory; however,
 these conventions can vary over time, between platforms
 and even individual analysts. As a result there is a
 degree of non-homogeneity across run directories
