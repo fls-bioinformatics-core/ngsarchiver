@@ -28,6 +28,79 @@ Specifically it provides a single executable called
 This ``README`` comprises the whole of the usage
 documentation.
 
+----------
+Background
+----------
+
+``ngsarchiver`` exists primarily as a tool for
+archiving data and analyses within the BCF
+datastore.
+
+The BCF datastore consists of a hierarchy of
+directories which differentiate data from different
+years and which originate from different sequencing
+platforms or data sources (e.g. external facilities).
+
+Within this hierarchy each distinct sequencing run or
+external dataset has its own directory (referred to
+within this documentation as "run directory").
+
+While the structuring of data into subdirectories
+within each run directory broadly follows conventions
+adopted within the BCF, these conventions can vary
+over time and between platforms and even individual
+analysts. As a result there is a degree of
+non-homogeneity across the datastore.
+
+Archiving within ``ngsarchiver`` is done on a
+per-run directory basis, and consists of
+
+1. Compressing the data where possible (to reduce
+   the overall space required to store it), and
+2. Converting to a read-only format which can be
+   restored in whole or in part (so archived data
+   can be recovered back to its original form)
+
+``ngsarchiver`` adopts a broadly agnostic approach
+and makes minimal assumptions about the data within
+each run, specifically it automatically classifies
+the source directory into one of three types:
+
+- ``GenericRun`` is a directory with a mixture of files
+  and subdirectories at the top-level (and which isn't
+  one of the other types); all content is placed in a
+  single subarchive.
+- ``MultiSubdirRun`` is a directory with only
+  subdirectories at the top-level; each subdirectory
+  has its own subarchive.
+- ``MultiProjectRun`` is a directory with a
+  ``projects.info`` file at the top-level along with a
+  mixture of other files and subdirectories; each
+  project subdirectory has its own subarchive, with the
+  non-project content grouped into an additional
+  subarchive.
+
+(The fourth type is ``ArchiveDirectory``, which cannot
+be archived.)
+
+Individual files and directories within the source
+directory are bundled together in one or more ``tar``
+files which are compressed using ``gzip``, and MD5
+checksums are generated both for the original files (so
+they can be checked when restored) and for the
+archive components (providing an integrity check
+on the archive itself). The general structure of the
+archive directories is described elsewhere in the
+section *Archive directory format*.
+
+The ``ngsarchiver`` package is intended to provide
+a set of simple zero-configuration tools with minimal
+dependencies, that can be used to check and restore
+data from archive directories. However it should also
+be possible to verify and recover data manually with
+some additional effort using just the standard Linux
+command line tools ``tar``, ``gzip`` and ``md5sum``.
+
 ------------
 Installation
 ------------
@@ -35,7 +108,7 @@ Installation
 The minimal installation is to unpack the ``tar.gz``
 archive file containing the Python files; it should be
 possible to run the ``archiver`` utility without any
-further configuration by simply specifying the path to
+further configuration by specifying the path to
 the executable in the unpacked ``bin`` subdirectory.
 
 The only requirement is that ``python3`` should be
@@ -106,27 +179,31 @@ The resulting archive directory will be named
 working directory by default. Note that an existing
 archive directory will not be overwritten.
 
-The original directory must pass a number of checks
-before the archive is created, to avoid potential
-issues with the generated archive (see the section
-*Problem situations* below). Specifying the ``-c``
-argument performs the checks without the archive
-creation; the ``--force`` argument ignores the
-results of the checks will always create the archive
-directory even if they don't pass.
+The source directory is unchanged by the creation of
+the archive director and must pass a number of checks
+before the archive is created. These checks are to
+identify potential issues that could arise later with
+the generated archive (see the section
+*Problem situations* below).
 
-The original directory is unchanged by the creation
-of the archive directory.
+If any check fails then the archive will not be
+created unless the ``--force`` argument is also
+specified (in which case the archive will be
+created regardless of the checks). Specifying the
+``-c`` argument performs the checks without the
+archive creation.
 
 The format of the archive directory is described
-below in a separate section.
+below in a separate section (see
+*Archive directory format*). The archiver will
+refuse to make an archive of an archive directory.
 
 By default there is no limit on the size of ``tar.gz``
 files created within the archive; the ``--size``
 argument allows a limit to be set (e.g.
 ``--size 50G``), in which case multiple ``tar.gz``
 files will be created which will not exceed
-this size (aka "multi-volume archives).
+this size (aka "multi-volume archives").
 
 By default the archiving uses ``gzip`` compression
 level 6 (the same default as Linux ``gzip``);
@@ -306,22 +383,6 @@ extremely large ``.tar.gz`` archives.
 
 The archiver recognises four directory types (which
 are determined automatically):
-
-- ``GenericRun`` is a directory with a mixture of files
-  and subdirectories at the top-level (and which isn't
-  one of the other types); all content is placed in a
-  single subarchive.
-- ``MultiSubdirRun`` is a directory with only
-  subdirectories at the top-level; each subdirectory
-  has its own subarchive.
-- ``MultiProjectRun`` is a directory with a
-  ``projects.info`` file at the top-level along with a
-  mixture of other files and subdirectories; each
-  project subdirectory has its own subarchive, with the
-  non-project content grouped into an additional
-  subarchive.
-- ``ArchiveDirectory`` is an archive directory. The
-  archiver will refuse to make an archive of an archive.
 
 ------------------
 Problem situations
