@@ -10,6 +10,7 @@ import random
 import string
 import shutil
 import base64
+import getpass
 from ngsarchiver.archive import Directory
 from ngsarchiver.archive import GenericRun
 from ngsarchiver.archive import MultiSubdirRun
@@ -292,7 +293,7 @@ class TestDirectory(unittest.TestCase):
         example_dir.create()
         p = example_dir.path
         # Get info on UID, GIDs etc
-        user = os.getlogin()
+        user = getpass.getuser()
         primary_group = grp.getgrgid(pwd.getpwnam(user).pw_gid).gr_name
         # Check group
         d = Directory(p)
@@ -338,7 +339,7 @@ class TestDirectory(unittest.TestCase):
         example_dir.create()
         p = example_dir.path
         # Get info on UID, GIDs etc
-        user = os.getlogin()
+        user = getpass.getuser()
         primary_group = grp.getgrgid(pwd.getpwnam(user).pw_gid).gr_name
         # Other groups for current user
         other_groups = [grp.getgrgid(g).gr_name for g in os.getgroups()]
