@@ -1040,7 +1040,7 @@ def verify_checksums(md5file,root_dir=None,verbose=False):
         issues (e.g. badly-formatted lines)
     """
     with open(md5file,'rt') as fp:
-        for line in fp:
+        for lineno,line in enumerate(fp,start=1):
             try:
                 chksum,path = line.rstrip('\n').split('  ')
                 if verbose:
@@ -1054,9 +1054,11 @@ def verify_checksums(md5file,root_dir=None,verbose=False):
                     print("%s: checksum verification failed" % path)
                     return False
             except ValueError as ex:
-                raise NgsArchiverException("%s: bad checksum line: %s" %
-                                           (line.rstrip('\n'),
-                                            ex))
+                raise NgsArchiverException("%s (L%d): bad checksum line "
+                                           "'%s': %s" % (md5file,
+                                                         lineno,
+                                                         line.rstrip('\n'),
+                                                         ex))
         return True
 
 def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
