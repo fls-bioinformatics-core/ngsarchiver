@@ -23,6 +23,7 @@ import time
 import tarfile
 import hashlib
 import fnmatch
+import getpass
 import logging
 from pathlib import Path
 from .exceptions import NgsArchiverException
@@ -885,7 +886,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         'source': d.path,
         'subarchives': [],
         'files': [],
-        'user': os.getlogin(),
+        'user': getpass.getuser(),
         'creation_date': None,
         'multi_volume': multi_volume,
         'volume_size': volume_size,
