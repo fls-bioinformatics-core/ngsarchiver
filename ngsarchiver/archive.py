@@ -1271,8 +1271,7 @@ def format_size(size,units='K',human_readable=False):
     elif units:
         units = units.lower()
         if units not in UNITS:
-            raise NgsArchiverException("%s: unrecognised size unit "
-                                       "'%s'" % (self._path,units))
+            raise ValueError("Unrecognised size unit '%s'" % units)
         for u in UNITS:
             size = float(size)/blocksize
             if units == u:
