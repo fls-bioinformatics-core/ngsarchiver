@@ -742,6 +742,15 @@ class ArchiveDirectory(Directory):
         md5file = os.path.join(self._ngsarchiver_dir,"archive.md5")
         if not os.path.isfile(md5file):
             raise NgsArchiverException("%s: no MD5 checksum file" % self)
+        checksummed_items = []
+        with open(md5file,'rt') as fp:
+            for line in fp:
+                checksummed_items.append(line.rstrip('\n').split('  ')[1])
+        for f in self._archive_metadata['files'] + \
+            self._archive_metadata['subarchives']:
+            if f not in checksummed_items:
+                raise NgsArchiverException("%s: no checksum for '%s'" %
+                                           (self,f))
         return verify_checksums(md5file,root_dir=self._path,verbose=True)
         
     def __repr__(self):
