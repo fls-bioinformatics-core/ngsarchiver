@@ -33,27 +33,23 @@ Background
 ----------
 
 ``ngsarchiver`` exists primarily as a tool for
-archiving data and analyses within the BCF
-datastore.
+archiving data within the BCF datastore.
 
-The BCF datastore consists of a hierarchy of
-directories which differentiate data from different
-years and which originate from different sequencing
-platforms or data sources (e.g. external facilities).
+This datastore exists as a hierarchy of
+directories and files residing across a number of
+Linux filesystem. The top levels of the hierarchy
+act to differentiate data from different years and
+which originate from different sequencing platforms
+or data sources (e.g. external facilities),
+however the exact structure is not relevant within
+the context of ``ngsarchiver``; the key point is that
+within this hierarchy each distinct sequencing run or
+external dataset has its own directory, which is
+referred to a "run directory", and archiving is
+performed at the run directory level.
 
-Within this hierarchy each distinct sequencing run or
-external dataset has its own directory (referred to
-within this documentation as "run directory").
-
-While the structuring of data into subdirectories
-within each run directory broadly follows conventions
-adopted within the BCF, these conventions can vary
-over time and between platforms and even individual
-analysts. As a result there is a degree of
-non-homogeneity across the datastore.
-
-Archiving within ``ngsarchiver`` is done on a
-per-run directory basis, and consists of
+Furthermore, "archiving" in this context consists of
+two operations:
 
 1. Compressing the data where possible (to reduce
    the overall space required to store it), and
@@ -61,10 +57,16 @@ per-run directory basis, and consists of
    restored in whole or in part (so archived data
    can be recovered back to its original form)
 
+While the structuring of data into subdirectories
+within each run directory broadly follows conventions
+adopted within the BCF, these conventions can vary
+over time and between platforms and even individual
+analysts. As a result there is a degree of
+non-homogeneity across the datastore, and so
 ``ngsarchiver`` adopts a broadly agnostic approach
-and makes minimal assumptions about the data within
-each run, specifically it automatically classifies
-the source directory into one of three types:
+which makes minimal assumptions about the data within
+each run directory. Specifically it automatically
+classifies each run directory as one of three types:
 
 - ``GenericRun`` is a directory with a mixture of files
   and subdirectories at the top-level (and which isn't
@@ -100,6 +102,15 @@ data from archive directories. However it should also
 be possible to verify and recover data manually with
 some additional effort using just the standard Linux
 command line tools ``tar``, ``gzip`` and ``md5sum``.
+
+Finally, no functionality is provided for the
+management of the datastore beyond the creation of
+the archive directories; it simply creates archives
+and enables their verification and the recovery of
+data. It is up to the user to manage where the
+generated archive directories are stored and what
+should happen to the original run directories after
+they have been archived.
 
 ------------
 Installation
