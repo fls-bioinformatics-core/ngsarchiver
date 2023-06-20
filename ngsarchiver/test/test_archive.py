@@ -2207,7 +2207,7 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
 
     def test_make_archive_multitgz_non_default_compression_level(self):
         """
-        make_archive_multitgz: archive setting volume size
+        make_archive_multitgz: archive setting volume size and compression level
         """
         # Build example dir
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
