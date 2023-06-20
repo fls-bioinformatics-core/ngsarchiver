@@ -404,9 +404,33 @@ class TestMultiSubdirRun(unittest.TestCase):
 
     def test_multisubdirrun(self):
         """
-        MultiSubdirRun: placeholder
+        MultiSubdirRun: check archive creation
         """
-        self.skipTest("Not implemented")
+        # Build example multi-subdir directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("Project1/README",type="file")
+        for ix,sample in enumerate(("EX1","EX2")):
+            for read in ("R1","R2"):
+                example_dir.add("Project1/fastqs/%s_S%d_L1_%s_001.fastq"
+                                % (sample,ix,read),type="file")
+        example_dir.add("Project2/README",type="file")
+        for ix,sample in enumerate(("EX3","EX4")):
+            for read in ("R1","R2"):
+                example_dir.add("Project2/fastqs/%s_S%d_L1_%s_001.fastq"
+                                % (sample,ix,read),type="file")
+        example_dir.add("bcl2fastq/README",type="file")
+        example_dir.create()
+        p = example_dir.path
+        # Create instance and create an archive directory
+        d = MultiSubdirRun(p)
+        a = d.make_archive(out_dir=self.wd)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.path,os.path.join(self.wd,"example.archive"))
+        self.assertTrue(os.path.exists(a.path))
+        for name in ("Project1.tar.gz",
+                     "Project2.tar.gz",
+                     "bcl2fastq.tar.gz"):
+            self.assertTrue(os.path.exists(os.path.join(a.path,name)))
 
 class TestMultiProjectRun(unittest.TestCase):
 
