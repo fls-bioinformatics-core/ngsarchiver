@@ -293,9 +293,13 @@ def main(argv=None):
         print("-- group       : %s" % ('<default>' if not args.group
                                        else args.group))
         print("Making archive from %s..." % d)
-        a = d.make_archive(out_dir=args.out_dir,
-                           volume_size=volume_size,
-                           compresslevel=args.compresslevel)
+        try:
+            a = d.make_archive(out_dir=args.out_dir,
+                               volume_size=volume_size,
+                               compresslevel=args.compresslevel)
+        except Exception as ex:
+            logger.critical("exception creating archive: %s" % ex)
+            return CLIStatus.ERROR
         archive_size = a.size
         if args.group:
             print("Setting group to '%s'..." % args.group)

@@ -148,6 +148,20 @@ class TestCLI(unittest.TestCase):
                          CLIStatus.OK)
         self.assertTrue(os.path.exists(os.path.join(self.wd,"example.archive")))
 
+    def test_archive_already_exists(self):
+        """
+        CLI: test the 'archive' command (archive directory already present)
+        """
+        # Make example directory to archive
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.create()
+        # Creat placeholder archive directory
+        os.mkdir(os.path.join(self.wd,"example.archive"))
+        self.assertEqual(main(['archive',example_dir.path]),
+                         CLIStatus.ERROR)
+
     def test_verify(self):
         """
         CLI: test the 'verify' command
