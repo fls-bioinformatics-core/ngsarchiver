@@ -610,6 +610,16 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
         for item in Directory(os.path.join(self.wd,"example")).walk():
             self.assertTrue(os.path.relpath(item,self.wd) in expected,
                             "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","ex1.txt")))
 
     def test_archivedirectory_multiple_subarchives(self):
         """
@@ -721,6 +731,16 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         for item in Directory(os.path.join(self.wd,"example")).walk():
             self.assertTrue(os.path.relpath(item,self.wd) in expected,
                             "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","ex1.txt")))
 
     def test_archivedirectory_multiple_subarchives_and_file(self):
         """
@@ -841,6 +861,19 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         for item in Directory(os.path.join(self.wd,"example")).walk():
             self.assertTrue(os.path.relpath(item,self.wd) in expected,
                             "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="*/extra_file.txt",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"extra_file.txt")))
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","ex1.txt")))
 
     def test_archivedirectory_multi_volume_single_subarchive(self):
         """
@@ -949,6 +982,16 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         for item in Directory(os.path.join(self.wd,"example")).walk():
             self.assertTrue(os.path.relpath(item,self.wd) in expected,
                             "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/subdir1/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="example/subdir1/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","subdir1","ex1.txt")))
 
     def test_archivedirectory_multi_volume_multiple_subarchives(self):
         """
@@ -1108,6 +1151,16 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         for item in Directory(os.path.join(self.wd,"example")).walk():
             self.assertTrue(os.path.relpath(item,self.wd) in expected,
                             "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","ex1.txt")))
 
     def test_archivedirectory_multi_volume_multiple_subarchives_and_file(self):
         """
@@ -1284,6 +1337,19 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         for item in Directory(os.path.join(self.wd,"example")).walk():
             self.assertTrue(os.path.relpath(item,self.wd) in expected,
                             "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="*/extra_file.txt",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"extra_file.txt")))
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","ex1.txt")))
 
 class TestArchiveDirMember(unittest.TestCase):
 
