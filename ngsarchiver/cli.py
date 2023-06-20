@@ -11,6 +11,7 @@
 # Imports
 #######################################################################
 
+import sys
 import logging
 from argparse import ArgumentParser
 from .archive import ArchiveDirectory
@@ -27,12 +28,32 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level="INFO",format='%(levelname)s: %(message)s')
 
 #######################################################################
+# CLI exit codes
+#######################################################################
+
+class CLIStatus(object):
+    OK = 0
+    ERROR = 1
+
+#######################################################################
 # Functions
 #######################################################################
 
-def main():
+def main(argv=None):
     """
+    Implements the command line interface for archiver operations
+
+    Arguments:
+      argv (list): list of command line arguments (defaults
+        to sys.argv if not supplied)
+
+    Returns:
+      Integer: status code from CLIStatus.
     """
+    # Get command line arguments if not supplied
+    if argv is None:
+        argv = sys.argv[1:]
+
     # Top-level parser
     p = ArgumentParser(description="NGS data archiving utility")
     p.add_argument('--version',action='version',version=get_version())
@@ -142,7 +163,7 @@ def main():
                                 "is to drop leading paths)")
 
     # Parse the arguments
-    args = p.parse_args()
+    args = p.parse_args(argv)
     
     # 'Info' subcommand
     if args.subcommand == "info":
@@ -152,13 +173,16 @@ def main():
         print("Type: %s" % d.__class__.__name__)
         print("Size: %s" % format_size(size,human_readable=True))
         compressed_file_size = d.getsize(d.compressed_files)
-        print("Compressed contents: %s [%.1f%%]" %
-              (format_size(compressed_file_size,human_readable=True),
-              float(compressed_file_size)/float(size)*100.0))
+        if compressed_file_size > 0.0:
+            print("Compressed contents: %s [%.1f%%]" %
+                  (format_size(compressed_file_size,human_readable=True),
+                   float(compressed_file_size)/float(size)*100.0))
+        else:
+            print("Compressed contents: 0 [0.0%%]")
         if isinstance(d,ArchiveDirectory):
             for item in d.archive_metadata:
                 print("-- %s: %s" % (item,d.archive_metadata[item]))
-            return
+            return CLIStatus.OK
         if args.list:
             print("Unreadable files:")
             is_readable = True
@@ -201,6 +225,7 @@ def main():
             print("Broken symlinks  : %s" % d.has_broken_symlinks)
             print("Hard linked files: %s" % d.has_hard_linked_files)
             print("Unknown UIDs     : %s" % d.has_unknown_uids)
+        return CLIStatus.OK
 
     # 'Archive' subcommand
     if args.subcommand == "archive":
@@ -233,7 +258,7 @@ def main():
                 logger.warning("%s (ignored)" % msg)
             else:
                 logger.critical(msg)
-                return 1
+                return CLIStatus.ERROR
         if has_hard_linked_files and args.volume_size:
             msg = "Hard links detected with multi-volume archiving"
             if args.check:
@@ -243,7 +268,7 @@ def main():
                 logger.warning("%s (ignored)" % msg)
             else:
                 logger.critical(msg)
-                return 1
+                return CLIStatus.ERROR
         volume_size = args.volume_size
         if volume_size and convert_size_to_bytes(volume_size) > size:
             logger.warning("volume size larger than uncompressed "
@@ -278,7 +303,9 @@ def main():
         print("Created archive: %s (%s) [%.1f%%]" %
               (a,
                format_size(archive_size,human_readable=True),
-               float(archive_size)/float(size)*100.0))
+               float(archive_size)/float(size)*100.0
+               if size > 0.0 else 100))
+        return CLIStatus.OK
 
     # 'Verify' subcommand
     if args.subcommand == 'verify':
@@ -286,10 +313,10 @@ def main():
         print("Verifying %s" % a)
         if a.verify_archive():
             print("-- ok")
-            return 0
+            return CLIStatus.OK
         else:
             print("-- failed")
-            return 1
+            return CLIStatus.ERROR
 
     # 'Unpack' subcommand
     if args.subcommand == 'unpack':
@@ -299,6 +326,7 @@ def main():
                                          else args.out_dir))
         d = a.unpack(extract_dir=args.out_dir)
         print("Unpacked directory: %s" % d)
+        return CLIStatus.OK
 
     # 'Compare' subcommand
     if args.subcommand == 'compare':
@@ -306,10 +334,10 @@ def main():
         print("Comparing %s against %s" % (d1,args.dir2))
         if d1.verify_copy(args.dir2):
             print("-- ok")
-            return 0
+            return CLIStatus.OK
         else:
             print("-- failed")
-            return 1
+            return CLIStatus.ERROR
 
     # 'Search' subcommand
     if args.subcommand == 'search':
@@ -323,6 +351,7 @@ def main():
                     print("%s:%s" % (d.path,f.path))
                 else:
                     print(f.path)
+        return CLIStatus.OK
 
     # 'Extract' subcommand
     if args.subcommand == 'extract':
@@ -330,3 +359,4 @@ def main():
         a.extract_files(args.name,
                         extract_dir=args.out_dir,
                         include_path=args.keep_path)
+        return CLIStatus.OK
