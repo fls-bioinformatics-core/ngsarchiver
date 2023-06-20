@@ -63,12 +63,6 @@ class UnittestDir:
                 'target': target,
                 'mode': mode,
             })
-    def add_batch(self,paths,type='file',content=None,target=None,
-                  mode=None):
-        # Add multiple paths with same type, content etc
-        for p in paths:
-            self.add(p,type=type,content=content,target=target,
-                     mode=mode)
     def list(self,prefix=None):
         # Return list of (relative) paths
         paths = set()
@@ -1596,15 +1590,18 @@ class TestMakeArchiveDir(unittest.TestCase):
         """
         # Build example directory
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
-        example_dir.add_batch(["ex%d.txt" % ix for ix in range(0,1)],
-                              type="file",content=random_text(10000))
-        example_dir.add_batch(["subdir/ex%d.txt" % ix for ix in range(0,1)],
-                              type="file",content=random_text(10000))
+        for ix in range(0,20):
+            example_dir.add("ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+            example_dir.add("subdir/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
         example_dir.create()
         p = example_dir.path
         # Make archive directory
         d = Directory(p)
-        a = make_archive_dir(d,out_dir=self.wd,volume_size='8K')
+        a = make_archive_dir(d,out_dir=self.wd,volume_size='12K')
         self.assertTrue(isinstance(a,ArchiveDirectory))
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
@@ -1633,16 +1630,19 @@ class TestMakeArchiveDir(unittest.TestCase):
         """
         # Build example directory
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
-        example_dir.add_batch(["subdir1/ex%d.txt" % ix for ix in range(0,2)],
-                              type="file",content=random_text(10000))
-        example_dir.add_batch(["subdir2/ex%d.txt" % ix for ix in range(0,2)],
-                              type="file",content=random_text(10000))
+        for ix in range(0,40):
+            example_dir.add("subdir1/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+            example_dir.add("subdir2/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
         example_dir.create()
         p = example_dir.path
         # Make archive directory
         d = Directory(p)
         a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
-                             out_dir=self.wd,volume_size='8K')
+                             out_dir=self.wd,volume_size='12K')
         self.assertTrue(isinstance(a,ArchiveDirectory))
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
@@ -1675,12 +1675,16 @@ class TestMakeArchiveDir(unittest.TestCase):
         """
         # Build example directory
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
-        example_dir.add_batch(["subdir1/ex%d.txt" % ix for ix in range(0,2)],
-                              type="file",content=random_text(10000))
-        example_dir.add_batch(["subdir2/ex%d.txt" % ix for ix in range(0,2)],
-                              type="file",content=random_text(10000))
-        example_dir.add_batch(["subdir3/ex%d.txt" % ix for ix in range(0,2)],
-                              type="file",content=random_text(10000))
+        for ix in range(0,40):
+            example_dir.add("subdir1/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+            example_dir.add("subdir2/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+            example_dir.add("subdir3/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
         example_dir.add("ex4.txt",type="file",content="Some text\n")
         example_dir.create()
         p = example_dir.path
@@ -1689,7 +1693,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
                              misc_objects=('ex4.txt','subdir3'),
                              out_dir=self.wd,
-                             volume_size='8K')
+                             volume_size='12K')
         self.assertTrue(isinstance(a,ArchiveDirectory))
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
@@ -1705,10 +1709,8 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "subdir2.01.md5",
                     "miscellaneous.00.tar.gz",
                     "miscellaneous.01.tar.gz",
-                    "miscellaneous.02.tar.gz",
                     "miscellaneous.00.md5",
                     "miscellaneous.01.md5",
-                    "miscellaneous.02.md5",
                     ".ngsarchiver",
                     ".ngsarchiver/archive.md5",
                     ".ngsarchiver/archive_metadata.json",
@@ -1728,12 +1730,16 @@ class TestMakeArchiveDir(unittest.TestCase):
         """
         # Build example directory
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
-        example_dir.add_batch(["subdir1/ex%d.txt" % ix for ix in range(0,2)],
-                              type="file",content=random_text(10000))
-        example_dir.add_batch(["subdir2/ex%d.txt" % ix for ix in range(0,2)],
-                              type="file",content=random_text(10000))
-        example_dir.add_batch(["subdir3/ex%d.txt" % ix for ix in range(0,2)],
-                              type="file",content=random_text(10000))
+        for ix in range(0,40):
+            example_dir.add("subdir1/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+            example_dir.add("subdir2/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+            example_dir.add("subdir3/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
         example_dir.add("ex4.txt",type="file",content="Some text\n")
         example_dir.add("ex5.txt",type="file",content="Some text\n")
         example_dir.add("ex6.txt",type="file",content="Some text\n")
@@ -1745,7 +1751,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                              misc_objects=('ex4.txt','subdir3'),
                              extra_files=('ex5.txt','ex6.txt'),
                              out_dir=self.wd,
-                             volume_size='8K')
+                             volume_size='12K')
         self.assertTrue(isinstance(a,ArchiveDirectory))
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
@@ -1761,10 +1767,8 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "subdir2.01.md5",
                     "miscellaneous.00.tar.gz",
                     "miscellaneous.01.tar.gz",
-                    "miscellaneous.02.tar.gz",
                     "miscellaneous.00.md5",
                     "miscellaneous.01.md5",
-                    "miscellaneous.02.md5",
                     "ex5.txt",
                     "ex6.txt",
                     ".ngsarchiver",
@@ -2096,17 +2100,20 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
         """
         # Build example dir
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
-        example_dir.add_batch(["ex%d.txt" % ix for ix in range(0,25)],
-                              type="file",content=random_text(10000))
-        example_dir.add_batch(["subdir/ex%d.txt" % ix for ix in range(0,25)],
-                              type="file",content=random_text(10000))
+        for ix in range(0,20):
+            example_dir.add("ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+            example_dir.add("subdir/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
         example_dir.create()
         p = example_dir.path
         # Make archive
         test_archive = os.path.join(self.wd,"test_archive")
         test_archive_paths = ["%s.%02d.tar.gz" % (test_archive,ix)
                               for ix in range(0,2)]
-        self.assertEqual(make_archive_multitgz(test_archive,p,size='16K'),
+        self.assertEqual(make_archive_multitgz(test_archive,p,size='12K'),
                          test_archive_paths)
         # Check archives contains only expected members
         expected = set(example_dir.list())
@@ -2130,10 +2137,13 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
         """
         # Build example dir
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
-        example_dir.add_batch(("ex%d.txt" % ix for ix in range(0,25)),
-                              type="file",content=random_text(10000))
-        example_dir.add_batch(("subdir/ex%d.txt" % ix for ix in range(0,25)),
-                              type="file",content=random_text(10000))
+        for ix in range(0,20):
+            example_dir.add("ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+            example_dir.add("subdir/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
         example_dir.create()
         p = example_dir.path
         # Make archive
@@ -2142,7 +2152,7 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
                               for ix in range(0,2)]
         self.assertEqual(make_archive_multitgz(test_archive,p,
                                                base_dir="example",
-                                               size='16K'),
+                                               size='12K'),
                          test_archive_paths)
         # Check archives contains only expected members
         expected = set(example_dir.list(prefix="example"))
@@ -2165,28 +2175,29 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
         make_archive_multitgz: archive with file list
         """
         # Build example dir
-        text = random_text(5000)
+        #text = random_text(5000)
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
-        example_dir.add_batch(("ex%d.txt" % ix for ix in range(0,50)),
-                              type="file",content=text)
-        example_dir.add_batch(("subdir/ex%d.txt" % ix for ix in range(0,50)),
-                              type="file",content=text)
+        for ix in range(0,20):
+            example_dir.add("ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+            example_dir.add("subdir/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
         example_dir.create()
         p = example_dir.path
         # Overlay example dir with a subset of files
         # Only needed to generate a list of files
         overlay_dir = UnittestDir(os.path.join(self.wd,"example"))
-        overlay_dir.add_batch(("ex%d.txt" % ix for ix in range(0,50,2)),
-                              type="file")
-        overlay_dir.add_batch(("subdir/ex%d.txt" % ix for ix in range(0,50,2)),
-                              type="file")
+        for ix in range(0,20,2):
+            overlay_dir.add("ex%d.txt" % ix,type="file")
         # Make archive
         test_archive = os.path.join(self.wd,"test_archive")
         test_archive_paths = ["%s.%02d.tar.gz" % (test_archive,ix)
                               for ix in range(0,1)]
         included_files = overlay_dir.list(prefix=p)
         self.assertEqual(make_archive_multitgz(test_archive,p,
-                                               size='16K',
+                                               size='12K',
                                                file_list=included_files),
                          test_archive_paths)
         # Check archives contains only expected members
@@ -2211,10 +2222,13 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
         """
         # Build example dir
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
-        example_dir.add_batch(["ex%d.txt" % ix for ix in range(0,25)],
-                              type="file",content=random_text(10000))
-        example_dir.add_batch(["subdir/ex%d.txt" % ix for ix in range(0,25)],
-                              type="file",content=random_text(10000))
+        for ix in range(0,20):
+            example_dir.add("ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+            example_dir.add("subdir/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
         example_dir.create()
         p = example_dir.path
         # Make archive
@@ -2222,7 +2236,7 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
         test_archive_paths = ["%s.%02d.tar.gz" % (test_archive,ix)
                               for ix in range(0,2)]
         self.assertEqual(make_archive_multitgz(test_archive,p,
-                                               size='16K',
+                                               size='12K',
                                                compresslevel=1),
                          test_archive_paths)
         # Check archives contains only expected members
