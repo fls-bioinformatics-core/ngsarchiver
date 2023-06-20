@@ -586,6 +586,17 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
         for item in a.list():
             self.assertTrue(item.path in expected,
                             "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -686,6 +697,17 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         for item in a.list():
             self.assertTrue(item.path in expected,
                             "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -793,6 +815,19 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         for item in a.list():
             self.assertTrue(item.path in expected,
                             "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(name="extra*.txt")]),
+                         ["example/extra_file.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -893,6 +928,14 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         for item in a.list():
             self.assertTrue(item.path in expected,
                             "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -1041,6 +1084,17 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         for item in a.list():
             self.assertTrue(item.path in expected,
                             "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -1204,6 +1258,19 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         for item in a.list():
             self.assertTrue(item.path in expected,
                             "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(name="extra*.txt")]),
+                         ["example/extra_file.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
