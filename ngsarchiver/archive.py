@@ -469,14 +469,14 @@ class MultiProjectRun(Directory):
         """
         List project directories
         """
-        return [p for p in self._project_dirs]
+        return sorted([p for p in self._project_dirs])
 
     @property
     def processing_artefacts(self):
         """
         List processing artefacts
         """
-        return [a for a in self._processing_artefacts]
+        return sorted([a for a in self._processing_artefacts])
 
     def make_archive(self,out_dir=None,volume_size=None,
                      compresslevel=6):

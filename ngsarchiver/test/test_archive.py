@@ -419,9 +419,58 @@ class TestMultiProjectRun(unittest.TestCase):
 
     def test_multiprojectrun(self):
         """
-        MultiProjectRun: placeholder
+        MultiProjectRun: check properties and archive creation
         """
-        self.skipTest("Not implemented")
+        # Build example multi-project dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("projects.info",type="file",
+                        content="#Header\nProject1\tsome\tstuff\nProject2\tmore\tstuff\n")
+        example_dir.add("Project1/README",type="file")
+        for ix,sample in enumerate(("EX1","EX2")):
+            for read in ("R1","R2"):
+                example_dir.add("Project1/fastqs/%s_S%d_L1_%s_001.fastq"
+                                % (sample,ix,read),type="file")
+        example_dir.add("Project2/README",type="file")
+        for ix,sample in enumerate(("EX3","EX4")):
+            for read in ("R1","R2"):
+                example_dir.add("Project2/fastqs/%s_S%d_L1_%s_001.fastq"
+                                % (sample,ix,read),type="file")
+        example_dir.add("undetermined/README",type="file")
+        for read in ("R1","R2"):
+            example_dir.add("undetermined/fastqs/"
+                            "Undetermined_S0_L1_%s_001.fastq" % read,
+                            type="file")
+        example_dir.add("processing_qc.html",type="file")
+        example_dir.add("barcodes/barcode_report.html",type="file")
+        example_dir.add("statistics.info",type="file")
+        example_dir.add("auto_process.info",type="file")
+        example_dir.add("metadata.info",type="file")
+        example_dir.add("SampleSheet.csv",type="file")
+        example_dir.create()
+        p = example_dir.path
+        # Create instance and check properties
+        d = MultiProjectRun(p)
+        self.assertEqual(d.project_dirs,["Project1",
+                                         "Project2",
+                                         "undetermined"])
+        self.assertEqual(d.processing_artefacts,
+                         ["SampleSheet.csv",
+                          "auto_process.info",
+                          "barcodes",
+                          "metadata.info",
+                          "processing_qc.html",
+                          "statistics.info"])
+        # Create an archive directory
+        a = d.make_archive(out_dir=self.wd)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.path,os.path.join(self.wd,"example.archive"))
+        self.assertTrue(os.path.exists(a.path))
+        for name in ("Project1.tar.gz",
+                     "Project2.tar.gz",
+                     "undetermined.tar.gz",
+                     "processing.tar.gz",
+                     "projects.info"):
+            self.assertTrue(os.path.exists(os.path.join(a.path,name)))
 
 class TestArchiveDirectory(unittest.TestCase):
 
