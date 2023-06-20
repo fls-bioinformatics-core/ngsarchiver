@@ -389,9 +389,23 @@ class TestGenericRun(unittest.TestCase):
 
     def test_genericrun(self):
         """
-        GenericRun: placeholder
+        GenericRun: check archive creation
         """
-        self.skipTest("Not implemented")
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir2/ex3.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        # Create instance and create an archive directory
+        d = GenericRun(p)
+        a = d.make_archive(out_dir=self.wd)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.path,os.path.join(self.wd,"example.archive"))
+        self.assertTrue(os.path.exists(a.path))
+        self.assertTrue(os.path.exists(os.path.join(a.path,
+                                                    "example.tar.gz")))
 
 class TestMultiSubdirRun(unittest.TestCase):
 
