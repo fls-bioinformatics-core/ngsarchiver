@@ -683,6 +683,12 @@ class ArchiveDirectory(Directory):
           set_read_write (bool): if True then ensure
             extracted files have read/write permissions
             for the user (default: True)
+
+        Returns:
+          Directory: appropriate subclass instance of
+            Directory class (e.g. GenericRun etc)
+            returned by the 'get_rundir_instance'
+            function.
         """
         # Determine and check extraction directories
         if not extract_dir:
