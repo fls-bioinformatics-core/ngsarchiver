@@ -596,6 +596,8 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
         # Unpack
         a.unpack(extract_dir=self.wd)
         self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(self.wd,item)),
@@ -717,6 +719,8 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         # Unpack
         a.unpack(extract_dir=self.wd)
         self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(self.wd,item)),
@@ -847,6 +851,8 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         # Unpack
         a.unpack(extract_dir=self.wd)
         self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(self.wd,item)),
@@ -968,6 +974,8 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         # Unpack
         a.unpack(extract_dir=self.wd)
         self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(self.wd,item)),
@@ -1137,6 +1145,8 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         # Unpack
         a.unpack(extract_dir=self.wd)
         self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(self.wd,item)),
@@ -1323,6 +1333,8 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         # Unpack
         a.unpack(extract_dir=self.wd)
         self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(self.wd,item)),

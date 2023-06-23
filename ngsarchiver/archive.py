@@ -728,6 +728,8 @@ class ArchiveDirectory(Directory):
             for o in Directory(d).walk():
                 s = os.stat(o)
                 os.chmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
+        # Update the timestamp on the unpacked directory
+        shutil.copystat(self.path,d)
         # Return the appropriate wrapper instance
         return get_rundir_instance(d)
 
