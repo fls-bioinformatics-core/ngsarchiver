@@ -1012,7 +1012,7 @@ def md5sum(f):
     """
     Return MD5 digest for a file
 
-    This implements the md5sum checksum generation using he
+    This implements the md5sum checksum generation using the
     hashlib module.
 
     Arguments:
