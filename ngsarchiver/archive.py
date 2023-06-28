@@ -1107,6 +1107,9 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
                 arcname = os.path.join(base_dir,arcname)
             try:
                 tgz.add(o,arcname=arcname,recursive=False)
+            except PermissionError as ex:
+                logger.warning("%s: unable to add '%s' to "
+                               "archive: %s (ignored)" % (d.path,o,ex))
             except Exception as ex:
                 raise NgsArchiverException("%s: unable to add '%s' to "
                                            "archive: %s" % (d.path,o,ex))
@@ -1189,6 +1192,10 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
             arcname = os.path.join(base_dir,arcname)
         try:
             tgz.add(o,arcname=arcname,recursive=False)
+        except PermissionError as ex:
+            logger.warning("%s: unable to add '%s' to "
+                           "multi-volume archive: %s (ignored)"
+                           % (d.path,o,ex))
         except Exception as ex:
             raise NgsArchiverException("%s: unable to add '%s' to "
                                        "multi-volume archive: %s"
