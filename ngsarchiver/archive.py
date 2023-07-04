@@ -946,13 +946,16 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         # Collect miscellaneous artefacts into a separate archive
         if misc_objects:
             # Collect individual artefacts
-            file_list = []
+            misc_file_list = []
             for o in misc_objects:
                 o = os.path.join(d.path,o)
-                file_list.append(o)
+                if o in unreadable:
+                    # Skip unreadable files etc
+                    continue
+                misc_file_list.append(o)
                 if os.path.isdir(o):
                     for o_ in Directory(o).walk():
-                        file_list.append(os.path.join(o,o_))
+                        misc_file_list.append(o_)
             # Make archive(s)
             archive_basename = os.path.join(archive_dir,misc_archive_name)
             prefix = d.basename
@@ -960,7 +963,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 a = make_archive_tgz(archive_basename,
                                      d.path,
                                      base_dir=prefix,
-                                     include_files=file_list,
+                                     include_files=misc_file_list,
                                      compresslevel=compresslevel)
                 archive_metadata['subarchives'].append(
                     os.path.basename(str(a)))
@@ -968,7 +971,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 a = make_archive_multitgz(archive_basename,
                                           d.path,
                                           base_dir=prefix,
-                                          include_files=file_list,
+                                          include_files=misc_file_list,
                                           size=volume_size,
                                           compresslevel=compresslevel)
                 for a_ in a:
