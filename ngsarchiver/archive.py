@@ -901,6 +901,18 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         'compression_level': compresslevel,
         'ngsarchiver_version': get_version(),
     }
+    # Get list of unreadable objects that can't be archived
+    # These will be excluded from the archive dir
+    unreadable = list(d.unreadable_files)
+    if unreadable:
+        logger.warning("Excluding %s unreadable objects from the "
+                       "archive" % len(unreadable))
+        excluded = os.path.join(ngsarchiver_dir,"excluded.txt")
+        with open(excluded,'wt') as fp:
+            for f in unreadable:
+                fp.write("%s\n" % f)
+        logger.warning("Wrote list of excluded objects to '%s'" %
+                       excluded)
     # Make archive
     if not sub_dirs:
         # Put all content into a single archive
@@ -909,12 +921,14 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
             a = make_archive_tgz(archive_basename,
                                  d.path,
                                  base_dir=d.basename,
+                                 exclude_files=unreadable,
                                  compresslevel=compresslevel)
             archive_metadata['subarchives'].append(os.path.basename(str(a)))
         else:
             a = make_archive_multitgz(archive_basename,
                                       d.path,
                                       base_dir=d.basename,
+                                      exclude_files=unreadable,
                                       size=volume_size,
                                       compresslevel=compresslevel)
             for a_ in a:
@@ -931,6 +945,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 a = make_archive_tgz(archive_basename,
                                      dd.path,
                                      base_dir=prefix,
+                                     exclude_files=unreadable,
                                      compresslevel=compresslevel)
                 archive_metadata['subarchives'].append(
                     os.path.basename(str(a)))
@@ -938,6 +953,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 a = make_archive_multitgz(archive_basename,
                                           dd.path,
                                           base_dir=prefix,
+                                          exclude_files=unreadable,
                                           size=volume_size,
                                           compresslevel=compresslevel)
                 for a_ in a:

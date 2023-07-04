@@ -211,6 +211,9 @@ created regardless of the checks). Specifying the
 ``-c`` argument performs the checks without the
 archive creation.
 
+When ``--force`` is specified then unreadable files
+and directories will be omitted from the archive.
+
 The format of the archive directory is described
 below in a separate section (see
 *Archive directory format*). The archiver will
@@ -374,7 +377,9 @@ Within an archive directory there will be:
   checksums for each of the "visible" archive
   components for integrity verification, and a
   file which lists the original username and group
-  associated with each file).
+  associated with each file). If files were excluded
+  from the archive (e.g. because they were unreadable)
+  then these will be listed in an additional file.
 
 The ``.tar.gz`` archives and regular files together
 are sufficient to recover the contents of the original
