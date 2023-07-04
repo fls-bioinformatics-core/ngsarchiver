@@ -960,7 +960,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 a = make_archive_tgz(archive_basename,
                                      d.path,
                                      base_dir=prefix,
-                                     file_list=file_list,
+                                     include_files=file_list,
                                      compresslevel=compresslevel)
                 archive_metadata['subarchives'].append(
                     os.path.basename(str(a)))
@@ -968,7 +968,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 a = make_archive_multitgz(archive_basename,
                                           d.path,
                                           base_dir=prefix,
-                                          file_list=file_list,
+                                          include_files=file_list,
                                           size=volume_size,
                                           compresslevel=compresslevel)
                 for a_ in a:
@@ -1071,7 +1071,7 @@ def verify_checksums(md5file,root_dir=None,verbose=False):
         return True
 
 def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
-                     compresslevel=6,file_list=None):
+                     compresslevel=6,include_files=None):
     """
     Make a 'gztar' archive from the contents of a directory
 
@@ -1087,8 +1087,8 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
         file extension (default: 'tar.gz')
       compresslevel (int): optionally specify the
         gzip compression level (default: 6)
-      file_list (list): specifies a subset of paths to
-        include in the archive (default: include all
+      include_files (list): specifies a subset of paths
+        to include in the archive (default: include all
         paths)
 
     Returns:
@@ -1100,7 +1100,7 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
     with tarfile.open(archive_name,'w:gz',compresslevel=compresslevel) \
          as tgz:
         for o in d.walk():
-            if file_list and o not in file_list:
+            if include_files and o not in include_files:
                 continue
             arcname = os.path.relpath(o,root_dir)
             if base_dir:
@@ -1117,7 +1117,7 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
 
 def make_archive_multitgz(base_name,root_dir,base_dir=None,
                           size="250M",ext="tar.gz",compresslevel=6,
-                          file_list=None):
+                          include_files=None):
     """
     Make a multi-volume 'gztar' archive of directory contents
 
@@ -1150,8 +1150,8 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
         file extension (default: 'tar.gz')
       compresslevel (int): optionally specify the
         gzip compression level (default: 6)
-      file_list (list): specifies a subset of paths to
-        include in the archive (default: include all
+      include_files (list): specifies a subset of paths
+        to include in the archive (default: include all
         paths)
 
     Returns:
@@ -1164,7 +1164,7 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
     archive_list = []
     tgz = None
     for o in d.walk():
-        if file_list and o not in file_list:
+        if include_files and o not in include_files:
             continue
         try:
             size = getsize(o)

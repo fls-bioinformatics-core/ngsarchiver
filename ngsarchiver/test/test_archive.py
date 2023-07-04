@@ -2028,9 +2028,9 @@ class TestMakeArchiveTgz(unittest.TestCase):
         for f in expected:
             self.assertTrue(f in members)
 
-    def test_make_archive_tgz_with_file_list(self):
+    def test_make_archive_tgz_with_include_files(self):
         """
-        make_archive_tgz: specify file list
+        make_archive_tgz: specify list of included files
         """
         # Build example dir
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
@@ -2047,7 +2047,7 @@ class TestMakeArchiveTgz(unittest.TestCase):
                                     "subdir",
                                     "subdir/ex2.txt")]
         self.assertEqual(make_archive_tgz(test_archive,p,
-                                          file_list=included_files),
+                                          include_files=included_files),
                          test_archive_path)
         # Check archive exists
         self.assertTrue(os.path.exists(test_archive_path))
@@ -2182,9 +2182,9 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
         for f in expected:
             self.assertTrue(f in members)
 
-    def test_make_archive_multitgz_with_file_list(self):
+    def test_make_archive_multitgz_with_include_files(self):
         """
-        make_archive_multitgz: archive with file list
+        make_archive_multitgz: archive with list of included files
         """
         # Build example dir
         #text = random_text(5000)
@@ -2210,7 +2210,7 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
         included_files = overlay_dir.list(prefix=p)
         self.assertEqual(make_archive_multitgz(test_archive,p,
                                                size='12K',
-                                               file_list=included_files),
+                                               include_files=included_files),
                          test_archive_paths)
         # Check archives contains only expected members
         expected = set(overlay_dir.list())
