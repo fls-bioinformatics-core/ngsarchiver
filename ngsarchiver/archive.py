@@ -90,7 +90,7 @@ class Directory:
     @property
     def unreadable_files(self):
         """
-        Return files etc that are not readable
+        Return full paths to files etc that are not readable
         """
         for o in self.walk():
             if not os.access(o,os.R_OK):
@@ -339,7 +339,7 @@ class Directory:
 
     def walk(self):
         """
-        Yields names of all directory and file objects
+        Yields full paths of all directory and file objects
         """
         for dirpath,dirnames,filenames in os.walk(self._path):
             for name in filenames:
