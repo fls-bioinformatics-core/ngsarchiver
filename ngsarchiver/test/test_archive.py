@@ -2066,6 +2066,44 @@ class TestMakeArchiveTgz(unittest.TestCase):
             print(f)
             self.assertTrue(f in members)
 
+    def test_make_archive_tgz_with_exclude_files(self):
+        """
+        make_archive_tgz: specify list of excluded files
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text")
+        example_dir.add("exclude1.txt",type="file")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text")
+        example_dir.add("subdir/exclude2.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive
+        test_archive = os.path.join(self.wd,"test_archive")
+        test_archive_path = "%s.tar.gz" % test_archive
+        excluded_files = [os.path.join(p,f)
+                          for f in ("exclude1.txt",
+                                    "subdir/exclude2.txt")]
+        self.assertEqual(make_archive_tgz(test_archive,p,
+                                          exclude_files=excluded_files),
+                         test_archive_path)
+        # Check archive exists
+        self.assertTrue(os.path.exists(test_archive_path))
+        # Check archive contains only expected members
+        expected = set(("ex1.txt",
+                        "subdir",
+                        "subdir/ex2.txt",))
+        members = set()
+        with tarfile.open(test_archive_path,"r:gz") as tgz:
+            for f in tgz.getnames():
+                print(f)
+                self.assertTrue(f in expected)
+                members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            print(f)
+            self.assertTrue(f in members)
+
     def test_make_archive_tgz_non_default_compression_level(self):
         """
         make_archive_tgz: archive with non-default compression level
@@ -2227,6 +2265,50 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
         # Check no expected members are missing from the archive
         for f in expected:
             self.assertTrue(f in members)
+
+    def test_make_archive_multitgz_with_exclude_files(self):
+        """
+        make_archive_multitgz: archive with list of excluded files
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        for ix in range(0,20):
+            example_dir.add("ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+            example_dir.add("subdir/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+        example_dir.create()
+        p = example_dir.path
+        # Overlay example dir with a subset of files
+        # Only needed to generate a list of files
+        overlay_dir = UnittestDir(os.path.join(self.wd,"example"))
+        for ix in range(0,20,2):
+            overlay_dir.add("ex%d.txt" % ix,type="file")
+        # Make archive
+        test_archive = os.path.join(self.wd,"test_archive")
+        test_archive_paths = ["%s.%02d.tar.gz" % (test_archive,ix)
+                              for ix in range(0,2)]
+        excluded_files = overlay_dir.list(prefix=p)
+        self.assertEqual(make_archive_multitgz(test_archive,p,
+                                               size='12K',
+                                               exclude_files=excluded_files),
+                         test_archive_paths)
+        # Check archives contains only expected members
+        expected = set(overlay_dir.list())
+        members = set()
+        for test_archive_path in test_archive_paths:
+            # Check archive exists
+            self.assertTrue(os.path.exists(test_archive_path))
+            # Check contents
+            with tarfile.open(test_archive_path,"r:gz") as tgz:
+                for f in tgz.getnames():
+                    self.assertFalse(f in expected)
+                    members.add(f)
+        # Check no expected members are present in the archive
+        for f in expected:
+            self.assertFalse(f in members)
 
     def test_make_archive_multitgz_non_default_compression_level(self):
         """

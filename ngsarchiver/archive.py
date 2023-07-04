@@ -1074,7 +1074,8 @@ def verify_checksums(md5file,root_dir=None,verbose=False):
         return True
 
 def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
-                     compresslevel=6,include_files=None):
+                     compresslevel=6,include_files=None,
+                     exclude_files=None):
     """
     Make a 'gztar' archive from the contents of a directory
 
@@ -1093,6 +1094,9 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
       include_files (list): specifies a subset of paths
         to include in the archive (default: include all
         paths)
+      exclude_files (list): specifies a subset of paths
+        to exclude from the archive, if they would
+        otherwise have been included
 
     Returns:
       String: archive name.
@@ -1104,6 +1108,8 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
          as tgz:
         for o in d.walk():
             if include_files and o not in include_files:
+                continue
+            if exclude_files and o in exclude_files:
                 continue
             arcname = os.path.relpath(o,root_dir)
             if base_dir:
@@ -1120,7 +1126,7 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
 
 def make_archive_multitgz(base_name,root_dir,base_dir=None,
                           size="250M",ext="tar.gz",compresslevel=6,
-                          include_files=None):
+                          include_files=None,exclude_files=None):
     """
     Make a multi-volume 'gztar' archive of directory contents
 
@@ -1156,6 +1162,9 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
       include_files (list): specifies a subset of paths
         to include in the archive (default: include all
         paths)
+      exclude_files (list): specifies a subset of paths
+        to exclude from the archive, if they would
+        otherwise have been included
 
     Returns:
       List: list of the archive volumes.
@@ -1168,6 +1177,8 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
     tgz = None
     for o in d.walk():
         if include_files and o not in include_files:
+            continue
+        if exclude_files and o in exclude_files:
             continue
         try:
             size = getsize(o)
