@@ -452,3 +452,52 @@ to creating the archive; alternatively they can be ignored
 using the ``--force`` option of the ``archive`` command
 (with the consequences outlined above).
 
+--------------
+Example recipe
+--------------
+
+The following bash script provides an example recipe
+for archiving:
+
+::
+
+   #!/usr/bin/bash
+
+   # Move to scratch area
+   cd /scratch/$USER
+
+   # Set environment variables
+   export RUN_DIR=/path/to/run_dir
+   export ARCHIVE_DIR=$(pwd)/$(basename $RUN_DIR).archive
+
+   # Check run directory
+   archiver archive --check $RUN_DIR
+   if [ $? -ne 0 ] ; then
+      echo Checks failed >&2
+      exit 1
+   fi
+
+   # Create archive directory in scratch
+   archiver archive $RUN_DIR
+   if [ $? -ne 0 ] ; then
+      echo Failed to create archive dir >&2
+      exit 1
+   fi
+
+   # Unpack and check against original
+   archiver unpack $ARCHIVE_DIR
+   archiver compare $RUN_DIR $(pwd)/$(basename $RUN_DIR)
+   if [ $? -ne 0 ] ; then
+      echo Unpacked archive differs from original >&2
+      exit 1
+   fi
+
+   # Relocate archive dir to final location
+   mv $ARCHIVE_DIR /path/to/final/dir/
+
+   # Verify relocated archive directory
+   archiver verify /path/to/final/dir/$(basename $ARCHIVE_DIR)
+   if [ $? -ne 0 ] ; then
+      echo Failed to verify archive dir >&2
+      exit 1
+   fi
