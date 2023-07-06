@@ -42,7 +42,7 @@ act to differentiate data from different years and
 which originate from different sequencing platforms
 or data sources (e.g. external facilities),
 however the exact structure is not relevant within
-the context of ``ngsarchiver``; the key point is that
+the context of ``ngsarchiver``: the key point is that
 within this hierarchy each distinct sequencing run or
 external dataset has its own directory, which is
 referred to a "run directory", and archiving is
@@ -67,7 +67,7 @@ data is structured within each run directory; however,
 these conventions can vary over time, between platforms
 and even individual analysts. As a result there is a
 degree of non-homogeneity across run directories
-within the datastore. For this reason so ``ngsarchiver``
+within the datastore. For this reason ``ngsarchiver``
 adopts a largely agnostic approach which makes minimal
 assumptions about the internal structure of data within
 each run directory. Specifically each run directory
@@ -90,7 +90,7 @@ three types:
 
 (The fourth type is ``ArchiveDirectory``, describes
 an archive directory created by ``ngsarchiver`` and
-which therefor cannot be further archived.)
+which therefore cannot be further archived.)
 
 Individual files and directories within the source
 directory are bundled together in one or more ``tar``
@@ -104,20 +104,21 @@ section *Archive directory format*.
 
 The ``ngsarchiver`` package is intended to provide
 a set of simple zero-configuration tools with minimal
-dependencies, that can be used to check and restore
-data from archive directories. However it should also
-be possible to verify and recover data manually with
-some additional effort using just the standard Linux
-command line tools ``tar``, ``gzip`` and ``md5sum``.
+dependencies, that can be used to create archive
+directories, and to check and restore data from
+them. However it should also be possible to verify
+and recover data manually with some additional effort
+using just the standard Linux command line tools
+``tar``, ``gzip`` and ``md5sum``.
 
 Finally, no functionality is provided for the
 management of the wider datastore beyond the creation
-of the archive directories; it simply creates archives
-and enables their verification and the recovery of
-data. It is up to the user to manage where the
-generated archive directories are stored and what
-should happen to the original run directories after
-they have been archived.
+of the archive directories; it simply creates archive
+directories and enables their verification and the
+recovery of data from them. It is up to the user to
+manage where the generated archive directories are
+stored and what should happen to the original run
+directories after they have been archived.
 
 ------------
 Installation
