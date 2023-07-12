@@ -910,7 +910,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         excluded = os.path.join(ngsarchiver_dir,"excluded.txt")
         with open(excluded,'wt') as fp:
             for f in unreadable:
-                fp.write("%s\n" % f)
+                fp.write("%s\n" % Path(f).relative_to(d.path))
         logger.warning("Wrote list of excluded objects to '%s'" %
                        excluded)
     # Make archive
