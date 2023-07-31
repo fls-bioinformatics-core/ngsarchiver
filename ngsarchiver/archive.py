@@ -662,9 +662,11 @@ class ArchiveDirectory(Directory):
                             fp.write(tgzfp.read())
                         tgzfp.close()
                 # Set initial permissions
-                os.chmod(f,tgzf.mode)
+                os.chmod(f,tgzf.mode,follow_symlinks=False)
             # Update permissions to include read/write
-            os.chmod(f,os.stat(f).st_mode | stat.S_IRUSR | stat.S_IWUSR)
+            os.chmod(f,
+                     os.stat(f).st_mode | stat.S_IRUSR | stat.S_IWUSR,
+                     follow_symlinks=False)
             # Verify MD5 sum
             if md5sum(f) != m.md5:
                 raise NgsArchiverException("%s: MD5 check failed "
@@ -733,7 +735,9 @@ class ArchiveDirectory(Directory):
             print("-- updating permissions to read-write")
             for o in Directory(d).walk():
                 s = os.stat(o)
-                os.chmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
+                os.chmod(o,
+                         s.st_mode | stat.S_IRUSR | stat.S_IWUSR,
+                         follow_symlinks=False)
         # Update the timestamp on the unpacked directory
         shutil.copystat(self.path,d)
         # Return the appropriate wrapper instance
@@ -1266,8 +1270,8 @@ def unpack_archive_multitgz(archive_list,extract_dir=None):
         with tarfile.open(a,'r:gz',errorlevel=1) as tgz:
             for o in tgz:
                 o_ = os.path.join(extract_dir,o.name)
-                os.chmod(o_,o.mode)
-                os.utime(o_,(atime,o.mtime))
+                os.chmod(o_,o.mode,follow_symlinks=False)
+                os.utime(o_,(atime,o.mtime),follow_symlinks=False)
 
 def getsize(p,blocksize=512):
     """
