@@ -662,9 +662,9 @@ class ArchiveDirectory(Directory):
                             fp.write(tgzfp.read())
                         tgzfp.close()
                 # Set initial permissions
-                os.lchmod(f,tgzf.mode)
+                chmod(f,tgzf.mode)
             # Update permissions to include read/write
-            os.lchmod(f,os.stat(f).st_mode | stat.S_IRUSR | stat.S_IWUSR)
+            chmod(f,os.stat(f).st_mode | stat.S_IRUSR | stat.S_IWUSR)
             # Verify MD5 sum
             if md5sum(f) != m.md5:
                 raise NgsArchiverException("%s: MD5 check failed "
@@ -733,7 +733,7 @@ class ArchiveDirectory(Directory):
             print("-- updating permissions to read-write")
             for o in Directory(d).walk():
                 s = os.stat(o)
-                os.lchmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
+                chmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
         # Update the timestamp on the unpacked directory
         shutil.copystat(self.path,d)
         # Return the appropriate wrapper instance
@@ -1266,8 +1266,8 @@ def unpack_archive_multitgz(archive_list,extract_dir=None):
         with tarfile.open(a,'r:gz',errorlevel=1) as tgz:
             for o in tgz:
                 o_ = os.path.join(extract_dir,o.name)
-                os.lchmod(o_,o.mode)
-                os.utime(o_,(atime,o.mtime),follow_symlinks=False)
+                chmod(o_,o.mode)
+                utime(o_,(atime,o.mtime))
 
 def getsize(p,blocksize=512):
     """
@@ -1287,6 +1287,22 @@ def getsize(p,blocksize=512):
     if blocksize:
         return os.lstat(p).st_blocks * blocksize
     return os.lstat(p).st_size
+
+def chmod(path,mode):
+    """
+    Wrapper for os.chmod which ignores symlinks
+    """
+    if os.path.islink(path):
+        return
+    return os.chmod(path,mode)
+
+def utime(path,*args,**kwds):
+    """
+    Wrapper for os.utime which ignores symlinks
+    """
+    if os.path.islink(path):
+        return
+    return os.utime(path,*args,**kwds)
 
 def convert_size_to_bytes(size):
     """
