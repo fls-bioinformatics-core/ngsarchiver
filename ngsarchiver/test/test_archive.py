@@ -171,7 +171,7 @@ class TestDirectory(unittest.TestCase):
         # Build example dir without external symlinks
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
         example_dir.add("ex1.txt",type="file",content="example 1")
-        example_dir.add("symlink1",type="symlink",target="./ext.txt")
+        example_dir.add("symlink1",type="symlink",target="./ex1.txt")
         example_dir.create()
         p = example_dir.path
         # No external symlinks should be detected
@@ -192,7 +192,7 @@ class TestDirectory(unittest.TestCase):
         """
         Directory: check handling of broken symlinks
         """
-        # Build example dir without external symlinks
+        # Build example dir without broken symlinks
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
         example_dir.add("ex1.txt",type="file",content="example 1")
         example_dir.add("symlink1",type="symlink",target="./ex1.txt")
@@ -208,8 +208,8 @@ class TestDirectory(unittest.TestCase):
         # Add broken symlink
         broken_symlink = os.path.join(p,"broken")
         os.symlink("./missing.txt",broken_symlink)
-        # External symlink should be detected and unknown
-        # UID detection should function correctly
+        # Broken symlink should be detected but no unreadable files,
+        # and unknown UID detection should function correctly
         self.assertEqual(list(d.broken_symlinks),[broken_symlink,])
         self.assertTrue(d.has_broken_symlinks)
         self.assertEqual(list(d.unknown_uids),[])
@@ -271,7 +271,7 @@ class TestDirectory(unittest.TestCase):
         hard_link_src = os.path.join(p,"ex1.txt")
         hard_link_dst = os.path.join(p,"ex12.txt")
         os.link(hard_link_src,hard_link_dst)
-        # External symlink should be detected
+        # Hard link should be detected
         self.assertEqual(sorted(list(d.hard_linked_files)),
                          sorted([hard_link_src,hard_link_dst]))
         self.assertTrue(d.has_hard_linked_files)
@@ -545,7 +545,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
   ],
   "files": [],
   "user": "anon",
-  "creation_date": "023-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": false,
   "volume_size": null,
   "compression_level": 6,
@@ -666,7 +666,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
   ],
   "files": [],
   "user": "anon",
-  "creation_date": "023-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": false,
   "volume_size": null,
   "compression_level": 6,
@@ -795,7 +795,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
     "extra_file.txt"
   ],
   "user": "anon",
-  "creation_date": "023-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": false,
   "volume_size": null,
   "compression_level": 6,
@@ -931,7 +931,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
   ],
   "files": [],
   "user": "anon",
-  "creation_date": "23-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": true,
   "volume_size": "250M",
   "compression_level": 6,
@@ -1089,7 +1089,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
   ],
   "files": [],
   "user": "anon",
-  "creation_date": "23-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": true,
   "volume_size": "250M",
   "compression_level": 6,
@@ -1274,7 +1274,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
     "extra_file.txt"
   ],
   "user": "anon",
-  "creation_date": "23-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": true,
   "volume_size": "250M",
   "compression_level": 6,
