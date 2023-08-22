@@ -658,27 +658,40 @@ class ArchiveDirectory(Directory):
                     # Get information on archive member
                     tgzf = tgz.getmember(m.path)
                     if tgzf.isdir():
+                        # Skip directories
                         logger.warning("%s: '%s' is directory, skipping" %
                                        (self.path,m.path))
-                        continue
-                    print("-- extracting '%s' (%s)" %
-                          (m.path,
-                           format_size(tgzf.size,human_readable=True)))
-                    if include_path:
-                        # Extract with leading path
-                        tgz.extract(m.path,path=extract_dir,set_attrs=False)
+                    elif tgzf.issym():
+                        # Regenerate symlinks (rather than extracting)
+                        # in case they are broken
+                        print("-- extracting '%s' (symbolic link)" %
+                              m.path)
+                        target = tgzf.linkname
+                        # Regenerate link
+                        if include_path:
+                            os.makedirs(os.path.dirname(f),exist_ok=True)
+                        os.symlink(target,f)
                     else:
-                        # Extract without leading path
-                        tgzfp = tgz.extractfile(m.path)
-                        with open(f,'wb') as fp:
-                            fp.write(tgzfp.read())
-                        tgzfp.close()
+                        # Extract other archive member types
+                        print("-- extracting '%s' (%s)" %
+                              (m.path,
+                               format_size(tgzf.size,human_readable=True)))
+                        if include_path:
+                            # Extract with leading path
+                            tgz.extract(m.path,path=extract_dir,set_attrs=False)
+                        else:
+                            # Extract without leading path
+                            tgzfp = tgz.extractfile(m.path)
+                            with open(f,'wb') as fp:
+                                fp.write(tgzfp.read())
+                            tgzfp.close()
                 # Set initial permissions
                 chmod(f,tgzf.mode)
             # Update permissions to include read/write
-            chmod(f,os.stat(f).st_mode | stat.S_IRUSR | stat.S_IWUSR)
+            if not os.path.islink(f):
+                chmod(f,os.stat(f).st_mode | stat.S_IRUSR | stat.S_IWUSR)
             # Verify MD5 sum
-            if md5sum(f) != m.md5:
+            if m.md5 and md5sum(f) != m.md5:
                 raise NgsArchiverException("%s: MD5 check failed "
                                            "when extracting '%s'" %
                                            (self.path,m.path))
