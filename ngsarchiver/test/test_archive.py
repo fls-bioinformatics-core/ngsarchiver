@@ -198,11 +198,13 @@ class TestDirectory(unittest.TestCase):
         example_dir.add("symlink1",type="symlink",target="./ex1.txt")
         example_dir.create()
         p = example_dir.path
-        # No broken symlinks should be detected and unknown
-        # UID detection should function correctly
+        # No broken symlinks or unreadable files should be detected
+        # and unknown UID detection should function correctly
         d = Directory(p)
         self.assertEqual(list(d.broken_symlinks),[])
         self.assertFalse(d.has_broken_symlinks)
+        self.assertEqual(list(d.unreadable_files),[])
+        self.assertTrue(d.is_readable)
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
         # Add broken symlink
@@ -212,6 +214,8 @@ class TestDirectory(unittest.TestCase):
         # and unknown UID detection should function correctly
         self.assertEqual(list(d.broken_symlinks),[broken_symlink,])
         self.assertTrue(d.has_broken_symlinks)
+        self.assertEqual(list(d.unreadable_files),[])
+        self.assertTrue(d.is_readable)
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
 
