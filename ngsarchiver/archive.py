@@ -93,7 +93,7 @@ class Directory:
         Return full paths to files etc that are not readable
         """
         for o in self.walk():
-            if not os.access(o,os.R_OK):
+            if not os.path.islink(o) and not os.access(o,os.R_OK):
                 yield o
 
     @property
