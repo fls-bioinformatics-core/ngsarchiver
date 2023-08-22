@@ -563,6 +563,18 @@ class ArchiveDirectory(Directory):
                         subarchive=os.path.join(self.path,
                                                 subarchive_name+'.tar.gz'),
                         md5=line.split('  ')[0])
+        # Symlinks
+        symlinks_file = os.path.join(self._ngsarchiver_dir,"symlinks.txt")
+        if os.path.exists(symlinks_file):
+            with open(symlinks_file,'rt') as fp:
+                for line in fp:
+                    f = '\t'.join(line.split('\t')[:-1])
+                    yield ArchiveDirMember(
+                        path=f,
+                        subarchive=os.path.join(
+                            self.path,
+                            line.rstrip('\n').split('\t')[-1]),
+                        md5=None)
 
     def search(self,name=None,path=None,case_insensitive=False):
         """
