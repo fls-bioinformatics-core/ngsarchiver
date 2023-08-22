@@ -171,7 +171,7 @@ class TestDirectory(unittest.TestCase):
         # Build example dir without external symlinks
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
         example_dir.add("ex1.txt",type="file",content="example 1")
-        example_dir.add("symlink1",type="symlink",target="./ext.txt")
+        example_dir.add("symlink1",type="symlink",target="./ex1.txt")
         example_dir.create()
         p = example_dir.path
         # No external symlinks should be detected
@@ -192,26 +192,30 @@ class TestDirectory(unittest.TestCase):
         """
         Directory: check handling of broken symlinks
         """
-        # Build example dir without external symlinks
+        # Build example dir without broken symlinks
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
         example_dir.add("ex1.txt",type="file",content="example 1")
         example_dir.add("symlink1",type="symlink",target="./ex1.txt")
         example_dir.create()
         p = example_dir.path
-        # No broken symlinks should be detected and unknown
-        # UID detection should function correctly
+        # No broken symlinks or unreadable files should be detected
+        # and unknown UID detection should function correctly
         d = Directory(p)
         self.assertEqual(list(d.broken_symlinks),[])
         self.assertFalse(d.has_broken_symlinks)
+        self.assertEqual(list(d.unreadable_files),[])
+        self.assertTrue(d.is_readable)
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
         # Add broken symlink
         broken_symlink = os.path.join(p,"broken")
         os.symlink("./missing.txt",broken_symlink)
-        # External symlink should be detected and unknown
-        # UID detection should function correctly
+        # Broken symlink should be detected but no unreadable files,
+        # and unknown UID detection should function correctly
         self.assertEqual(list(d.broken_symlinks),[broken_symlink,])
         self.assertTrue(d.has_broken_symlinks)
+        self.assertEqual(list(d.unreadable_files),[])
+        self.assertTrue(d.is_readable)
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
 
@@ -271,7 +275,7 @@ class TestDirectory(unittest.TestCase):
         hard_link_src = os.path.join(p,"ex1.txt")
         hard_link_dst = os.path.join(p,"ex12.txt")
         os.link(hard_link_src,hard_link_dst)
-        # External symlink should be detected
+        # Hard link should be detected
         self.assertEqual(sorted(list(d.hard_linked_files)),
                          sorted([hard_link_src,hard_link_dst]))
         self.assertTrue(d.has_hard_linked_files)
@@ -545,7 +549,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
   ],
   "files": [],
   "user": "anon",
-  "creation_date": "023-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": false,
   "volume_size": null,
   "compression_level": 6,
@@ -666,7 +670,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
   ],
   "files": [],
   "user": "anon",
-  "creation_date": "023-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": false,
   "volume_size": null,
   "compression_level": 6,
@@ -795,7 +799,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
     "extra_file.txt"
   ],
   "user": "anon",
-  "creation_date": "023-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": false,
   "volume_size": null,
   "compression_level": 6,
@@ -931,7 +935,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
   ],
   "files": [],
   "user": "anon",
-  "creation_date": "23-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": true,
   "volume_size": "250M",
   "compression_level": 6,
@@ -1089,7 +1093,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
   ],
   "files": [],
   "user": "anon",
-  "creation_date": "23-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": true,
   "volume_size": "250M",
   "compression_level": 6,
@@ -1274,7 +1278,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
     "extra_file.txt"
   ],
   "user": "anon",
-  "creation_date": "23-06-16 09:58:39",
+  "creation_date": "2023-06-16 09:58:39",
   "multi_volume": true,
   "volume_size": "250M",
   "compression_level": 6,
@@ -1356,6 +1360,310 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                         include_path=True)
         self.assertTrue(os.path.exists(
             os.path.join(extract_dir,"example","ex1.txt")))
+
+    def test_archivedirectory_with_external_symlink(self):
+        """
+        ArchiveDirectory: archive with external symlink
+        """
+        # Build example archive dir
+        example_archive = UnittestDir(
+            os.path.join(self.wd,
+                         "example_external_symlinks.archive"))
+        example_archive.add("example_external_symlinks.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sICPGH5GQA/2V4YW1wbGVfZXh0ZXJuYWxfc3ltbGlua3MudGFyAO3bzW7aQBiFYda9Cq5gmPnmz7Oo1GWXuYPIaVyV1qQREMm9+9qJUn4qaijEDpr32YAwwmYx58DMWM3U7NNN2XyuyvtqOXkT+sWhR62t2zzvXjfGeZlMm7e5nF1Pq3W5bE9/7ufsf7krIcV0sZ4vqo8mJAmp8Ckp64pYePdh7GvD26uacvFYV7dVs66WD2V9u/q1qOcPP1azqjFq3awvcI5uPITwPMZN9Hr78YXZH//RtIengwyi1/H/+P3un+/rO36l4/+mLr9U337Wbfgz3jOk6H/6f6v/rXglRQjaWPIgA4f7f/V0dz9fyuz8c3TjIUZ/uP+13u9/iWYy9eeful/m/U/+k//b+S8mKO2sDdqT/xnoy38zVv5r8n8I5D/5v53/2otKSVwU5v9y0Jf/dqz8F/J/CO8j/+3f+W/I/yFI3Mt/V6jkxSV+/mehf/7n/HWgbjyctP4j7a8QYf1nCKz/5I3+p//p/3wd0/8yRv9b+n8I9H/e3kf/M/87FvZ/5O2Y/t89cvpsQDceYozHz/9KezRMpqLadFKbC/g6r6sLbUndyLz/yX/yf2f/hy6UDdEZF8n/DPTv//jv2P/j9Py3Jjzn/wVvQjiE/Cf/yf/X/I8pdfnvYkzkfw7683+k9T/D/N8QmP/LG/1P/++s/4lRRorgTSAPMnBM/4+y/sf+n0HQ/3mj/+l/7v/IV//9HyP9/2f/zyDo/7zR//Q//Z+vY/p/lP//jv4fAv0PAAAAAAAAAAAAAAAAXK/f57i5aQB4AAA='))
+        example_archive.add("example_external_symlinks.md5",
+                            type="file",
+                            content="""a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir2/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir2/ex2.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir1/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir1/ex2.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex2.txt
+""")
+        example_archive.add(".ngsarchiver/archive.md5",
+                            type="file",
+                            content="cdf7fcdf08b0afa29f1458b10e317861  example_external_symlinks.tar.gz\n")
+        example_archive.add(".ngsarchiver/archive_metadata.json",type="file",
+                            content="""{
+  "name": "example_external_symlinks",
+  "source": "/original/path/to/example_external_symlinks",
+  "subarchives": [
+    "example_external_symlinks.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "multi_volume": false,
+  "volume_size": null,
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add(".ngsarchiver/manifest.txt",type="file")
+        example_archive.add(".ngsarchiver/symlinks.txt",type="file",
+                            content="""example_external_symlinks/subdir2/external_symlink1.txt	example_external_symlinks.tar.gz
+example_external_symlinks/subdir1/symlink1.txt	example_external_symlinks.tar.gz
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Add an external file
+        external_file = os.path.join(self.wd,"external_file")
+        with open(external_file,'wt') as fp:
+            fp.write("external content")
+        # Expected contents
+        expected = ('example_external_symlinks/ex1.txt',
+                    'example_external_symlinks/subdir1',
+                    'example_external_symlinks/subdir1/ex1.txt',
+                    'example_external_symlinks/subdir1/ex2.txt',
+                    'example_external_symlinks/subdir1/symlink1.txt',
+                    'example_external_symlinks/subdir2',
+                    'example_external_symlinks/subdir2/ex1.txt',
+                    'example_external_symlinks/subdir2/ex2.txt',
+                    'example_external_symlinks/subdir2/external_symlink1.txt',
+                    'example_external_symlinks/subdir3',
+                    'example_external_symlinks/subdir3/ex1.txt',
+                    'example_external_symlinks/subdir3/ex2.txt',)
+        # Check example loads as ArchiveDirectory
+        a = ArchiveDirectory(p)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check subset of metadata
+        metadata = a.archive_metadata
+        self.assertEqual(metadata['name'],"example_external_symlinks")
+        self.assertEqual(metadata['subarchives'],
+                         ["example_external_symlinks.tar.gz"])
+        self.assertEqual(metadata['files'],[])
+        self.assertEqual(metadata['multi_volume'],False)
+        self.assertEqual(metadata['volume_size'],None)
+        # List contents
+        for item in a.list():
+            self.assertTrue(item.path in expected,
+                            "%s: unexpected item" % item.path)
+        # Search for symlinks
+        self.assertEqual(sorted([x.path for x in a.search(name="*symlink1.txt")]),
+                         ["example_external_symlinks/subdir1/symlink1.txt",
+                          "example_external_symlinks/subdir2/external_symlink1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example_external_symlinks/subdir*/*symlink1.txt")]),
+                         ["example_external_symlinks/subdir1/symlink1.txt",
+                          "example_external_symlinks/subdir2/external_symlink1.txt"])
+        # Verify archive
+        self.assertTrue(a.verify_archive())
+        # Unpack
+        a.unpack(extract_dir=self.wd)
+        self.assertTrue(os.path.exists(
+            os.path.join(self.wd,"example_external_symlinks")))
+        self.assertEqual(
+            os.path.getmtime(os.path.join(self.wd,"example_external_symlinks")),
+            os.path.getmtime(a.path))
+        for item in expected:
+            self.assertTrue(
+                os.path.lexists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(
+                os.path.join(self.wd,"example_external_symlinks")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+        # Extract internal symlink
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example_external_symlinks/subdir1/symlink1.*",
+                        extract_dir=extract_dir)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,"symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,"symlink1.txt")),
+                         "./ex1.txt")
+        a.extract_files(name="example_external_symlinks/subdir1/symlink1.*",
+                        extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,
+                         "example_external_symlinks",
+                         "subdir1",
+                         "symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,
+                         "example_external_symlinks",
+                         "subdir1",
+                         "symlink1.txt")),
+                         "./ex1.txt")
+        # Extract external symlink
+        a.extract_files(
+            name="example_external_symlinks/subdir2/external_symlink1.*",
+            extract_dir=extract_dir)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,"external_symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,"external_symlink1.txt")),
+                         "../../external_file.txt")
+        a.extract_files(
+            name="example_external_symlinks/subdir2/external_symlink1.*",
+            extract_dir=extract_dir,
+            include_path=True)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,
+                         "example_external_symlinks",
+                         "subdir2",
+                         "external_symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,
+                         "example_external_symlinks",
+                         "subdir2",
+                         "external_symlink1.txt")),
+                         "../../external_file.txt")
+
+    def test_archivedirectory_with_broken_symlink(self):
+        """
+        ArchiveDirectory: archive with broken symlink
+        """
+        # Build example archive dir
+        example_archive = UnittestDir(os.path.join(
+            self.wd,
+            "example_broken_symlinks.archive"))
+        example_archive.add("example_broken_symlinks.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sICCqa5GQA/2V4YW1wbGVfYnJva2VuX3N5bWxpbmtzLnRhcgDt281u2kAYhWHWvQpfwTDzzZ9nUanLLnMHkWkslQaSCIhE7z44CSrQgJvG2EHzPhsiEsWw+M6BmbEaq/G3q2r9va5u6sXoLPSLY49aW/fn5+Z5Y5yXUbE+z8vZ97hcVYvN5T/6fw7f3IWQspivpvP6qwlJQip9Ssq6MpbefRn6teH86nU1f5jV15PF/W19d738PZ9N726X43pt1Gq96uQazTyE8DzjJnq9+/jCHM5/CDqMil6GaDv/D78mJ/+u7fcXOv9Xs+pH/fN+tgl/5j1Div6n/7f9H7UVWyrjy3IT2ORBBo71//JxcjNdyLiLazTzEKM/3v9aH/Z/lDgqfBcXb5N5/5P/5P/u9z8xQWlnbdCe/M/A6fw3w+V/IP/7QP6T/7v5r72olMRFYf0vB6fz3w6W/1aT/334HPlv/85/Q/73QeJB/rtSJS8u8fE/C23rP13sAzXz8K79H9k0gGb/pw/s/+SN/qf/6f98tfe/DNP/hv7vA/2ft8/R/6z/DoXzH3lr6//95/9vLaCZhxjjv6//ijMhjgpRm48ftrNjqG/LvP/Jf/J/7/yHLpUN0RkXyf8MtJ3/+FDwv3p//ksQ95r/3d2G8Dbyn/wn/7f5H1Nq8t/FmMj/HLTl/1D7fz6y/tcH1v/yRv/T/3v7f2KUkTJ4w/pfDtr7f6D9P87/9IL+zxv9T/9z/0e+2u7/GOz8L+d/ekH/543+p//p/3y19/9A3/+F/u8D/Q8AAAAAAAAAAAAAAABcridJPIFaAHgAAA=='))
+        example_archive.add("example_broken_symlinks.md5",
+                            type="file",
+                            content="""a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir2/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir2/ex2.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir1/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir1/ex2.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex2.txt
+""")
+        example_archive.add(".ngsarchiver/archive.md5",
+                            type="file",
+                            content="a36ee4df21f4f6f35e1ea92282e92b22  example_broken_symlinks.tar.gz\n")
+        example_archive.add(".ngsarchiver/archive_metadata.json",type="file",
+                            content="""{
+  "name": "example_broken_symlinks",
+  "source": "/original/path/to/example_broken_symlinks",
+  "subarchives": [
+    "example_broken_symlinks.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "multi_volume": false,
+  "volume_size": null,
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add(".ngsarchiver/manifest.txt",type="file")
+        example_archive.add(".ngsarchiver/symlinks.txt",type="file",
+                            content="""example_broken_symlinks/subdir2/broken_symlink1.txt	example_broken_symlinks.tar.gz
+example_broken_symlinks/subdir1/symlink1.txt	example_broken_symlinks.tar.gz
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Expected contents
+        expected = ('example_broken_symlinks/ex1.txt',
+                    'example_broken_symlinks/subdir1',
+                    'example_broken_symlinks/subdir1/ex1.txt',
+                    'example_broken_symlinks/subdir1/ex2.txt',
+                    'example_broken_symlinks/subdir1/symlink1.txt',
+                    'example_broken_symlinks/subdir2',
+                    'example_broken_symlinks/subdir2/ex1.txt',
+                    'example_broken_symlinks/subdir2/ex2.txt',
+                    'example_broken_symlinks/subdir2/broken_symlink1.txt',
+                    'example_broken_symlinks/subdir3',
+                    'example_broken_symlinks/subdir3/ex1.txt',
+                    'example_broken_symlinks/subdir3/ex2.txt',)
+        # Check example loads as ArchiveDirectory
+        a = ArchiveDirectory(p)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check subset of metadata
+        metadata = a.archive_metadata
+        self.assertEqual(metadata['name'],"example_broken_symlinks")
+        self.assertEqual(metadata['subarchives'],
+                         ["example_broken_symlinks.tar.gz"])
+        self.assertEqual(metadata['files'],[])
+        self.assertEqual(metadata['multi_volume'],False)
+        self.assertEqual(metadata['volume_size'],None)
+        # List contents
+        for item in a.list():
+            self.assertTrue(item.path in expected,
+                            "%s: unexpected item" % item.path)
+        # Search for symlinks
+        self.assertEqual(sorted([x.path for x in a.search(name="*symlink1.txt")]),
+                         ["example_broken_symlinks/subdir1/symlink1.txt",
+                          "example_broken_symlinks/subdir2/broken_symlink1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example_broken_symlinks/subdir*/*symlink1.txt")]),
+                         ["example_broken_symlinks/subdir1/symlink1.txt",
+                          "example_broken_symlinks/subdir2/broken_symlink1.txt"])
+        # Verify archive
+        self.assertTrue(a.verify_archive())
+        # Unpack
+        a.unpack(extract_dir=self.wd)
+        self.assertTrue(os.path.exists(os.path.join(
+            self.wd,"example_broken_symlinks")))
+        self.assertEqual(os.path.getmtime(os.path.join(
+            self.wd,"example_broken_symlinks")),
+                         os.path.getmtime(a.path))
+        for item in expected:
+            self.assertTrue(
+                os.path.lexists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(
+                os.path.join(self.wd,"example_broken_symlinks")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+        # Extract "working" symlink (will be broken)
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example_broken_symlinks/subdir1/symlink1.*",
+                        extract_dir=extract_dir)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,"symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,"symlink1.txt")),
+                         "./ex1.txt")
+        a.extract_files(name="example_broken_symlinks/subdir1/symlink1.*",
+                        extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,
+                         "example_broken_symlinks",
+                         "subdir1",
+                         "symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,
+                         "example_broken_symlinks",
+                         "subdir1",
+                         "symlink1.txt")),
+                         "./ex1.txt")
+        # Extract broken symlink
+        a.extract_files(
+            name="example_broken_symlinks/subdir2/broken_symlink1.*",
+            extract_dir=extract_dir)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,"broken_symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,"broken_symlink1.txt")),
+                         "./ex3.txt")
+        a.extract_files(
+            name="example_broken_symlinks/subdir2/broken_symlink1.*",
+            extract_dir=extract_dir,
+            include_path=True)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,
+                         "example_broken_symlinks",
+                         "subdir2",
+                         "broken_symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,
+                         "example_broken_symlinks",
+                         "subdir2",
+                         "broken_symlink1.txt")),
+                         "./ex3.txt")
 
 class TestArchiveDirMember(unittest.TestCase):
 
@@ -1795,6 +2103,47 @@ class TestMakeArchiveDir(unittest.TestCase):
         for item in a.walk():
             self.assertTrue(os.path.relpath(item,archive_dir) in expected,
                             "'%s' not expected" % item)
+
+    def test_make_archive_dir_handle_symlinks(self):
+        """
+        make_archive_dir: handle symlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/symlink1.txt",type="symlink",target="./ex2.txt")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,out_dir=self.wd)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        expected = ("example.tar.gz",
+                    "example.md5",
+                    ".ngsarchiver",
+                    ".ngsarchiver/archive.md5",
+                    ".ngsarchiver/archive_metadata.json",
+                    ".ngsarchiver/manifest.txt",
+                    ".ngsarchiver/symlinks.txt")
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in a.walk():
+            self.assertTrue(os.path.relpath(item,archive_dir) in expected,
+                            "'%s' not expected" % item)
+        # Check contents of 'symlinks.txt' metadata file
+        with open(os.path.join(archive_dir,
+                               ".ngsarchiver",
+                               "symlinks.txt"),'rt') as fp:
+            self.assertEqual(fp.read(),
+                             "example/subdir/symlink1.txt\texample.tar.gz\n")
 
 class TestMd5sum(unittest.TestCase):
 

@@ -93,7 +93,7 @@ class Directory:
         Return full paths to files etc that are not readable
         """
         for o in self.walk():
-            if not os.access(o,os.R_OK):
+            if not os.path.islink(o) and not os.access(o,os.R_OK):
                 yield o
 
     @property
@@ -563,6 +563,18 @@ class ArchiveDirectory(Directory):
                         subarchive=os.path.join(self.path,
                                                 subarchive_name+'.tar.gz'),
                         md5=line.split('  ')[0])
+        # Symlinks
+        symlinks_file = os.path.join(self._ngsarchiver_dir,"symlinks.txt")
+        if os.path.exists(symlinks_file):
+            with open(symlinks_file,'rt') as fp:
+                for line in fp:
+                    f = '\t'.join(line.split('\t')[:-1])
+                    yield ArchiveDirMember(
+                        path=f,
+                        subarchive=os.path.join(
+                            self.path,
+                            line.rstrip('\n').split('\t')[-1]),
+                        md5=None)
 
     def search(self,name=None,path=None,case_insensitive=False):
         """
@@ -646,27 +658,40 @@ class ArchiveDirectory(Directory):
                     # Get information on archive member
                     tgzf = tgz.getmember(m.path)
                     if tgzf.isdir():
+                        # Skip directories
                         logger.warning("%s: '%s' is directory, skipping" %
                                        (self.path,m.path))
-                        continue
-                    print("-- extracting '%s' (%s)" %
-                          (m.path,
-                           format_size(tgzf.size,human_readable=True)))
-                    if include_path:
-                        # Extract with leading path
-                        tgz.extract(m.path,path=extract_dir,set_attrs=False)
+                    elif tgzf.issym():
+                        # Regenerate symlinks (rather than extracting)
+                        # in case they are broken
+                        print("-- extracting '%s' (symbolic link)" %
+                              m.path)
+                        target = tgzf.linkname
+                        # Regenerate link
+                        if include_path:
+                            os.makedirs(os.path.dirname(f),exist_ok=True)
+                        os.symlink(target,f)
                     else:
-                        # Extract without leading path
-                        tgzfp = tgz.extractfile(m.path)
-                        with open(f,'wb') as fp:
-                            fp.write(tgzfp.read())
-                        tgzfp.close()
+                        # Extract other archive member types
+                        print("-- extracting '%s' (%s)" %
+                              (m.path,
+                               format_size(tgzf.size,human_readable=True)))
+                        if include_path:
+                            # Extract with leading path
+                            tgz.extract(m.path,path=extract_dir,set_attrs=False)
+                        else:
+                            # Extract without leading path
+                            tgzfp = tgz.extractfile(m.path)
+                            with open(f,'wb') as fp:
+                                fp.write(tgzfp.read())
+                            tgzfp.close()
                 # Set initial permissions
                 chmod(f,tgzf.mode)
             # Update permissions to include read/write
-            chmod(f,os.stat(f).st_mode | stat.S_IRUSR | stat.S_IWUSR)
+            if not os.path.islink(f):
+                chmod(f,os.stat(f).st_mode | stat.S_IRUSR | stat.S_IWUSR)
             # Verify MD5 sum
-            if md5sum(f) != m.md5:
+            if m.md5 and md5sum(f) != m.md5:
                 raise NgsArchiverException("%s: MD5 check failed "
                                            "when extracting '%s'" %
                                            (self.path,m.path))
@@ -728,12 +753,25 @@ class ArchiveDirectory(Directory):
                 if not verify_checksums(md5file,root_dir=extract_dir):
                    raise NgsArchiverException("%s: checksum verification "
                                               "failed" % md5file)
+            # Check symlinks
+            symlinks_file = os.path.join(self._ngsarchiver_dir,"symlinks.txt")
+            if os.path.exists(symlinks_file):
+                print("-- checking symlinks")
+                with open(symlinks_file,'rt') as fp:
+                    for line in fp:
+                        f = os.path.join(extract_dir,
+                                         '\t'.join(line.split('\t')[:-1]))
+                        if not os.path.islink(f):
+                            raise NgsArchiverException("%s: missing symlink"
+                                                       % f)
         # Ensure all files etc have read/write permission
         if set_read_write:
             print("-- updating permissions to read-write")
             for o in Directory(d).walk():
-                s = os.stat(o)
-                chmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
+                if not os.path.islink(o):
+                    # Ignore symbolic links
+                    s = os.stat(o)
+                    chmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
         # Update the timestamp on the unpacked directory
         shutil.copystat(self.path,d)
         # Return the appropriate wrapper instance
@@ -1001,6 +1039,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 shutil.copy2(f,archive_dir)
                 archive_metadata['files'].append(os.path.basename(f))
     # Generate checksums for each subarchive
+    symlinks = {}
     for a in archive_metadata['subarchives']:
         subarchive = os.path.join(archive_dir,a)
         md5file = os.path.join(archive_dir,
@@ -1009,8 +1048,16 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
             with tarfile.open(subarchive,'r:gz') as tgz:
                 for f in tgz.getnames():
                     ff = os.path.join(d.parent_dir,f)
-                    if os.path.isfile(ff):
+                    if os.path.islink(ff):
+                        symlinks[f] = a
+                    elif os.path.isfile(ff):
                         fp.write("%s  %s\n" % (md5sum(ff),f))
+    # Record symlinks
+    if symlinks:
+        symlinks_file = os.path.join(ngsarchiver_dir,"symlinks.txt")
+        with open(symlinks_file,'wt') as fp:
+            for s in symlinks:
+                fp.write("%s\t%s\n" % (s,symlinks[s]))
     # Checksums for archive contents
     file_list = archive_metadata['subarchives'] + archive_metadata['files']
     with open(os.path.join(ngsarchiver_dir,"archive.md5"),'wt') as fp:
