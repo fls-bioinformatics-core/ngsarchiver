@@ -1001,6 +1001,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 shutil.copy2(f,archive_dir)
                 archive_metadata['files'].append(os.path.basename(f))
     # Generate checksums for each subarchive
+    symlinks = {}
     for a in archive_metadata['subarchives']:
         subarchive = os.path.join(archive_dir,a)
         md5file = os.path.join(archive_dir,
@@ -1009,8 +1010,16 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
             with tarfile.open(subarchive,'r:gz') as tgz:
                 for f in tgz.getnames():
                     ff = os.path.join(d.parent_dir,f)
-                    if os.path.isfile(ff):
+                    if os.path.islink(ff):
+                        symlinks[f] = a
+                    elif os.path.isfile(ff):
                         fp.write("%s  %s\n" % (md5sum(ff),f))
+    # Record symlinks
+    if symlinks:
+        symlinks_file = os.path.join(ngsarchiver_dir,"symlinks.txt")
+        with open(symlinks_file,'wt') as fp:
+            for s in symlinks:
+                fp.write("%s\t%s\n" % (s,symlinks[s]))
     # Checksums for archive contents
     file_list = archive_metadata['subarchives'] + archive_metadata['files']
     with open(os.path.join(ngsarchiver_dir,"archive.md5"),'wt') as fp:
