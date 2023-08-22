@@ -2104,6 +2104,47 @@ class TestMakeArchiveDir(unittest.TestCase):
             self.assertTrue(os.path.relpath(item,archive_dir) in expected,
                             "'%s' not expected" % item)
 
+    def test_make_archive_dir_handle_symlinks(self):
+        """
+        make_archive_dir: handle symlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/symlink1.txt",type="symlink",target="./ex2.txt")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,out_dir=self.wd)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        expected = ("example.tar.gz",
+                    "example.md5",
+                    ".ngsarchiver",
+                    ".ngsarchiver/archive.md5",
+                    ".ngsarchiver/archive_metadata.json",
+                    ".ngsarchiver/manifest.txt",
+                    ".ngsarchiver/symlinks.txt")
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in a.walk():
+            self.assertTrue(os.path.relpath(item,archive_dir) in expected,
+                            "'%s' not expected" % item)
+        # Check contents of 'symlinks.txt' metadata file
+        with open(os.path.join(archive_dir,
+                               ".ngsarchiver",
+                               "symlinks.txt"),'rt') as fp:
+            self.assertEqual(fp.read(),
+                             "example/subdir/symlink1.txt\texample.tar.gz\n")
+
 class TestMd5sum(unittest.TestCase):
 
     def setUp(self):
