@@ -753,12 +753,25 @@ class ArchiveDirectory(Directory):
                 if not verify_checksums(md5file,root_dir=extract_dir):
                    raise NgsArchiverException("%s: checksum verification "
                                               "failed" % md5file)
+            # Check symlinks
+            symlinks_file = os.path.join(self._ngsarchiver_dir,"symlinks.txt")
+            if os.path.exists(symlinks_file):
+                print("-- checking symlinks")
+                with open(symlinks_file,'rt') as fp:
+                    for line in fp:
+                        f = os.path.join(extract_dir,
+                                         '\t'.join(line.split('\t')[:-1]))
+                        if not os.path.islink(f):
+                            raise NgsArchiverException("%s: missing symlink"
+                                                       % f)
         # Ensure all files etc have read/write permission
         if set_read_write:
             print("-- updating permissions to read-write")
             for o in Directory(d).walk():
-                s = os.stat(o)
-                chmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
+                if not os.path.islink(o):
+                    # Ignore symbolic links
+                    s = os.stat(o)
+                    chmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
         # Update the timestamp on the unpacked directory
         shutil.copystat(self.path,d)
         # Return the appropriate wrapper instance
