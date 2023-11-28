@@ -192,6 +192,22 @@ class Directory:
                 yield o
 
     @property
+    def largest_file(self):
+        """
+        Return size and path of largest file
+
+        Returns a tuple of (relpath,size)
+        """
+        max_size = 0
+        largest = None
+        for o in self.walk():
+            s = self.getsize((o,))
+            if s > max_size:
+                max_size = s
+                largest = os.path.relpath(o,self._path)
+        return (largest,max_size)
+
+    @property
     def unknown_uids(self):
         """
         Return paths that have unrecognised UIDs

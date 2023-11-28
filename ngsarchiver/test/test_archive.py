@@ -145,6 +145,7 @@ class TestDirectory(unittest.TestCase):
         self.assertEqual(d.basename,"example")
         self.assertEqual(d.parent_dir,self.wd)
         self.assertEqual(d.size,8192)
+        self.assertEqual(d.largest_file,("ex1.txt",4096))
         self.assertEqual(list(d.compressed_files),[])
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
