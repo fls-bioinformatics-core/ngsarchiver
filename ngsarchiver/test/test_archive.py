@@ -2838,6 +2838,7 @@ class TestConvertSizeToBytes(unittest.TestCase):
         self.assertEqual(convert_size_to_bytes('4.0M'),4194304)
         self.assertEqual(convert_size_to_bytes('4.0G'),4294967296)
         self.assertEqual(convert_size_to_bytes('4.0T'),4398046511104)
+        self.assertEqual(convert_size_to_bytes('4.5G'),4831838208)
         self.assertEqual(convert_size_to_bytes('4T'),4398046511104)
 
 class TestFormatSize(unittest.TestCase):
