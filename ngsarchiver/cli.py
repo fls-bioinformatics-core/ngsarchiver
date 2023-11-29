@@ -268,8 +268,8 @@ def main(argv=None):
                 if not is_readable:
                     msg += "; unreadable files will be omitted"
                 if has_external_symlinks or has_broken_symlinks:
-                    msg += "; broken/external links will be copied "
-                    "directly into archive"
+                    msg += "; broken/external links will be archived " \
+                    "as-is"
                 msg += ")"
                 logger.warning(msg)
             else:
