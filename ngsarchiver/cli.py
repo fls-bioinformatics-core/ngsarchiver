@@ -170,7 +170,11 @@ def main(argv=None):
     
     # 'Info' subcommand
     if args.subcommand == "info":
-        d = get_rundir_instance(args.dir)
+        try:
+            d = get_rundir_instance(args.dir)
+        except Exception as ex:
+            logger.error(ex)
+            return CLIStatus.ERROR
         size = d.size
         print("Path: %s" % d.path)
         print("Type: %s" % d.__class__.__name__)
@@ -241,7 +245,11 @@ def main(argv=None):
 
     # 'Archive' subcommand
     if args.subcommand == "archive":
-        d = get_rundir_instance(args.dir)
+        try:
+            d = get_rundir_instance(args.dir)
+        except Exception as ex:
+            logger.error(ex)
+            return CLIStatus.ERROR
         size = d.size
         largest_file = d.largest_file
         check_status = 0
@@ -400,7 +408,11 @@ def main(argv=None):
 
     # 'Compare' subcommand
     if args.subcommand == 'compare':
-        d1 = get_rundir_instance(args.dir1)
+        try:
+            d1 = get_rundir_instance(args.dir1)
+        except Exception as ex:
+            logger.error(ex)
+            return CLIStatus.ERROR
         print("Comparing %s against %s" % (d1,args.dir2))
         if d1.verify_copy(args.dir2):
             print("-- ok")
