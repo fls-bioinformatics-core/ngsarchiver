@@ -404,7 +404,7 @@ def main(argv=None):
     if args.subcommand == 'compare':
         try:
             d1 = get_rundir_instance(args.dir1)
-        except Excepion as ex:
+        except Exception as ex:
             logger.error(ex)
             return CLIStatus.ERROR
         print("Comparing %s against %s" % (d1,args.dir2))
