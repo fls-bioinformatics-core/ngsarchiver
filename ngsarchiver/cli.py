@@ -18,6 +18,7 @@ from argparse import ArgumentParser
 from .archive import ArchiveDirectory
 from .archive import convert_size_to_bytes
 from .archive import format_size
+from .archive import format_bool
 from .archive import get_rundir_instance
 from . import get_version
 
@@ -226,11 +227,16 @@ def main(argv=None):
             if not has_unknown_uids:
                 print("-- no files with unknown UIDs")
         else:
-            print("Unreadable files : %s" % (not d.is_readable))
-            print("External symlinks: %s" % d.has_external_symlinks)
-            print("Broken symlinks  : %s" % d.has_broken_symlinks)
-            print("Hard linked files: %s" % d.has_hard_linked_files)
-            print("Unknown UIDs     : %s" % d.has_unknown_uids)
+            print("Unreadable files : %s" %
+                  format_bool(not d.is_readable))
+            print("External symlinks: %s" %
+                  format_bool(d.has_external_symlinks))
+            print("Broken symlinks  : %s" %
+                  format_bool(d.has_broken_symlinks))
+            print("Hard linked files: %s" %
+                  format_bool(d.has_hard_linked_files))
+            print("Unknown UIDs     : %s" %
+                  format_bool(d.has_unknown_uids))
         return CLIStatus.OK
 
     # 'Archive' subcommand
@@ -243,18 +249,18 @@ def main(argv=None):
         print("-- type          : %s" % d.__class__.__name__)
         print("-- size          : %s" % format_size(size,
                                                     human_readable=True))
-        print("-- largest file  : %s" % format_size(largest_file[1],
-                                                    human_readable=True))
+        print("-- largest file     : %s" % format_size(largest_file[1],
+                                                       human_readable=True))
         is_readable = d.is_readable
-        print("-- unreadable files : %s" % (not is_readable))
+        print("-- unreadable files : %s" % format_bool(not is_readable))
         has_external_symlinks = d.has_external_symlinks
-        print("-- external symlinks: %s" % has_external_symlinks)
+        print("-- external symlinks: %s" % format_bool(has_external_symlinks))
         has_broken_symlinks = d.has_broken_symlinks
-        print("-- broken symlinks  : %s" % has_broken_symlinks)
+        print("-- broken symlinks  : %s" % format_bool(has_broken_symlinks))
         has_unknown_uids = d.has_unknown_uids
-        print("-- unknown UIDs     : %s" % has_unknown_uids)
+        print("-- unknown UIDs     : %s" % format_bool(has_unknown_uids))
         has_hard_linked_files = d.has_hard_linked_files
-        print("-- hard linked files: %s" % has_hard_linked_files)
+        print("-- hard linked files: %s" % format_bool(has_hard_linked_files))
         if has_external_symlinks or \
            has_broken_symlinks or \
            not is_readable or \
