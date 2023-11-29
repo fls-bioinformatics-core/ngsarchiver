@@ -99,8 +99,9 @@ def main(argv=None):
                                 help="check for and warn about potential "
                                 "issues; don't perform archiving")
     parser_archive.add_argument('--force',action='store_true',
-                                help="ignore problems about unreadable "
-                                "files and external symlinks")
+                                help="ignore issues and perform "
+                                "archiving anyway (may result in "
+                                "incomplete or problematic archive)")
 
     # 'verify' command
     parser_verify = s.add_parser('verify',
