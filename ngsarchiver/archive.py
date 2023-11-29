@@ -1401,3 +1401,27 @@ def format_size(size,units='K',human_readable=False):
             size = float(size)/blocksize
             if units == u:
                 return int(size)
+
+def format_bool(b,true="yes",false="no"):
+    """
+    Return "yes" or "no" (or custom values) based on boolean
+
+    Arguments:
+      b (boolean): Boolean value
+      true (str): string to return if boolean is True
+        (default: "yes")
+      false (str): string to return if boolean is False
+        (default: "no")
+
+    Returns:
+      String: string corresponding to True or False value.
+
+    Raises:
+      ValueError: if supplied value is not a boolean.
+    """
+    if b is True:
+        return true
+    elif b is False:
+        return false
+    else:
+        raise ValueError("%r: not a boolean" % b)
