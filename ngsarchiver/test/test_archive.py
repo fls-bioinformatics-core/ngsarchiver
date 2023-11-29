@@ -27,6 +27,7 @@ from ngsarchiver.archive import unpack_archive_multitgz
 from ngsarchiver.archive import getsize
 from ngsarchiver.archive import convert_size_to_bytes
 from ngsarchiver.archive import format_size
+from ngsarchiver.archive import format_bool
 from ngsarchiver.exceptions import NgsArchiverException
 
 # Set to False to keep test output dirs
@@ -2861,3 +2862,39 @@ class TestFormatSize(unittest.TestCase):
         self.assertEqual(format_size(4194304,human_readable=True),'4.0M')
         self.assertEqual(format_size(4294967296,human_readable=True),'4.0G')
         self.assertEqual(format_size(4398046511104,human_readable=True),'4.0T')
+
+class TestFormatBool(unittest.TestCase):
+
+    def test_format_bool(self):
+        """
+        format_bool: convert True/False to alternative strings
+        """
+        self.assertEqual(format_bool(True),"yes")
+        self.assertEqual(format_bool(False),"no")
+
+    def test_format_bool_custom(self):
+        """
+        format_bool: use custom alternative strings
+        """
+        self.assertEqual(format_bool(True,
+                                     true="T",
+                                     false="F"),
+                         "T")
+        self.assertEqual(format_bool(False,
+                                     true="T",
+                                     false="F"),
+                         "F")
+
+    def test_format_bool_raises_value_error(self):
+        """
+        format_bool: raises ValueError for non-boolean input
+        """
+        self.assertRaises(ValueError,
+                          format_bool,
+                          "True")
+        self.assertRaises(ValueError,
+                          format_bool,
+                          0)
+        self.assertRaises(ValueError,
+                          format_bool,
+                          None)
