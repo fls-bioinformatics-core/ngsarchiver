@@ -12,6 +12,7 @@
 #######################################################################
 
 import sys
+import os
 import logging
 from argparse import ArgumentParser
 from .archive import ArchiveDirectory
@@ -98,8 +99,9 @@ def main(argv=None):
                                 help="check for and warn about potential "
                                 "issues; don't perform archiving")
     parser_archive.add_argument('--force',action='store_true',
-                                help="ignore problems about unreadable "
-                                "files and external symlinks")
+                                help="ignore issues and perform "
+                                "archiving anyway (may result in "
+                                "incomplete or problematic archive)")
 
     # 'verify' command
     parser_verify = s.add_parser('verify',
@@ -172,6 +174,10 @@ def main(argv=None):
         print("Path: %s" % d.path)
         print("Type: %s" % d.__class__.__name__)
         print("Size: %s" % format_size(size,human_readable=True))
+        largest_file,largest_file_size = d.largest_file
+        print("Largest file: %s (%s)" % (format_size(largest_file_size,
+                                                     human_readable=True),
+                                         largest_file))
         compressed_file_size = d.getsize(d.compressed_files)
         if compressed_file_size > 0.0:
             print("Compressed contents: %s [%.1f%%]" %
@@ -231,10 +237,13 @@ def main(argv=None):
     if args.subcommand == "archive":
         d = get_rundir_instance(args.dir)
         size = d.size
+        largest_file = d.largest_file
         check_status = 0
         print("Checking %s..." % d)
         print("-- type          : %s" % d.__class__.__name__)
         print("-- size          : %s" % format_size(size,
+                                                    human_readable=True))
+        print("-- largest file  : %s" % format_size(largest_file[1],
                                                     human_readable=True))
         is_readable = d.is_readable
         print("-- unreadable files : %s" % (not is_readable))
@@ -255,7 +264,14 @@ def main(argv=None):
                 logger.warning(msg)
                 check_status = 1
             elif args.force:
-                logger.warning("%s (ignored)" % msg)
+                msg += " (ignored"
+                if not is_readable:
+                    msg += "; unreadable files will be omitted"
+                if has_external_symlinks or has_broken_symlinks:
+                    msg += "; broken/external links will be copied "
+                    "directly into archive"
+                msg += ")"
+                logger.warning(msg)
             else:
                 logger.critical(msg)
                 return CLIStatus.ERROR
@@ -265,15 +281,60 @@ def main(argv=None):
                 logger.warning(msg)
                 check_status = 1
             elif args.force:
-                logger.warning("%s (ignored)" % msg)
+                logger.warning("%s (ignored; hard-linked files will "
+                               "appear multiple times and size of the "
+                               "archive may be inflated)" % msg)
             else:
                 logger.critical(msg)
                 return CLIStatus.ERROR
         volume_size = args.volume_size
-        if volume_size and convert_size_to_bytes(volume_size) > size:
-            logger.warning("volume size larger than uncompressed "
-                           "size, disabling multi-volume archive")
-            volume_size = None
+        if volume_size:
+            if convert_size_to_bytes(volume_size) > size:
+                msg = "Requested volume size (%s) larger than " \
+                "uncompressed size (%s) archive" % \
+                (format_size(convert_size_to_bytes(volume_size),
+                             human_readable=True),
+                 format_size(convert_size_to_bytes(size),
+                             human_readable=True))
+                if args.check:
+                    logger.warning(msg)
+                    check_status = 1
+                elif args.force:
+                    logger.warning("%s (ignored; multi-volume archiving "
+                                   "will be disabled)" % msg)
+                    volume_size = None
+                else:
+                    logger.critical(msg)
+                    return CLIStatus.ERROR
+            elif convert_size_to_bytes(volume_size) < largest_file[1]:
+                msg = "Requested volume size (%s) smaller than largest " \
+                      "file size (%s)" % \
+                      (format_size(convert_size_to_bytes(volume_size),
+                                   human_readable=True),
+                       format_size(largest_file[1],
+                                   human_readable=True))
+                if args.check:
+                    logger.warning(msg)
+                    check_status = 1
+                elif args.force:
+                    logger.warning("%s (ignored; larger volumes will "
+                                   "be created when required)" % msg)
+                else:
+                    logger.critical(msg)
+                    return CLIStatus.ERROR
+        dest_dir = args.out_dir
+        if not dest_dir:
+            dest_dir = os.getcwd()
+        dest_dir = os.path.join(dest_dir,
+                                "%s.archive" % d.basename)
+        if os.path.exists(dest_dir):
+            msg = "%s: archive directory already exists" % dest_dir
+            if args.check:
+                logger.warning(msg)
+                check_status = 1
+            else:
+                logger.critical(msg)
+                return CLIStatus.ERROR
         if args.check:
             if check_status == 0:
                 print("Checks: OK")
@@ -282,8 +343,7 @@ def main(argv=None):
             # Stop here
             return check_status
         print("Archiving settings:")
-        print("-- destination : %s" % ('CWD' if not args.out_dir
-                                       else args.out_dir))
+        print("-- destination : %s" % dest_dir)
         if volume_size:
             print("-- multi-volume: yes")
             print("-- volume size : %s" % volume_size)
