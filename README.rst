@@ -405,9 +405,6 @@ command is run specifying a maximum volume size, and
 are intended to mitigate potential issues with creating
 extremely large ``.tar.gz`` archives.
 
-The archiver recognises four directory types (which
-are determined automatically):
-
 ------------------
 Problem situations
 ------------------
