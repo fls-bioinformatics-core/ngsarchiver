@@ -498,3 +498,10 @@ for archiving:
       echo Failed to verify archive dir >&2
       exit 1
    fi
+
+-------
+License
+-------
+
+This software is licensed under the 3-Clause BSD
+License (BSD-3-Clause).
