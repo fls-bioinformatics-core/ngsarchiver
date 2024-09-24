@@ -499,6 +499,37 @@ for archiving:
       exit 1
    fi
 
+------------------------
+Performance observations
+------------------------
+
+The code was tested on a set of real runs and the
+following initial observations have been made:
+
+* Typically we saw archived run directories were
+  around 70-80% of the size of the original run.
+  A significant number showed greater reductions,
+  evenly distributed in the range 30-70% of the
+  original size.
+* There was no difference in the final size
+  between single-volume and multi-volume archives
+  in the benchmarking data, indicating that
+  choice of volume size doesn't significantly affect
+  the amount of compression overall.
+* There is relatively little correlation between
+  the amount of compression versus the size of
+  the original run.
+* As a rule of thumb it appeared that the
+  percentage of pre-existing compressed content
+  in a run predicted the minimum degree of
+  overall compression. For example, for a run
+  where 80% of the contents are already compressed
+  we would expect to see the final archive no
+  larger than 80% of the original size (although
+  the actual compression could be greater). It
+  is not clear why this is, or whether it is
+  generally true however.
+
 -------
 License
 -------
