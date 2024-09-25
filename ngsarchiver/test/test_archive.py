@@ -24,6 +24,7 @@ from ngsarchiver.archive import make_archive_dir
 from ngsarchiver.archive import make_archive_tgz
 from ngsarchiver.archive import make_archive_multitgz
 from ngsarchiver.archive import unpack_archive_multitgz
+from ngsarchiver.archive import make_copy
 from ngsarchiver.archive import getsize
 from ngsarchiver.archive import convert_size_to_bytes
 from ngsarchiver.archive import format_size
@@ -2790,6 +2791,88 @@ class TestUnpackArchiveMultiTgz(unittest.TestCase):
         for item in Directory(os.path.join(self.wd,"example")).walk():
             self.assertTrue(os.path.relpath(item,self.wd) in all_expected,
                             "'%s' not expected" % item)
+
+class TestMakeCopy(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestMakeArchiveDir')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_make_copy(self):
+        """
+        make_copy: no symlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies")
+        # Make copy
+        d = Directory(p)
+        dd = make_copy(d,dest_dir)
+        self.assertTrue(isinstance(dd,Directory))
+        # Check resulting copy
+        copy_dir = os.path.join(self.wd,"copies","example")
+        self.assertEqual(dd.path,copy_dir)
+        self.assertTrue(os.path.exists(copy_dir))
+        for item in ("example.tar.gz",
+                     "example.md5",
+                     ".ngsarchiver",
+                     ".ngsarchiver/archive.md5",
+                     ".ngsarchiver/archive_metadata.json",
+                     ".ngsarchiver/manifest.txt",):
+            self.assertTrue(
+                os.path.exists(os.path.join(copy_dir,item)),
+                "missing '%s'" % item)
+
+    def test_make_copy_handle_symlinks(self):
+        """
+        make_copy: handle symlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/symlink1.txt",type="symlink",target="./ex2.txt")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies")
+        # Make copy
+        d = Directory(p)
+        dd = make_copy(d,dest_dir)
+        self.assertTrue(isinstance(dd,Directory))
+        # Check resulting directory
+        copy_dir = os.path.join(self.wd,"copies","example")
+        self.assertEqual(dd.path,copy_dir)
+        self.assertTrue(os.path.exists(copy_dir))
+        expected = ("example.tar.gz",
+                    "example.md5",
+                    ".ngsarchiver",
+                    ".ngsarchiver/archive.md5",
+                    ".ngsarchiver/archive_metadata.json",
+                    ".ngsarchiver/manifest.txt",
+                    ".ngsarchiver/symlinks.txt")
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(copy_dir,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in dd.walk():
+            self.assertTrue(os.path.relpath(item,copy_dir) in expected,
+                            "'%s' not expected" % item)
+        # Check contents of 'symlinks.txt' metadata file
+        with open(os.path.join(copy_dir,
+                               ".ngsarchiver",
+                               "symlinks.txt"),'rt') as fp:
+            self.assertEqual(fp.read(),
+                             "example/subdir/symlink1.txt\texample.tar.gz\n")
 
 class TestGetSize(unittest.TestCase):
 

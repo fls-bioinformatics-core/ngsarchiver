@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 #     archive.py: archiving classes and functions
-#     Copyright (C) University of Manchester 2023 Peter Briggs
+#     Copyright (C) University of Manchester 2023-2024 Peter Briggs
 #
 
 """
@@ -270,6 +270,15 @@ class Directory:
                 #print("%s: group '%s'" % (o,Path(o).group()))
                 return False
         return True
+
+    def copy(self,dest):
+        """
+        Create a copy of the directory contents
+
+        Arguments:
+          dest (str): path for the copy
+        """
+        return make_copy(self,dest)
 
     def verify_checksums(self,md5file):
         """
@@ -1331,6 +1340,31 @@ def unpack_archive_multitgz(archive_list,extract_dir=None):
                 o_ = os.path.join(extract_dir,o.name)
                 chmod(o_,o.mode)
                 utime(o_,(atime,o.mtime))
+
+def make_copy(d,dest):
+    """
+    Make a copy of a directory
+
+    Arguments:
+      d (Directory): Directory-like object representing
+        the directory to be copied
+      dest (str): path to directory into which the directory
+        contents will be copied
+    """
+    # Do the copy
+    try:
+        shutil.copytree(d.path, dest, symlinks=True)
+    except shutil.Error as err:
+        print("Copy: shutil error: %s" % err)
+    except Exception as ex:
+        print("Copy: exception: %s" % ex)
+    # Verify against the original
+    if d.verify_copy(dest):
+        print("%s: verified copy in '%s'" % (d,dest))
+    else:
+        raise NgsArchiverException("%s: failed to verify copy in '%s'" %
+                                   (d,dest))
+    return Directory(dest)
 
 def getsize(p,blocksize=512):
     """
