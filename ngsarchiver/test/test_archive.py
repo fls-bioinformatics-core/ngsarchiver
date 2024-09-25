@@ -2811,25 +2811,26 @@ class TestMakeCopy(unittest.TestCase):
         example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
         example_dir.create()
         p = example_dir.path
-        # Location for copies
-        dest_dir = os.path.join(self.wd, "copies")
+        # Location for copy
+        dest_dir = os.path.join(self.wd, "copies", "example")
         # Make copy
         d = Directory(p)
-        dd = make_copy(d,dest_dir)
-        self.assertTrue(isinstance(dd,Directory))
+        dd = make_copy(d, dest_dir)
+        self.assertTrue(isinstance(dd, Directory))
         # Check resulting copy
-        copy_dir = os.path.join(self.wd,"copies","example")
-        self.assertEqual(dd.path,copy_dir)
-        self.assertTrue(os.path.exists(copy_dir))
-        for item in ("example.tar.gz",
-                     "example.md5",
-                     ".ngsarchiver",
-                     ".ngsarchiver/archive.md5",
-                     ".ngsarchiver/archive_metadata.json",
-                     ".ngsarchiver/manifest.txt",):
+        self.assertEqual(dd.path, dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        expected = ("ex1.txt",
+                    "subdir",
+                    "subdir/ex2.txt")
+        for item in expected:
             self.assertTrue(
-                os.path.exists(os.path.join(copy_dir,item)),
+                os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in dd.walk():
+            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
+                            "'%s' not expected" % item)
 
     def test_make_copy_handle_symlinks(self):
         """
@@ -2843,36 +2844,26 @@ class TestMakeCopy(unittest.TestCase):
         example_dir.create()
         p = example_dir.path
         # Location for copies
-        dest_dir = os.path.join(self.wd, "copies")
+        dest_dir = os.path.join(self.wd, "copies", "example")
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir)
         self.assertTrue(isinstance(dd,Directory))
         # Check resulting directory
-        copy_dir = os.path.join(self.wd,"copies","example")
-        self.assertEqual(dd.path,copy_dir)
-        self.assertTrue(os.path.exists(copy_dir))
-        expected = ("example.tar.gz",
-                    "example.md5",
-                    ".ngsarchiver",
-                    ".ngsarchiver/archive.md5",
-                    ".ngsarchiver/archive_metadata.json",
-                    ".ngsarchiver/manifest.txt",
-                    ".ngsarchiver/symlinks.txt")
+        self.assertEqual(dd.path, dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        expected = ("ex1.txt",
+                    "subdir",
+                    "subdir/ex2.txt",
+                    "subdir/symlink1.txt")
         for item in expected:
             self.assertTrue(
-                os.path.exists(os.path.join(copy_dir,item)),
+                os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
         # Check extra items aren't present
         for item in dd.walk():
-            self.assertTrue(os.path.relpath(item,copy_dir) in expected,
+            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
                             "'%s' not expected" % item)
-        # Check contents of 'symlinks.txt' metadata file
-        with open(os.path.join(copy_dir,
-                               ".ngsarchiver",
-                               "symlinks.txt"),'rt') as fp:
-            self.assertEqual(fp.read(),
-                             "example/subdir/symlink1.txt\texample.tar.gz\n")
 
 class TestGetSize(unittest.TestCase):
 
