@@ -2865,6 +2865,27 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
                             "'%s' not expected" % item)
 
+    def test_make_copy_raises_exception_for_existing_partial_copy(self):
+        """
+        make_copy: raise exception for existing partial copy
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copy
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Add existing .part directory
+        os.makedirs(dest_dir + ".part")
+        # Make copy
+        d = Directory(p)
+        self.assertRaises(NgsArchiverException,
+                          make_copy,
+                          d,
+                          dest_dir)
+
 class TestGetSize(unittest.TestCase):
 
     def setUp(self):
