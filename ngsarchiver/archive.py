@@ -1351,19 +1351,28 @@ def make_copy(d,dest):
       dest (str): path to directory into which the directory
         contents will be copied
     """
+    # Create temporary (.part) directory
+    dest = str(Path(dest).absolute())
+    temp_copy = dest + ".part"
+    if Path(temp_copy).exists():
+        raise NgsArchiverException(f"{d}: found existing partial copy "
+                                   "'{temp_copy}' (remove before retrying)")
     # Do the copy
     try:
-        shutil.copytree(d.path, dest, symlinks=True)
+        shutil.copytree(d.path, temp_copy, symlinks=True)
     except shutil.Error as err:
-        print("Copy: shutil error: %s" % err)
+        print(f"Copy: shutil error: {err}")
     except Exception as ex:
-        print("Copy: exception: %s" % ex)
+        print(f"Copy: exception: {ex}")
     # Verify against the original
-    if d.verify_copy(dest):
-        print("%s: verified copy in '%s'" % (d,dest))
+    if d.verify_copy(temp_copy):
+        print(f"{d}: verified copy in '{temp_copy}'")
     else:
-        raise NgsArchiverException("%s: failed to verify copy in '%s'" %
-                                   (d,dest))
+        raise NgsArchiverException(f"{d}: failed to verify copy in "
+                                   f"'{temp_copy}'")
+    # Move to final location
+    shutil.move(temp_copy, dest)
+    print(f"Final copy in {dest}")
     return Directory(dest)
 
 def getsize(p,blocksize=512):
