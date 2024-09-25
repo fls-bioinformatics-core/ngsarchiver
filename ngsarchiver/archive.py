@@ -1354,6 +1354,12 @@ def make_copy(d,dest):
     else:
         raise NgsArchiverException(f"{d}: failed to verify copy in "
                                    f"'{temp_copy}'")
+    # Create archive metadata
+    metadata_dir = os.path.join(temp_copy, "ARCHIVE_METADATA")
+    os.mkdir(metadata_dir)
+    # Create a manifest file
+    manifest = make_manifest_file(d, os.path.join(metadata_dir, "manifest"))
+    print(f"Created manifest file '{manifest}'")
     # Move to final location
     shutil.move(temp_copy, dest)
     print(f"Final copy in {dest}")
