@@ -934,23 +934,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     os.mkdir(ngsarchiver_dir)
     # Create manifest file
     manifest = os.path.join(ngsarchiver_dir,"manifest.txt")
-    with open(manifest,'wt') as fp:
-        for o in d.walk():
-            o = Path(o)
-            try:
-                owner = Path(o).owner()
-            except (KeyError,FileNotFoundError):
-                # Unknown user, fall back to UID
-                owner = os.stat(o,follow_symlinks=False).st_uid
-            try:
-                group = Path(o).group()
-            except (KeyError,FileNotFoundError):
-                # Unknown group, fall back to GID
-                group = os.stat(o,follow_symlinks=False).st_gid
-            fp.write("{owner}\t{group}\t{obj}\n".format(
-                owner=owner,
-                group=group,
-                obj=o.relative_to(d.path)))
+    make_manifest_file(d, manifest)
     # Record contents
     archive_metadata = {
         'name': d.basename,
@@ -1374,6 +1358,41 @@ def make_copy(d,dest):
     shutil.move(temp_copy, dest)
     print(f"Final copy in {dest}")
     return Directory(dest)
+
+def make_manifest_file(d, manifest_file):
+    """
+    Create a 'manifest' file for a directory
+
+    A manifest file lists the owner and group for
+    each of the file objects found in the target
+    directory.
+
+    Arguments:
+      d (Directory): directory to generate the
+        manifest for
+      manifest_file (str): path to the file to
+        write the manifest data to
+    """
+    if Path(manifest_file).exists():
+        raise NgsArchiverException(f"{manifest_file}: already exists")
+    with open(manifest_file, 'wt') as fp:
+        for o in d.walk():
+            o = Path(o)
+            try:
+                owner = Path(o).owner()
+            except (KeyError,FileNotFoundError):
+                # Unknown user, fall back to UID
+                owner = os.lstat(o,follow_symlinks=False).st_uid
+            try:
+                group = Path(o).group()
+            except (KeyError,FileNotFoundError):
+                # Unknown group, fall back to GID
+                group = os.lstat(o,follow_symlinks=False).st_gid
+            fp.write("{owner}\t{group}\t{obj}\n".format(
+                owner=owner,
+                group=group,
+                obj=o.relative_to(d.path)))
+    return manifest_file
 
 def getsize(p,blocksize=512):
     """
