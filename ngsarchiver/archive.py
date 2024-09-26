@@ -1369,6 +1369,18 @@ def make_copy(d,dest):
                 continue
             fp.write(f"{md5sum(o)}  {o.relative_to(d.path)}\n")
     print(f"Created checksums file '{md5sums}'")
+    # Add JSON file with archiver info
+    archive_metadata = {
+        'name': d.basename,
+        'source': d.path,
+        'user': getpass.getuser(),
+        'creation_date': time.strftime("%Y-%m-%d %H:%M:%S"),
+        'ngsarchiver_version': get_version(),
+    }
+    # Write archive contents to JSON file
+    json_file = os.path.join(metadata_dir, "archiver_metadata.json")
+    with open(json_file, 'wt') as fp:
+        json.dump(archive_metadata, fp, indent=2)
     # Move to final location
     shutil.move(temp_copy, dest)
     print(f"Final copy in {dest}")
