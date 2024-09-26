@@ -24,6 +24,8 @@ Specifically it provides a single executable called
 * Interrogate contents of archived directories
 * Restore archived runs and recover subsets of
   archived data
+* Copy arbitrary directories to an archive location
+  without compression or other manipulations
 
 This ``README`` comprises the whole of the usage
 documentation.
@@ -356,6 +358,73 @@ permissions as the originals (with the caveat that all
 restored content will have read-write permission added
 for the user extracting the files, regardless of the
 permissions of the originals).
+
+-------------------------------------------------
+``copy``: copy a directory to an archive location
+-------------------------------------------------
+
+Copies any directory and its contents to another
+location for archiving purposes, but without
+performing compression or other manipulations.
+
+Essentially this is a straight copy of the source
+directory.
+
+For example:
+
+::
+
+   archiver copy /PATH/TO/SRC_DIR /PATH/TO/ARCHIVES_DIR
+
+This will create a copy of ``SRC_DIR`` as
+``/PATH/TO/ARCHIVES_DIR/SRC_DIR`` and verify the
+contents against the original version.
+
+A directory called ``SRC_DIR`` must not already exist in
+the target location.
+
+If the destination directory is not explicitly specified
+on the command line then it defaults to the current
+directory.
+
+Once the copy is complete an additional directory is
+created under ``/PATH/TO/ARCHIVES_DIR/SRC_DIR`` called
+``ARCHIVE_METADATA``, which will contain:
+
+* ``manifest``: a manifest file listing the owner and
+  group associated with the original files
+* ``checksums.md5``: MD5 checksum file
+* ``archiver_metadata.json``: metadata about the
+  archiver, user and creation date of the copy.
+
+The copy will be aborted unconditionally for the
+following cases:
+
+* The original directory contains files or directories
+* The original directory contains an ``ARCHIVE_METADATA``
+  subdirectory.
+
+There is no way to override this behaviour; for
+unreadable files, the solution is to fix the permissions
+in the source directory. For the existing metadata,
+either move it or find an alternative way to do the
+copy.
+
+Other situations will also prevent the copy from being
+performed but can be overridden:
+
+* The source directory contains broken symlinks, or
+  symlinks to files outside the source directory
+* The source directory contains hard linked files
+* The source directory contains files or directories
+  where the owner or grop UIDs don't match a user on
+  the current system.
+
+In these cases the archiver can still be forced to
+perform the copy by specifying the ``--force`` option.
+
+The ``--check`` option will check for the above problems
+without attempting to perform the copy.
 
 ------------------------
 Archive directory format
