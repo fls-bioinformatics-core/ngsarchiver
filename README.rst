@@ -530,6 +530,22 @@ following initial observations have been made:
   is not clear why this is, or whether it is
   generally true however.
 
+Data from running the archiver (with the run names
+redacted) can be found in the file
+`<benchmarking_redacted.tsv>`_; this gives details
+of the sequencing platform, total size of the run
+(and amount of those data that are already
+compressed), the time taken to create archives
+for different choices of volume sizes along with
+the archive size and compression ratio, and the
+time taken to restore the data from each archive.
+
+.. note::
+
+   These data are from running the code on our
+   systems at Manchester; it is likely that timings
+   etc may differ for other systems.
+
 -------
 License
 -------
