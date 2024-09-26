@@ -24,6 +24,8 @@ from ngsarchiver.archive import make_archive_dir
 from ngsarchiver.archive import make_archive_tgz
 from ngsarchiver.archive import make_archive_multitgz
 from ngsarchiver.archive import unpack_archive_multitgz
+from ngsarchiver.archive import make_copy
+from ngsarchiver.archive import make_manifest_file
 from ngsarchiver.archive import getsize
 from ngsarchiver.archive import convert_size_to_bytes
 from ngsarchiver.archive import format_size
@@ -2790,6 +2792,188 @@ class TestUnpackArchiveMultiTgz(unittest.TestCase):
         for item in Directory(os.path.join(self.wd,"example")).walk():
             self.assertTrue(os.path.relpath(item,self.wd) in all_expected,
                             "'%s' not expected" % item)
+
+class TestMakeCopy(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestMakeArchiveDir')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_make_copy(self):
+        """
+        make_copy: no symlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copy
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Make copy
+        d = Directory(p)
+        dd = make_copy(d, dest_dir)
+        self.assertTrue(isinstance(dd, Directory))
+        # Check resulting copy
+        self.assertEqual(dd.path, dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        expected = ("ex1.txt",
+                    "subdir",
+                    "subdir/ex2.txt",
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json")
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(dest_dir, item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in dd.walk():
+            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
+                            "'%s' not expected" % item)
+
+    def test_make_copy_handle_symlinks(self):
+        """
+        make_copy: handle symlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/symlink1.txt",type="symlink",target="./ex2.txt")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Make copy
+        d = Directory(p)
+        dd = make_copy(d,dest_dir)
+        self.assertTrue(isinstance(dd,Directory))
+        # Check resulting directory
+        self.assertEqual(dd.path, dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        expected = ("ex1.txt",
+                    "subdir",
+                    "subdir/ex2.txt",
+                    "subdir/symlink1.txt",
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json")
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(dest_dir, item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in dd.walk():
+            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
+                            "'%s' not expected" % item)
+
+    def test_make_copy_raises_exception_for_existing_partial_copy(self):
+        """
+        make_copy: raise exception for existing partial copy
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copy
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Add existing .part directory
+        os.makedirs(dest_dir + ".part")
+        # Make copy
+        d = Directory(p)
+        self.assertRaises(NgsArchiverException,
+                          make_copy,
+                          d,
+                          dest_dir)
+
+class TestMakeManifestFile(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestMakeManifestFile')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_make_manifest_file(self):
+        """
+        make_manifest_file: check manifest file is created
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        # Get user and group
+        username = getpass.getuser()
+        group = grp.getgrgid(pwd.getpwnam(username).pw_gid).gr_name
+        # Create manifest file
+        manifest_file = make_manifest_file(Directory(example_dir.path),
+                                           os.path.join(self.wd, "manifest"))
+        self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
+        self.assertTrue(os.path.exists(manifest_file))
+        # Check contents
+        expected_lines = [f"{username}\t{group}\tex1.txt",
+                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/ex2.txt"]
+        with open(manifest_file, 'rt') as fp:
+            for line in fp:
+                self.assertTrue(line.rstrip() in expected_lines,
+                                f"'{line.rstrip()}': unexpected line")
+
+    def test_make_manifest_file_with_symlinks(self):
+        """
+        make_manifest_file: check manifest file with symlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/symlink1.txt",type="symlink",target="./ex2.txt")
+        example_dir.create()
+        # Get user and group
+        username = getpass.getuser()
+        group = grp.getgrgid(pwd.getpwnam(username).pw_gid).gr_name
+        # Create manifest file
+        manifest_file = make_manifest_file(Directory(example_dir.path),
+                                           os.path.join(self.wd, "manifest"))
+        self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
+        self.assertTrue(os.path.exists(manifest_file))
+        # Check contents
+        expected_lines = [f"{username}\t{group}\tex1.txt",
+                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/ex2.txt",
+                          f"{username}\t{group}\tsubdir/symlink1.txt"]
+        with open(manifest_file, 'rt') as fp:
+            for line in fp:
+                self.assertTrue(line.rstrip() in expected_lines,
+                                f"'{line.rstrip()}': unexpected line")
+
+    def test_make_manifest_file_noclobber(self):
+        """
+        make_manifest_file: raises exception if file already exists
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        # Touch existing manifest
+        with open(os.path.join(self.wd, "manifest"), "wt") as fp:
+            fp.write("")
+        self.assertRaises(NgsArchiverException,
+                          make_manifest_file,
+                          Directory(example_dir.path),
+                          os.path.join(self.wd, "manifest"))
 
 class TestGetSize(unittest.TestCase):
 

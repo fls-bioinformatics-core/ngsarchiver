@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 #     archive.py: archiving classes and functions
-#     Copyright (C) University of Manchester 2023 Peter Briggs
+#     Copyright (C) University of Manchester 2023-2024 Peter Briggs
 #
 
 """
@@ -270,6 +270,15 @@ class Directory:
                 #print("%s: group '%s'" % (o,Path(o).group()))
                 return False
         return True
+
+    def copy(self,dest):
+        """
+        Create a copy of the directory contents
+
+        Arguments:
+          dest (str): path for the copy
+        """
+        return make_copy(self,dest)
 
     def verify_checksums(self,md5file):
         """
@@ -924,24 +933,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     ngsarchiver_dir = os.path.join(archive_dir,".ngsarchiver")
     os.mkdir(ngsarchiver_dir)
     # Create manifest file
-    manifest = os.path.join(ngsarchiver_dir,"manifest.txt")
-    with open(manifest,'wt') as fp:
-        for o in d.walk():
-            o = Path(o)
-            try:
-                owner = Path(o).owner()
-            except (KeyError,FileNotFoundError):
-                # Unknown user, fall back to UID
-                owner = os.stat(o,follow_symlinks=False).st_uid
-            try:
-                group = Path(o).group()
-            except (KeyError,FileNotFoundError):
-                # Unknown group, fall back to GID
-                group = os.stat(o,follow_symlinks=False).st_gid
-            fp.write("{owner}\t{group}\t{obj}\n".format(
-                owner=owner,
-                group=group,
-                obj=o.relative_to(d.path)))
+    manifest = make_manifest_file(
+        d, os.path.join(ngsarchiver_dir,"manifest.txt"))
     # Record contents
     archive_metadata = {
         'name': d.basename,
@@ -1331,6 +1324,102 @@ def unpack_archive_multitgz(archive_list,extract_dir=None):
                 o_ = os.path.join(extract_dir,o.name)
                 chmod(o_,o.mode)
                 utime(o_,(atime,o.mtime))
+
+def make_copy(d,dest):
+    """
+    Make a copy of a directory
+
+    Arguments:
+      d (Directory): Directory-like object representing
+        the directory to be copied
+      dest (str): path to directory into which the directory
+        contents will be copied
+    """
+    # Create temporary (.part) directory
+    dest = str(Path(dest).absolute())
+    temp_copy = dest + ".part"
+    if Path(temp_copy).exists():
+        raise NgsArchiverException(f"{d}: found existing partial copy "
+                                   "'{temp_copy}' (remove before retrying)")
+    # Do the copy
+    try:
+        shutil.copytree(d.path, temp_copy, symlinks=True)
+    except shutil.Error as err:
+        print(f"Copy: shutil error: {err}")
+    except Exception as ex:
+        print(f"Copy: exception: {ex}")
+    # Verify against the original
+    if d.verify_copy(temp_copy):
+        print(f"{d}: verified copy in '{temp_copy}'")
+    else:
+        raise NgsArchiverException(f"{d}: failed to verify copy in "
+                                   f"'{temp_copy}'")
+    # Create archive metadata
+    metadata_dir = os.path.join(temp_copy, "ARCHIVE_METADATA")
+    os.mkdir(metadata_dir)
+    # Create a manifest file
+    manifest = make_manifest_file(d, os.path.join(metadata_dir, "manifest"))
+    print(f"Created manifest file '{manifest}'")
+    # Create checksum file
+    md5sums = os.path.join(metadata_dir, "checksums.md5")
+    with open(md5sums, 'wt') as fp:
+        for o in d.walk():
+            o = Path(o)
+            if o.is_dir() or o.is_symlink():
+                continue
+            fp.write(f"{md5sum(o)}  {o.relative_to(d.path)}\n")
+    print(f"Created checksums file '{md5sums}'")
+    # Add JSON file with archiver info
+    archive_metadata = {
+        'name': d.basename,
+        'source': d.path,
+        'user': getpass.getuser(),
+        'creation_date': time.strftime("%Y-%m-%d %H:%M:%S"),
+        'ngsarchiver_version': get_version(),
+    }
+    # Write archive contents to JSON file
+    json_file = os.path.join(metadata_dir, "archiver_metadata.json")
+    with open(json_file, 'wt') as fp:
+        json.dump(archive_metadata, fp, indent=2)
+    # Move to final location
+    shutil.move(temp_copy, dest)
+    print(f"Final copy in {dest}")
+    return Directory(dest)
+
+def make_manifest_file(d, manifest_file):
+    """
+    Create a 'manifest' file for a directory
+
+    A manifest file lists the owner and group for
+    each of the file objects found in the target
+    directory.
+
+    Arguments:
+      d (Directory): directory to generate the
+        manifest for
+      manifest_file (str): path to the file to
+        write the manifest data to
+    """
+    if Path(manifest_file).exists():
+        raise NgsArchiverException(f"{manifest_file}: already exists")
+    with open(manifest_file, 'wt') as fp:
+        for o in d.walk():
+            o = Path(o)
+            try:
+                owner = Path(o).owner()
+            except (KeyError,FileNotFoundError):
+                # Unknown user, fall back to UID
+                owner = os.lstat(o,follow_symlinks=False).st_uid
+            try:
+                group = Path(o).group()
+            except (KeyError,FileNotFoundError):
+                # Unknown group, fall back to GID
+                group = os.lstat(o,follow_symlinks=False).st_gid
+            fp.write("{owner}\t{group}\t{obj}\n".format(
+                owner=owner,
+                group=group,
+                obj=o.relative_to(d.path)))
+    return manifest_file
 
 def getsize(p,blocksize=512):
     """
