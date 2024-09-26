@@ -122,6 +122,13 @@ manage where the generated archive directories are
 stored and what should happen to the original run
 directories after they have been archived.
 
+-------------
+Release notes
+-------------
+
+See the `CHANGES file <CHANGES.rst>`_ for version
+history.
+
 ------------
 Installation
 ------------
@@ -162,6 +169,11 @@ below; alternatively, specifying ``-h`` or ``--help`` with
 a subcommand will bring all available options for that
 command (or with no subcommand, all the available
 subcommands).
+
+.. note::
+
+   The archiver is expected to be run by a non-root
+   user.
 
 ----------------------------------
 ``info``: characterise a directory
