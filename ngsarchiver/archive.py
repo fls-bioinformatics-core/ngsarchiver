@@ -933,8 +933,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     ngsarchiver_dir = os.path.join(archive_dir,".ngsarchiver")
     os.mkdir(ngsarchiver_dir)
     # Create manifest file
-    manifest = os.path.join(ngsarchiver_dir,"manifest.txt")
-    make_manifest_file(d, manifest)
+    manifest = make_manifest_file(
+        d, os.path.join(ngsarchiver_dir,"manifest.txt"))
     # Record contents
     archive_metadata = {
         'name': d.basename,
