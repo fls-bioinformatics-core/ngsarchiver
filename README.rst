@@ -163,6 +163,11 @@ a subcommand will bring all available options for that
 command (or with no subcommand, all the available
 subcommands).
 
+.. note::
+
+   The archiver is expected to be run by a non-root
+   user.
+
 ----------------------------------
 ``info``: characterise a directory
 ----------------------------------
