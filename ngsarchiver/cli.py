@@ -490,13 +490,10 @@ def main(argv=None):
         error_msgs = []
         unrecoverable_errors = []
         if os.path.exists(os.path.join(d.path, "ARCHIVE_METADATA")):
-            msg = "Source directory already contains 'ARCHIVE_METADATA' "\
-                  "directory"
-            if args.force:
-                error_msgs.append(f"{msg} (ignored)")
-            else:
-                error_msgs.append(msg)
-                check_status = 1
+            unrecoverable_errors.append("Source directory contains "
+                                        "'ARCHIVE_METADATA' "
+                                        "subdirectory")
+            check_status = 1
         if not is_readable:
             unrecoverable_errors.append("Unreadable files and/or "
                                         "directories detected")
@@ -519,8 +516,8 @@ def main(argv=None):
         if has_hard_linked_files:
             msg = "Hard-linked files detected"
             if args.force:
-                error_msgs.append(f"{msg} (ignored; hard-linked files will "
-                                  "be appear as multiple copies)")
+                error_msgs.append(f"{msg} (ignored; hard-linked files may "
+                                  "appear as multiple copies)")
             else:
                 error_msgs.append(msg)
                 check_status = 1
