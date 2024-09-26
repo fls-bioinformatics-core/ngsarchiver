@@ -470,6 +470,7 @@ def main(argv=None):
         if not dest_dir:
             dest_dir = os.getcwd()
         dest_dir = os.path.join(dest_dir, d.basename)
+        print(f"Copying to {dest_dir}")
         size = d.size
         check_status = 0
         print("Checking %s..." % d)
