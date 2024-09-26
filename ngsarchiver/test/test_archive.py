@@ -2825,7 +2825,8 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir",
                     "subdir/ex2.txt",
                     "ARCHIVE_METADATA",
-                    "ARCHIVE_METADATA/manifest")
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/checksums.md5")
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(dest_dir, item)),
@@ -2860,7 +2861,8 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir/ex2.txt",
                     "subdir/symlink1.txt",
                     "ARCHIVE_METADATA",
-                    "ARCHIVE_METADATA/manifest")
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/checksums.md5")
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(dest_dir, item)),

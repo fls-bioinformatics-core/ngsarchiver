@@ -1360,6 +1360,15 @@ def make_copy(d,dest):
     # Create a manifest file
     manifest = make_manifest_file(d, os.path.join(metadata_dir, "manifest"))
     print(f"Created manifest file '{manifest}'")
+    # Create checksum file
+    md5sums = os.path.join(metadata_dir, "checksums.md5")
+    with open(md5sums, 'wt') as fp:
+        for o in d.walk():
+            o = Path(o)
+            if o.is_dir() or o.is_symlink():
+                continue
+            fp.write(f"{md5sum(o)}  {o.relative_to(d.path)}\n")
+    print(f"Created checksums file '{md5sums}'")
     # Move to final location
     shutil.move(temp_copy, dest)
     print(f"Final copy in {dest}")
