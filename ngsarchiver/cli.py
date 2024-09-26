@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 #     cli.py: command line interface classes and functions
-#     Copyright (C) University of Manchester 2023 Peter Briggs
+#     Copyright (C) University of Manchester 2023-2024 Peter Briggs
 #
 
 """
@@ -164,6 +164,22 @@ def main(argv=None):
                                 help="preserve the leading directory "
                                 "paths when extracting files (default "
                                 "is to drop leading paths)")
+
+    # 'copy' command
+    parser_copy = s.add_parser('copy',
+                               help="make direct copy of a directory")
+    parser_copy.add_argument('dir',
+                             help="path to directory")
+    parser_copy.add_argument('dest_dir', nargs="?",
+                             help="create copy under 'dest_dir' "
+                             "(default: current directory)")
+    parser_copy.add_argument('-c','--check',action='store_true',
+                             help="check for and warn about potential "
+                             "issues; don't perform copying")
+    parser_copy.add_argument('--force',action='store_true',
+                             help="ignore issues and perform "
+                             "copy anyway (may result in incomplete "
+                             "or problematic copy)")
 
     # Parse the arguments
     args = p.parse_args(argv)
@@ -441,4 +457,101 @@ def main(argv=None):
         a.extract_files(args.name,
                         extract_dir=args.out_dir,
                         include_path=args.keep_path)
+        return CLIStatus.OK
+
+    # 'Copy' subcommand
+    if args.subcommand == "copy":
+        try:
+            d = get_rundir_instance(args.dir)
+        except Exception as ex:
+            logger.error(ex)
+            return CLIStatus.ERROR
+        dest_dir = args.dest_dir
+        if not dest_dir:
+            dest_dir = os.getcwd()
+        dest_dir = os.path.join(dest_dir, d.basename)
+        size = d.size
+        check_status = 0
+        print("Checking %s..." % d)
+        print("-- type          : %s" % d.__class__.__name__)
+        print("-- size          : %s" % format_size(size,
+                                                    human_readable=True))
+        is_readable = d.is_readable
+        print("-- unreadable files : %s" % format_bool(not is_readable))
+        has_external_symlinks = d.has_external_symlinks
+        print("-- external symlinks: %s" % format_bool(has_external_symlinks))
+        has_broken_symlinks = d.has_broken_symlinks
+        print("-- broken symlinks  : %s" % format_bool(has_broken_symlinks))
+        has_unknown_uids = d.has_unknown_uids
+        print("-- unknown UIDs     : %s" % format_bool(has_unknown_uids))
+        has_hard_linked_files = d.has_hard_linked_files
+        print("-- hard linked files: %s" % format_bool(has_hard_linked_files))
+        # Messaging for critical errors
+        error_msgs = []
+        unrecoverable_errors = []
+        if os.path.exists(os.path.join(d.path, "ARCHIVE_METADATA")):
+            msg = "Source directory already contains 'ARCHIVE_METADATA' "\
+                  "directory"
+            if args.force:
+                error_msgs.append(f"{msg} (ignored)")
+            else:
+                error_msgs.append(msg)
+                check_status = 1
+        if not is_readable:
+            unrecoverable_errors.append("Unreadable files and/or "
+                                        "directories detected")
+            check_status = 1
+        if has_unknown_uids:
+            msg = "Unknown UID(s) detected"
+            if args.force:
+                error_msgs.append(f"{msg} (ignored)")
+            else:
+                error_msgs.append(msg)
+                check_status = 1
+        if has_external_symlinks or has_broken_symlinks:
+            msg = "External and/or broken symlinks detected"
+            if args.force:
+                error_msgs.append(f"{msg} (ignored; broken/external links "
+                                  "will be copied as-is)")
+            else:
+                error_msgs.append(msg)
+                check_status = 1
+        if has_hard_linked_files:
+            msg = "Hard-linked files detected"
+            if args.force:
+                error_msgs.append(f"{msg} (ignored; hard-linked files will "
+                                  "be appear as multiple copies)")
+            else:
+                error_msgs.append(msg)
+                check_status = 1
+        if os.path.exists(dest_dir):
+            unrecoverable_errors.append(
+                f"{dest_dir}: destination directory already exists")
+            check_status = 1
+        # Handle warnings and errors
+        for msg in error_msgs:
+            if args.check or args.force:
+                logger.warning(msg)
+            else:
+                logger.critical(msg)
+        for msg in unrecoverable_errors:
+            logger.critical(msg)
+        if args.check:
+            if check_status == 0:
+                print("Checks: OK")
+            else:
+                print("Checks: FAILED")
+            # Stop here
+            return check_status
+        if unrecoverable_errors or (error_msgs and not args.force):
+            return CLIStatus.ERROR
+        print(f"Copying contents of {d} to {dest_dir}")
+        try:
+            dcopy = d.copy(dest_dir)
+        except Exception as ex:
+            logger.critical(f"exception creating copy: {ex}")
+            return CLIStatus.ERROR
+        archive_size = dcopy.size
+        print(f"Created copy: {dcopy} "
+              f"({format_size(archive_size,human_readable=True)})")
         return CLIStatus.OK

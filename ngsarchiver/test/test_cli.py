@@ -382,3 +382,36 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
                                example_archive.path]),
                          CLIStatus.OK)
         self.assertTrue(os.path.exists(os.path.join(self.wd,"ex1.txt")))
+
+    def test_copy(self):
+        """
+        CLI: test the 'copy' command
+        """
+        # Make example directory to copy
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.create()
+        copy_dir = os.path.join(self.wd,"copied")
+        self.assertEqual(main(['copy', example_dir.path, copy_dir]),
+                         CLIStatus.OK)
+        self.assertTrue(os.path.isdir(os.path.join(self.wd,
+                                                   "copied",
+                                                   "example")))
+
+    def test_copy_with_check(self):
+        """
+        CLI: test the 'copy' command with --check
+        """
+        # Make example directory to copy
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.create()
+        copy_dir = os.path.join(self.wd,"copied")
+        self.assertEqual(main(['copy', '--check', example_dir.path,
+                               copy_dir]),
+                         CLIStatus.OK)
+        self.assertFalse(os.path.isdir(os.path.join(self.wd,
+                                                    "copied",
+                                                    "example")))
