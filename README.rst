@@ -122,6 +122,13 @@ manage where the generated archive directories are
 stored and what should happen to the original run
 directories after they have been archived.
 
+-------------
+Release notes
+-------------
+
+See the `CHANGES file <CHANGES.rst>`_ for version
+history.
+
 ------------
 Installation
 ------------
