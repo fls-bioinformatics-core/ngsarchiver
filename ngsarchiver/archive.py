@@ -1409,12 +1409,12 @@ def make_manifest_file(d, manifest_file):
                 owner = Path(o).owner()
             except (KeyError,FileNotFoundError):
                 # Unknown user, fall back to UID
-                owner = os.lstat(o,follow_symlinks=False).st_uid
+                owner = os.stat(o,follow_symlinks=False).st_uid
             try:
                 group = Path(o).group()
             except (KeyError,FileNotFoundError):
                 # Unknown group, fall back to GID
-                group = os.lstat(o,follow_symlinks=False).st_gid
+                group = os.stat(o,follow_symlinks=False).st_gid
             fp.write("{owner}\t{group}\t{obj}\n".format(
                 owner=owner,
                 group=group,
