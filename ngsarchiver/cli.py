@@ -553,3 +553,7 @@ def main(argv=None):
         print(f"Created copy: {dcopy} "
               f"({format_size(archive_size,human_readable=True)})")
         return CLIStatus.OK
+
+    # No command
+    logger.critical("No command supplied (use -h to see options)")
+    return CLIStatus.ERROR
