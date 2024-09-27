@@ -121,6 +121,12 @@ class TestCLI(unittest.TestCase):
                           main,
                           ['--version'])
 
+    def test_no_command(self):
+        """
+        CLI: test failure if no commands are supplied
+        """
+        self.assertEqual(main([]), CLIStatus.ERROR)
+
     def test_info(self):
         """
         CLI: test the 'info' command
