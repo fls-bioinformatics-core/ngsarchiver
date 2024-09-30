@@ -314,7 +314,7 @@ class Directory:
         d = os.path.abspath(d)
         for o in self.walk():
             o_ = os.path.join(d,os.path.relpath(o,self._path))
-            if not os.path.exists(o_):
+            if not os.path.lexists(o_):
                 print("%s: missing from copy" % o)
                 return False
             elif os.path.isdir(o):
@@ -333,7 +333,7 @@ class Directory:
                 return False
         for o in Directory(d).walk():
             o_ = os.path.join(self._path,os.path.relpath(o,d))
-            if not os.path.exists(o_):
+            if not os.path.lexists(o_):
                 print("%s: present in copy only" % o_)
                 return False
         return True
