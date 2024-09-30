@@ -2,6 +2,13 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.0.2 (2024-09-30)
+---------------------------
+
+* Fix bug in ``verify_copy`` method of the ``Directory`` class when
+  verifying symlinks (PR #14)
+
+---------------------------
 Version 1.0.1 (2024-09-27)
 ---------------------------
 
