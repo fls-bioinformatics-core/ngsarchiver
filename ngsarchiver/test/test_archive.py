@@ -330,6 +330,165 @@ class TestDirectory(unittest.TestCase):
         self.assertFalse(d1.verify_copy(dir2))
         self.assertFalse(d2.verify_copy(dir1))
 
+    def test_directory_verify_copy_with_symlink(self):
+        """
+        Directory: check 'verify_copy' method with symlink
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./ex1.txt")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Check verification when identical
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertTrue(d1.verify_copy(dir2))
+        self.assertTrue(d2.verify_copy(dir1))
+        # Add a file to second directory
+        with open(os.path.join(dir2,"extra.txt"),'wt') as fp:
+            fp.write("extra stuff")
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+
+    def test_directory_verify_copy_with_external_symlink(self):
+        """
+        Directory: check 'verify_copy' method with external symlink
+        """
+        # External file
+        with open(os.path.join(self.wd, "ex1.txt"), "wt") as fp:
+            fp.write("external file")
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("external_symlink1",type="symlink",target="../ex1.txt")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Check verification when identical
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertTrue(d1.verify_copy(dir2))
+        self.assertTrue(d2.verify_copy(dir1))
+        # Add a file to second directory
+        with open(os.path.join(dir2,"extra.txt"),'wt') as fp:
+            fp.write("extra stuff")
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+
+    def test_directory_verify_copy_with_broken_symlink(self):
+        """
+        Directory: check 'verify_copy' method with broken symlink
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("external_symlink1",type="symlink",
+                        target="../doesnt_exist")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Check verification when identical
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertTrue(d1.verify_copy(dir2))
+        self.assertTrue(d2.verify_copy(dir1))
+        # Add a file to second directory
+        with open(os.path.join(dir2,"extra.txt"),'wt') as fp:
+            fp.write("extra stuff")
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+
+    def test_directory_verify_copy_missing_file(self):
+        """
+        Directory: check 'verify_copy' method for missing file
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Remove a file from one of the copies
+        os.remove(os.path.join(self.wd, "example1", "subdir1", "ex2.txt"))
+        # Check verification when identical
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+        # Add a file to second directory
+        with open(os.path.join(dir2,"extra.txt"),'wt') as fp:
+            fp.write("extra stuff")
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+
+    def test_directory_verify_copy_missing_directory(self):
+        """
+        Directory: check 'verify_copy' method for missing directory
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Add a subdir to one of the copies
+        os.mkdir(os.path.join(self.wd, "example1", "subdir2"))
+        # Check verification when identical
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+        # Add a file to second directory
+        with open(os.path.join(dir2,"extra.txt"),'wt') as fp:
+            fp.write("extra stuff")
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+
+    def test_directory_verify_copy_symlink_differs(self):
+        """
+        Directory: check 'verify_copy' method for differing symlink
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Make differing symlinks
+        os.symlink("ex1.txt", os.path.join(self.wd, "example1", "symlink"))
+        os.symlink("subdir1/ex2.txt",
+                   os.path.join(self.wd, "example2", "symlink"))
+        # Check verification when identical
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+        # Add a file to second directory
+        with open(os.path.join(dir2,"extra.txt"),'wt') as fp:
+            fp.write("extra stuff")
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+
     def test_directory_chown(self):
         """
         Directory: check 'chown' method
