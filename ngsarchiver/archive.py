@@ -116,17 +116,34 @@ class Directory:
         return True
 
     @property
+    def symlinks(self):
+        """
+        Return all symlinks
+        """
+        for o in self.walk():
+            if Path(o).is_symlink():
+                yield o
+
+    @property
+    def has_symlinks(self):
+        """
+        Check if directory has any symlinks
+        """
+        for o in self.symlinks:
+            return True
+        return False
+
+    @property
     def external_symlinks(self):
         """
         Return symlinks that point outside the directory
         """
-        for o in self.walk():
-            if Path(o).is_symlink():
-                target = Path(o).resolve()
-                try:
-                    Path(target).relative_to(self._path)
-                except ValueError:
-                    yield o
+        for o in self.symlinks:
+            target = Path(o).resolve()
+            try:
+                Path(target).relative_to(self._path)
+            except ValueError:
+                yield o
 
     @property
     def has_external_symlinks(self):
@@ -142,11 +159,10 @@ class Directory:
         """
         Return symlinks that point to non-existent targets
         """
-        for o in self.walk():
-            if Path(o).is_symlink():
-                target = Path(o).resolve()
-                if not Path(target).exists():
-                    yield o
+        for o in self.symlinks:
+            target = Path(o).resolve()
+            if not Path(target).exists():
+                yield o
 
     @property
     def has_broken_symlinks(self):
