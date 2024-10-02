@@ -210,6 +210,7 @@ def main(argv=None):
             for item in d.archive_metadata:
                 print("-- %s: %s" % (item,d.archive_metadata[item]))
             return CLIStatus.OK
+        print("Symlinks         : %s" % format_bool(d.has_symlinks))
         if args.list:
             print("Unreadable files:")
             is_readable = True
@@ -477,6 +478,8 @@ def main(argv=None):
         print("-- type          : %s" % d.__class__.__name__)
         print("-- size          : %s" % format_size(size,
                                                     human_readable=True))
+        has_symlinks = d.has_symlinks
+        print("-- symlinks         : %s" % format_bool(has_symlinks))
         is_readable = d.is_readable
         print("-- unreadable files : %s" % format_bool(not is_readable))
         has_external_symlinks = d.has_external_symlinks
