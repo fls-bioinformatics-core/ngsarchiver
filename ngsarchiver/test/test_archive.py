@@ -168,6 +168,26 @@ class TestDirectory(unittest.TestCase):
         file_list = [os.path.join(p,f) for f in ("ex1.txt",)]
         self.assertEqual(d.getsize(file_list),4096)
 
+    def test_directory_symlinks(self):
+        """
+        Directory: check handling of symlinks
+        """
+        # Build example dir without symlinks
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.create()
+        p = example_dir.path
+        # No symlinks should be detected
+        d = Directory(p)
+        self.assertEqual(list(d.symlinks),[])
+        self.assertFalse(d.has_symlinks)
+        # Add symlink
+        symlink = os.path.join(p,"symlink2")
+        os.symlink("ex1.txt", symlink)
+        # External symlink should be detected
+        self.assertEqual(list(d.symlinks), [symlink,])
+        self.assertTrue(d.has_symlinks)
+
     def test_directory_external_symlinks(self):
         """
         Directory: check handling of external symlinks
