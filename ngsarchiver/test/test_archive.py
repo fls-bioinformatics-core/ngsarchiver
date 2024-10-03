@@ -3011,6 +3011,11 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
+            if not item.startswith("ARCHIVE_METADATA"):
+                self.assertEqual(
+                    os.path.getmtime(os.path.join(p, item)),
+                    os.path.getmtime(os.path.join(dest_dir, item)),
+                    "modification time differs for '%s'" % item)
         # Check extra items aren't present
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
@@ -3093,6 +3098,11 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
+            if not item.startswith("ARCHIVE_METADATA"):
+                self.assertEqual(
+                    os.path.getmtime(os.path.join(p, item)),
+                    os.path.getmtime(os.path.join(dest_dir, item)),
+                    "modification time differs for '%s'" % item)
         # Check extra items aren't present
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
@@ -3133,6 +3143,12 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(
                 os.path.lexists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
+            if not item.startswith("ARCHIVE_METADATA") and \
+               "symlink" not in item:
+                self.assertEqual(
+                    os.path.getmtime(os.path.join(p, item)),
+                    os.path.getmtime(os.path.join(dest_dir, item)),
+                    "modification time differs for '%s'" % item)
         # Check extra items aren't present
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
@@ -3171,6 +3187,12 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(
                 os.path.lexists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
+            if not item.startswith("ARCHIVE_METADATA") and \
+               "symlink" not in item:
+                self.assertEqual(
+                    os.path.getmtime(os.path.join(p, item)),
+                    os.path.getmtime(os.path.join(dest_dir, item)),
+                    "modification time differs for '%s'" % item)
         # Check extra items aren't present
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
