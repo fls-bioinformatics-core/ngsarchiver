@@ -3181,6 +3181,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir/symlink1.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/symlinks",
                     "ARCHIVE_METADATA/checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json")
         for item in expected:
@@ -3226,6 +3227,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir/rel_ext_symlink.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/symlinks",
                     "ARCHIVE_METADATA/checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json")
         for item in expected:
@@ -3243,7 +3245,7 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
                             "'%s' not expected" % item)
 
-    def test_make_copy_broken_symlink(self):
+    def test_make_copy_handle_broken_symlink(self):
         """
         make_copy: handle broken symlink
         """
@@ -3270,6 +3272,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir/broken_symlink.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/symlinks",
                     "ARCHIVE_METADATA/checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json")
         for item in expected:
@@ -3286,6 +3289,134 @@ class TestMakeCopy(unittest.TestCase):
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
                             "'%s' not expected" % item)
+
+    def test_make_copy_replace_symlink(self):
+        """
+        make_copy: replace internal symlink
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/ex3.txt",type="symlink",target="./ex2.txt")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Make copy
+        d = Directory(p)
+        dd = make_copy(d, dest_dir, replace_symlinks=True)
+        self.assertTrue(isinstance(dd,Directory))
+        # Check resulting directory
+        self.assertEqual(dd.path, dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        expected = ("ex1.txt",
+                    "subdir",
+                    "subdir/ex2.txt",
+                    "subdir/ex3.txt",
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/symlinks",
+                    "ARCHIVE_METADATA/checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json")
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(dest_dir, item)),
+                "missing '%s'" % item)
+            if not item.startswith("ARCHIVE_METADATA"):
+                self.assertEqual(
+                    os.path.getmtime(os.path.join(p, item)),
+                    os.path.getmtime(os.path.join(dest_dir, item)),
+                    "modification time differs for '%s'" % item)
+        # Check extra items aren't present
+        for item in dd.walk():
+            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
+                            "'%s' not expected" % item)
+        # Check replaced file is not a symlink
+        self.assertFalse(os.path.islink(os.path.join(dest_dir,
+                                                     "subdir",
+                                                     "ex3.txt")))
+        # Check replaced file appears in checksum file
+        with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            self.assertTrue("subdir/ex3.txt" in fp.read())
+
+    def test_make_copy_replace_external_symlink(self):
+        """
+        make_copy: replace external symlink
+        """
+        # Build example directory
+        with open(os.path.join(self.wd, "external.txt"), "wt") as fp:
+            fp.write("External file\n")
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/rel_ext_symlink.txt",type="symlink",
+                        target="../../external.txt")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Make copy
+        d = Directory(p)
+        dd = make_copy(d,dest_dir,replace_symlinks=True)
+        self.assertTrue(isinstance(dd,Directory))
+        # Check resulting directory
+        self.assertEqual(dd.path, dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        expected = ("ex1.txt",
+                    "subdir",
+                    "subdir/ex2.txt",
+                    "subdir/rel_ext_symlink.txt",
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/symlinks",
+                    "ARCHIVE_METADATA/checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json")
+        for item in expected:
+            self.assertTrue(
+                os.path.lexists(os.path.join(dest_dir, item)),
+                "missing '%s'" % item)
+            if not item.startswith("ARCHIVE_METADATA") and \
+               "symlink" not in item:
+                self.assertEqual(
+                    os.path.getmtime(os.path.join(p, item)),
+                    os.path.getmtime(os.path.join(dest_dir, item)),
+                    "modification time differs for '%s'" % item)
+        # Check extra items aren't present
+        for item in dd.walk():
+            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
+                            "'%s' not expected" % item)
+        # Check replaced file is not a symlink
+        self.assertFalse(os.path.islink(os.path.join(dest_dir,
+                                                     "subdir",
+                                                     "rel_ext_symlink.txt")))
+        # Check replaced file appears in checksum file
+        with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            self.assertTrue("subdir/rel_ext_symlink.txt" in fp.read())
+
+    def test_make_copy_replace_broken_symlink(self):
+        """
+        make_copy: fails attempting to replace broken symlink
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/broken_symlink.txt",type="symlink",
+                        target="doesnt_exist.txt")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Make copy
+        d = Directory(p)
+        self.assertRaises(NgsArchiverException,
+                          make_copy,
+                          d,
+                          dest_dir,
+                          replace_symlinks=True)
 
     def test_make_copy_raises_exception_for_existing_partial_copy(self):
         """

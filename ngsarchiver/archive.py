@@ -1375,7 +1375,7 @@ def unpack_archive_multitgz(archive_list,extract_dir=None):
                 chmod(o_,o.mode)
                 utime(o_,(atime,o.mtime))
 
-def make_copy(d,dest):
+def make_copy(d, dest, replace_symlinks=False):
     """
     Make a copy of a directory
 
@@ -1384,6 +1384,10 @@ def make_copy(d,dest):
         the directory to be copied
       dest (str): path to directory into which the directory
         contents will be copied
+      replace_symlinks (bool): if True then copy the targets
+        pointed to by symbolic links in the source directory
+        rather than the links themselves (NB will fail for
+        any broken symlinks in the source directory)
     """
     # Create temporary (.part) directory
     dest = str(Path(dest).absolute())
@@ -1399,7 +1403,10 @@ def make_copy(d,dest):
         dst = os.path.join(temp_copy, src.relative_to(d.path))
         try:
             if src.is_symlink():
-                shutil.copy2(src, dst, follow_symlinks=False)
+                if not replace_symlinks:
+                    shutil.copy2(src, dst, follow_symlinks=False)
+                else:
+                    shutil.copy2(src.resolve(), dst, follow_symlinks=False)
             elif src.is_dir():
                 os.makedirs(dst)
             else:
@@ -1416,7 +1423,7 @@ def make_copy(d,dest):
     print(f"- copy completed")
     # Verify against the original
     print("- starting verification...")
-    if d.verify_copy(temp_copy):
+    if d.verify_copy(temp_copy, follow_symlinks=replace_symlinks):
         print(f"- verified copy in '{temp_copy}'")
     else:
         raise NgsArchiverException(f"{d}: failed to verify copy in "
@@ -1427,14 +1434,29 @@ def make_copy(d,dest):
     # Create a manifest file
     manifest = make_manifest_file(d, os.path.join(metadata_dir, "manifest"))
     print(f"- created manifest file '{manifest}'")
+    # Create symlinks file
+    if d.has_symlinks:
+        symlinks_file = os.path.join(metadata_dir, "symlinks")
+        with open(symlinks_file, 'wt') as fp:
+            for o in d.walk():
+                o = Path(o)
+                if o.is_symlink():
+                    fp.write(f"{o.relative_to(d.path)}\t{os.readlink(o)}\t{o.resolve()}")
     # Create checksum file
     md5sums = os.path.join(metadata_dir, "checksums.md5")
     with open(md5sums, 'wt') as fp:
         for o in d.walk():
             o = Path(o)
-            if o.is_dir() or o.is_symlink():
+            if o.is_dir():
                 continue
-            fp.write(f"{md5sum(o)}  {o.relative_to(d.path)}\n")
+            if o.is_symlink():
+                if replace_symlinks:
+                    md5 = md5sum(o.resolve())
+                else:
+                    continue
+            else:
+                md5 = md5sum(o)
+            fp.write(f"{md5}  {o.relative_to(d.path)}\n")
     print(f"- created checksums file '{md5sums}'")
     # Add JSON file with archiver info
     archive_metadata = {
