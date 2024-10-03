@@ -310,11 +310,11 @@ class Directory:
         return verify_checksums(md5file,
                                 root_dir=os.path.dirname(self._path))
 
-    def verify_copy(self,d):
+    def verify_copy(self,d,follow_symlinks=False):
         """
         Verify the directory contents against a copy
 
-        The following checks are performed:
+        In default mode the following checks are performed:
 
         - All files, directories and symlinks in one directory
           are also present in the other (i.e. none are missing
@@ -324,8 +324,23 @@ class Directory:
         - Symlink targets match between the source and the copy
         - MD5 checksums match for regular files
 
+        if 'follow_symlinks' is set to True then the checks
+        above are modified to replace symlinks with their
+        target files and then checking that the MD5 checksums
+        match.
+
+        Note that in this mode:
+
+        - all symlinks are transformed regardless of whether
+          they appear in the source or the target directories
+        - any broken symlinks will cause the verification to
+          fail (as they cannot be resolved)
+
         Arguments:
           d (str): path to directory to check against
+          follow_symlinks (bool): if True then checks are
+            performed against symlink targets rather than
+            comparing the symlinks themselves
         """
         d = os.path.abspath(d)
         for o in self.walk():
@@ -338,11 +353,30 @@ class Directory:
                     print("%s: not a directory in copy" % o)
                     return False
             elif os.path.islink(o):
-                if not os.path.islink(o):
-                    print("%s: not a symlink in copy" % o)
-                    return False
-                if os.readlink(o) != os.readlink(o_):
-                    print("%s: symlink target differs in copy" % o)
+                if follow_symlinks:
+                    for obj in (o, o_):
+                        if not Path(obj).resolve().exists():
+                            print("%s: unable to resolve symlink" % obj)
+                            return False
+                    if md5sum(Path(o).resolve()) != md5sum(Path(o_).resolve()):
+                        print("%s: MD5 sum differs in copy "
+                              "(following symlinks)" % o)
+                        return False
+                else:
+                    if not os.path.islink(o_):
+                        print("%s: not a symlink in copy" % o)
+                        return False
+                    if os.readlink(o) != os.readlink(o_):
+                        print("%s: symlink target differs in copy" % o)
+                        return False
+            elif os.path.islink(o_):
+                if follow_symlinks:
+                    if md5sum(Path(o).resolve()) != md5sum(Path(o_).resolve()):
+                        print("%s: MD5 sum differs in copy "
+                              "(following symlinks)" % o)
+                        return False
+                else:
+                    print("%s: is a symlink in copy, not in source" % o)
                     return False
             elif md5sum(o) != md5sum(o_):
                 print("%s: MD5 sum differs in copy" % o)
