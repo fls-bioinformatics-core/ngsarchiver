@@ -1358,15 +1358,32 @@ def make_copy(d,dest):
         raise NgsArchiverException(f"{d}: found existing partial copy "
                                    "'{temp_copy}' (remove before retrying)")
     # Do the copy
-    try:
-        shutil.copytree(d.path, temp_copy, symlinks=True)
-    except shutil.Error as err:
-        print(f"Copy: shutil error: {err}")
-    except Exception as ex:
-        print(f"Copy: exception: {ex}")
+    print(f"- starting copy to {temp_copy}...")
+    os.makedirs(temp_copy)
+    for o in d.walk():
+        src = Path(o)
+        dst = os.path.join(temp_copy, src.relative_to(d.path))
+        try:
+            if src.is_symlink():
+                shutil.copy2(src, dst, follow_symlinks=False)
+            elif src.is_dir():
+                os.makedirs(dst)
+            else:
+                shutil.copy2(src, dst, follow_symlinks=False)
+        except Exception as ex:
+            print(f"Copy: exception: {ex} (ignored)")
+    # Update the modification times for directories
+    # after copying files
+    for o in d.walk():
+        src = Path(o)
+        if src.is_dir():
+            dst = os.path.join(temp_copy, src.relative_to(d.path))
+            shutil.copystat(src, dst, follow_symlinks=False)
+    print(f"- copy completed")
     # Verify against the original
+    print("- starting verification...")
     if d.verify_copy(temp_copy):
-        print(f"{d}: verified copy in '{temp_copy}'")
+        print(f"- verified copy in '{temp_copy}'")
     else:
         raise NgsArchiverException(f"{d}: failed to verify copy in "
                                    f"'{temp_copy}'")
@@ -1375,7 +1392,7 @@ def make_copy(d,dest):
     os.mkdir(metadata_dir)
     # Create a manifest file
     manifest = make_manifest_file(d, os.path.join(metadata_dir, "manifest"))
-    print(f"Created manifest file '{manifest}'")
+    print(f"- created manifest file '{manifest}'")
     # Create checksum file
     md5sums = os.path.join(metadata_dir, "checksums.md5")
     with open(md5sums, 'wt') as fp:
@@ -1384,7 +1401,7 @@ def make_copy(d,dest):
             if o.is_dir() or o.is_symlink():
                 continue
             fp.write(f"{md5sum(o)}  {o.relative_to(d.path)}\n")
-    print(f"Created checksums file '{md5sums}'")
+    print(f"- created checksums file '{md5sums}'")
     # Add JSON file with archiver info
     archive_metadata = {
         'name': d.basename,
@@ -1399,7 +1416,8 @@ def make_copy(d,dest):
         json.dump(archive_metadata, fp, indent=2)
     # Move to final location
     shutil.move(temp_copy, dest)
-    print(f"Final copy in {dest}")
+    shutil.copystat(d.path, dest)
+    print(f"- moved final copy to {dest}")
     return Directory(dest)
 
 def make_manifest_file(d, manifest_file):
