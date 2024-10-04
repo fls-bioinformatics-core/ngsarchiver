@@ -525,6 +525,7 @@ class TestDirectory(unittest.TestCase):
         # Build identical example dirs
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
         example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./ex1.txt")
         example_dir.add("external_symlink1",type="symlink",
                         target="../doesnt_exist")
         example_dir.add("subdir1/ex2.txt",type="file")
@@ -552,6 +553,16 @@ class TestDirectory(unittest.TestCase):
         # (because a regular file cannot match a symlink)
         self.assertFalse(d2.verify_copy(dir1,
                                         broken_symlinks_placeholders=True))
+        # Replace working symlink in one copy with target file contents
+        os.remove(os.path.join(dir2, "symlink1"))
+        with open(os.path.join(dir2, "symlink1"), "wt") as fp:
+            fp.write("example 1")
+        # Check verification using follow symlinks
+        self.assertFalse(d1.verify_copy(dir2,
+                                        follow_symlinks=True))
+        self.assertTrue(d1.verify_copy(dir2,
+                                       follow_symlinks=True,
+                                       broken_symlinks_placeholders=True))
 
     def test_directory_verify_copy_missing_file(self):
         """
