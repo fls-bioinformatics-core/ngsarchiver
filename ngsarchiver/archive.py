@@ -391,11 +391,13 @@ class Directory:
                                       "broken symlink" % obj)
                                 return False
                         elif follow_symlinks:
-                            print("%s: unable to resolve symlink" % o)
+                            print("%s: unable to resolve symlink "
+                                  "(following symlinks)" % o)
                             return False
                     elif follow_symlinks:
                         if not Path(o_).resolve().exists():
-                            print("%s: unable to resolve symlink" % o_)
+                            print("%s: unable to resolve symlink "
+                                  "(following symlinks)" % o_)
                             return False
                         if md5sum(Path(o).resolve()) != \
                            md5sum(Path(o_).resolve()):
