@@ -310,7 +310,8 @@ class Directory:
         return verify_checksums(md5file,
                                 root_dir=os.path.dirname(self._path))
 
-    def verify_copy(self,d,follow_symlinks=False):
+    def verify_copy(self,d,follow_symlinks=False,
+                    broken_symlinks_placeholders=False):
         """
         Verify the directory contents against a copy
 
@@ -331,16 +332,34 @@ class Directory:
 
         Note that in this mode:
 
-        - all symlinks are transformed regardless of whether
-          they appear in the source or the target directories
+        - all symlinks are replaced by their targets for
+          comparison, regardless of whether they appear in the
+          source or the target directories
         - any broken symlinks will cause the verification to
-          fail (as they cannot be resolved)
+          fail (as they cannot be resolved, but see below)
+
+        If 'broken_symlink_placeholders' is set to True then
+        as long as a broken symlink in the source has an
+        equivalent "placeholder" file with the same name in
+        the target directory then it is considered to be a
+        verified match.
+
+        (Note that the reverse is not true i.e. a broken
+        symlink in the target cannot match a non-symlink
+        file in the source.)
+
+        The 'broken_symlink_placeholders' option operates
+        independently of the 'follow_symlinks' option.
 
         Arguments:
           d (str): path to directory to check against
           follow_symlinks (bool): if True then checks are
             performed against symlink targets rather than
             comparing the symlinks themselves
+          broken_symlinks_placeholders (bool): if True then
+            checks for broken symlinks in the source
+            directory will succeed as long as there is
+            an equivalent "placeholder" file in the target
         """
         d = os.path.abspath(d)
         for o in self.walk():
@@ -353,15 +372,25 @@ class Directory:
                     print("%s: not a directory in copy" % o)
                     return False
             elif os.path.islink(o):
-                if follow_symlinks:
-                    for obj in (o, o_):
-                        if not Path(obj).resolve().exists():
-                            print("%s: unable to resolve symlink" % obj)
+                if follow_symlinks or broken_symlinks_placeholders:
+                    if not Path(o).resolve().exists():
+                        if broken_symlinks_placeholders:
+                            if not os.path.lexists(o_):
+                                print("%s: no placeholder in copy for "
+                                      "broken symlink" % obj)
+                                return False
+                        elif follow_symlinks:
+                            print("%s: unable to resolve symlink" % o)
                             return False
-                    if md5sum(Path(o).resolve()) != md5sum(Path(o_).resolve()):
-                        print("%s: MD5 sum differs in copy "
-                              "(following symlinks)" % o)
-                        return False
+                    elif follow_symlinks:
+                        if not Path(o_).resolve().exists():
+                            print("%s: unable to resolve symlink" % o_)
+                            return False
+                        if md5sum(Path(o).resolve()) != \
+                           md5sum(Path(o_).resolve()):
+                            print("%s: MD5 sum differs in copy "
+                                  "(following symlinks)" % o)
+                            return False
                 else:
                     if not os.path.islink(o_):
                         print("%s: not a symlink in copy" % o)

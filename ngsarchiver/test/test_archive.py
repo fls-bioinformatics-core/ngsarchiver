@@ -518,6 +518,41 @@ class TestDirectory(unittest.TestCase):
         self.assertFalse(d1.verify_copy(dir2, follow_symlinks=True))
         self.assertFalse(d2.verify_copy(dir1, follow_symlinks=True))
 
+    def test_directory_verify_copy_with_broken_symlink_placeholder(self):
+        """
+        Directory: check 'verify_copy' method with broken symlink placeholder
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("external_symlink1",type="symlink",
+                        target="../doesnt_exist")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Check standard verification works
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertTrue(d1.verify_copy(dir2))
+        self.assertTrue(d2.verify_copy(dir1))
+        # Replace broken symlink in one copy with placeholder file
+        os.remove(os.path.join(dir2, "external_symlink1"))
+        with open(os.path.join(dir2, "external_symlink1"), "wt") as fp:
+            fp.write(f"../doesnt_exist")
+        # Check standard verification now fails
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+        # Check verification with broken symlinks placeholders
+        self.assertTrue(d1.verify_copy(dir2,
+                                       broken_symlinks_placeholders=True))
+        # Verification still fails the other way around
+        # (because a regular file cannot match a symlink)
+        self.assertFalse(d2.verify_copy(dir1,
+                                        broken_symlinks_placeholders=True))
+
     def test_directory_verify_copy_missing_file(self):
         """
         Directory: check 'verify_copy' method for missing file
