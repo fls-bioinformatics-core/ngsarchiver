@@ -287,14 +287,25 @@ class Directory:
                 return False
         return True
 
-    def copy(self,dest):
+    def copy(self,dest, replace_symlinks=False,
+             transform_broken_symlinks=False):
         """
         Create a copy of the directory contents
 
         Arguments:
           dest (str): path for the copy
+        replace_symlinks (bool): if True then copy the
+          targets pointed to by symbolic links in the source
+          directory rather than the links themselves (NB will
+          fail for any broken symlinks in the source directory)
+        transform_broken_symlinks (bool): if True then replace
+          broken symbolic links in the source directory with
+          "placeholder" files with the same name in the copy
         """
-        return make_copy(self,dest)
+        return make_copy(self,
+                         dest,
+                         replace_symlinks=replace_symlinks,
+                         transform_broken_symlinks=transform_broken_symlinks)
 
     def verify_checksums(self,md5file):
         """
