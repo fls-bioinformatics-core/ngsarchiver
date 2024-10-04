@@ -1404,7 +1404,8 @@ def unpack_archive_multitgz(archive_list,extract_dir=None):
                 chmod(o_,o.mode)
                 utime(o_,(atime,o.mtime))
 
-def make_copy(d, dest, replace_symlinks=False):
+def make_copy(d, dest, replace_symlinks=False,
+              transform_broken_symlinks=False):
     """
     Make a copy of a directory
 
@@ -1417,6 +1418,9 @@ def make_copy(d, dest, replace_symlinks=False):
         pointed to by symbolic links in the source directory
         rather than the links themselves (NB will fail for
         any broken symlinks in the source directory)
+      transform_broken_symlinks (bool): if True then replace
+        broken symbolic links in the source directory with
+        "placeholder" files with the same name in the copy
     """
     # Create temporary (.part) directory
     dest = str(Path(dest).absolute())
@@ -1435,7 +1439,15 @@ def make_copy(d, dest, replace_symlinks=False):
                 if not replace_symlinks:
                     shutil.copy2(src, dst, follow_symlinks=False)
                 else:
-                    shutil.copy2(src.resolve(), dst, follow_symlinks=False)
+                    replace_src = src.resolve()
+                    if replace_src.exists():
+                        shutil.copy2(replace_src, dst, follow_symlinks=False)
+                    elif transform_broken_symlinks:
+                        with open(dst, "wt") as fp:
+                            fp.write(f"{os.readlink(o)}")
+                        shutil.copystat(src, dst, follow_symlinks=False)
+                    else:
+                        logger.error(f"{src}: cannot replace broken symlink")
             elif src.is_dir():
                 os.makedirs(dst)
             else:
@@ -1452,7 +1464,9 @@ def make_copy(d, dest, replace_symlinks=False):
     print(f"- copy completed")
     # Verify against the original
     print("- starting verification...")
-    if d.verify_copy(temp_copy, follow_symlinks=replace_symlinks):
+    if d.verify_copy(temp_copy,
+                     follow_symlinks=replace_symlinks,
+                     broken_symlinks_placeholders=transform_broken_symlinks):
         print(f"- verified copy in '{temp_copy}'")
     else:
         raise NgsArchiverException(f"{d}: failed to verify copy in "
@@ -1479,8 +1493,14 @@ def make_copy(d, dest, replace_symlinks=False):
             if o.is_dir():
                 continue
             if o.is_symlink():
-                if replace_symlinks:
-                    md5 = md5sum(o.resolve())
+                if replace_symlinks or transform_broken_symlinks:
+                    o_ = o.resolve()
+                    if o_.exists():
+                        md5 = md5sum(o_)
+                    elif transform_broken_symlinks:
+                        md5 = os.path.join(temp_copy, o.relative_to(d.path))
+                    else:
+                        continue
                 else:
                     continue
             else:
