@@ -1481,10 +1481,16 @@ def make_copy(d, dest, replace_symlinks=False,
     if d.has_symlinks:
         symlinks_file = os.path.join(metadata_dir, "symlinks")
         with open(symlinks_file, 'wt') as fp:
-            for o in d.walk():
+            for o in d.symlinks:
                 o = Path(o)
-                if o.is_symlink():
-                    fp.write(f"{o.relative_to(d.path)}\t{os.readlink(o)}\t{o.resolve()}")
+                fp.write(f"{o.relative_to(d.path)}\t{os.readlink(o)}\t{o.resolve()}")
+    # Create broken symlinks file
+    if d.has_broken_symlinks:
+        broken_symlinks_file = os.path.join(metadata_dir, "broken_symlinks")
+        with open(broken_symlinks_file, 'wt') as fp:
+            for o in d.broken_symlinks:
+                o = Path(o)
+                fp.write(f"{o.relative_to(d.path)}\t{os.readlink(o)}\t{o.resolve()}")
     # Create checksum file
     md5sums = os.path.join(metadata_dir, "checksums.md5")
     with open(md5sums, 'wt') as fp:
