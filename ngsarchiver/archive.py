@@ -182,7 +182,9 @@ class Directory:
         link count greater than one.
         """
         for o in self.walk():
-            if os.path.isfile(o) and os.stat(o).st_nlink > 1:
+            if not Path(o).is_symlink() and \
+               os.path.isfile(o) and \
+               os.stat(o).st_nlink > 1:
                 yield o
 
     @property

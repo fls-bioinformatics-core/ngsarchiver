@@ -304,6 +304,38 @@ class TestDirectory(unittest.TestCase):
                          sorted([hard_link_src,hard_link_dst]))
         self.assertTrue(d.has_hard_linked_files)
 
+    def test_directory_symlink_to_hard_link(self):
+        """
+        Directory: check handling of symlink to hard link
+        """
+        # Build example dir without hard links or symlinks
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("ex2.txt",type="file",content="example 2")
+        example_dir.create()
+        p = example_dir.path
+        # No hard links should be detected
+        d = Directory(p)
+        self.assertEqual(list(d.hard_linked_files),[])
+        self.assertFalse(d.has_hard_linked_files)
+        # No symlinks should be detected
+        self.assertEqual(list(d.symlinks),[])
+        self.assertFalse(d.has_symlinks)
+        # Add hard link
+        hard_link_src = os.path.join(p,"ex1.txt")
+        hard_link_dst = os.path.join(p,"ex12.txt")
+        os.link(hard_link_src,hard_link_dst)
+        # Add symlink to the hard link
+        symlink_dst = os.path.join(p,"symlink.txt")
+        os.symlink(hard_link_src,symlink_dst)
+        # Hard link should be detected
+        self.assertEqual(sorted(list(d.hard_linked_files)),
+                         sorted([hard_link_src,hard_link_dst]))
+        self.assertTrue(d.has_hard_linked_files)
+        # Symlink should be detected
+        self.assertEqual(list(d.symlinks), [symlink_dst])
+        self.assertTrue(d.has_symlinks)
+
     def test_directory_check_group(self):
         """
         Directory: check 'check_group' method
