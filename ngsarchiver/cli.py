@@ -176,6 +176,16 @@ def main(argv=None):
     parser_copy.add_argument('-c','--check',action='store_true',
                              help="check for and warn about potential "
                              "issues; don't perform copying")
+    parser_copy.add_argument('-r','--replace-symlinks',action='store_true',
+                             help="replace symbolic links with their "
+                             "target (default is to copy links as-is; will "
+                             "fail for broken links unless '-t' option "
+                             "is also specified)")
+    parser_copy.add_argument('-t','--transform-broken-symlinks',
+                             action='store_true',
+                             help="replace broken symbolic links with "
+                             "placeholder files (default is to copy broken "
+                             "links as-is)")
     parser_copy.add_argument('--force',action='store_true',
                              help="ignore issues and perform "
                              "copy anyway (may result in incomplete "
@@ -490,7 +500,8 @@ def main(argv=None):
         print("-- unknown UIDs     : %s" % format_bool(has_unknown_uids))
         has_hard_linked_files = d.has_hard_linked_files
         print("-- hard linked files: %s" % format_bool(has_hard_linked_files))
-        # Messaging for critical errors
+        # Messaging for warnings and errors
+        info_msgs = []
         error_msgs = []
         unrecoverable_errors = []
         if os.path.exists(os.path.join(d.path, "ARCHIVE_METADATA")):
@@ -505,23 +516,46 @@ def main(argv=None):
         if has_unknown_uids:
             msg = "Unknown UID(s) detected"
             if args.force:
-                error_msgs.append(f"{msg} (ignored)")
+                info_msgs.append(f"{msg} (ignored)")
             else:
                 error_msgs.append(msg)
                 check_status = 1
-        if has_external_symlinks or has_broken_symlinks:
-            msg = "External and/or broken symlinks detected"
-            if args.force:
-                error_msgs.append(f"{msg} (ignored; broken/external links "
-                                  "will be copied as-is)")
+        if has_external_symlinks:
+            if args.replace_symlinks:
+                info_msgs.append("External symlinks detected (ignored; "
+                                 "will be replaced by link targets)")
             else:
-                error_msgs.append(msg)
+                msg = "External symlinks detected"
+                if args.force:
+                    info_msgs.append(f"{msg} (ignored; external links "
+                                     "will be copied as-is)")
+                else:
+                    error_msgs.append(msg)
+                    check_status = 1
+        if has_broken_symlinks:
+            if args.transform_broken_symlinks:
+                info_msgs.append("Broken symlinks detected (ignored; "
+                                 "will be replaced by placeholder files)")
+            elif args.replace_symlinks:
+                unrecoverable_errors.append("Broken symlinks detected but "
+                                            "--replace-symlinks was "
+                                            "specified (add "
+                                            "--transform-broken-symlinks "
+                                            "to fix)")
                 check_status = 1
+            else:
+                msg = "Broken symlinks detected"
+                if args.force:
+                    info_msgs.append(f"{msg} (ignored; broken links "
+                                     "will be copied as-is)")
+                else:
+                    error_msgs.append(msg)
+                    check_status = 1
         if has_hard_linked_files:
             msg = "Hard-linked files detected"
             if args.force:
-                error_msgs.append(f"{msg} (ignored; hard-linked files may "
-                                  "appear as multiple copies)")
+                info_msgs.append(f"{msg} (ignored; hard-linked files may "
+                                 "appear as multiple copies)")
             else:
                 error_msgs.append(msg)
                 check_status = 1
@@ -530,6 +564,8 @@ def main(argv=None):
                 f"{dest_dir}: destination directory already exists")
             check_status = 1
         # Handle warnings and errors
+        for msg in info_msgs:
+            print(f"INFO: {msg}")
         for msg in error_msgs:
             if args.check or args.force:
                 logger.warning(msg)
@@ -548,7 +584,10 @@ def main(argv=None):
             return CLIStatus.ERROR
         print(f"Copying contents of {d} to {dest_dir}")
         try:
-            dcopy = d.copy(dest_dir)
+            dcopy = d.copy(
+                dest_dir,
+                replace_symlinks=args.replace_symlinks,
+                transform_broken_symlinks=args.transform_broken_symlinks)
         except Exception as ex:
             logger.critical(f"exception creating copy: {ex}")
             return CLIStatus.ERROR
