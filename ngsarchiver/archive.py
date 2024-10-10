@@ -1444,17 +1444,20 @@ def make_copy(d, dest, replace_symlinks=False,
     # Do the copy
     print(f"- starting copy to {temp_copy}...")
     os.makedirs(temp_copy)
+    print(f"- replace working symlinks : {format_bool(replace_symlinks)}")
+    print(f"- transform broken symlinks: {format_bool(transform_broken_symlinks)}")
     for o in d.walk():
         src = Path(o)
         dst = os.path.join(temp_copy, src.relative_to(d.path))
         try:
             if src.is_symlink():
-                if not replace_symlinks:
+                if not (replace_symlinks or transform_broken_symlinks):
                     shutil.copy2(src, dst, follow_symlinks=False)
                 else:
                     replace_src = src.resolve()
                     if replace_src.exists():
-                        shutil.copy2(replace_src, dst, follow_symlinks=False)
+                        shutil.copy2(replace_src, dst,
+                                     follow_symlinks=replace_symlinks)
                     elif transform_broken_symlinks:
                         with open(dst, "wt") as fp:
                             fp.write(f"{os.readlink(o)}")

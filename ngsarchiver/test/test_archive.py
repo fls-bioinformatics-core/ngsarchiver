@@ -3243,6 +3243,10 @@ class TestMakeCopy(unittest.TestCase):
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
                             "'%s' not expected" % item)
+        # Check symlink is still a symlink
+        self.assertTrue(os.path.islink(os.path.join(dest_dir,
+                                                    "subdir",
+                                                    "symlink1.txt")))
         # Check symlink appears in symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
                   "rt") as fp:
@@ -3296,6 +3300,10 @@ class TestMakeCopy(unittest.TestCase):
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
                             "'%s' not expected" % item)
+        # Check symlink is still a symlink
+        self.assertTrue(os.path.islink(os.path.join(dest_dir,
+                                                    "subdir",
+                                                    "rel_ext_symlink.txt")))
         # Check symlink appears in symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
                   "rt") as fp:
@@ -3348,6 +3356,10 @@ class TestMakeCopy(unittest.TestCase):
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
                             "'%s' not expected" % item)
+        # Check symlink is still a symlink
+        self.assertTrue(os.path.islink(os.path.join(dest_dir,
+                                                    "subdir",
+                                                    "broken_symlink.txt")))
         # Check symlink appears in symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
                   "rt") as fp:
@@ -3545,6 +3557,9 @@ class TestMakeCopy(unittest.TestCase):
                     os.path.getmtime(os.path.join(p, item)),
                     os.path.getmtime(os.path.join(dest_dir, item)),
                     "modification time differs for '%s'" % item)
+        # Check broken symlink was transformed into file
+        self.assertFalse(os.path.islink(
+            os.path.join(dest_dir, "subdir", "broken_symlink.txt")))
         # Check extra items aren't present
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
@@ -3587,7 +3602,8 @@ class TestMakeCopy(unittest.TestCase):
         # Make straight copy
         d = Directory(p)
         dest_dir = os.path.join(self.wd, "copies", "example1")
-        dd = make_copy(d, dest_dir)
+        dd = make_copy(d, dest_dir, replace_symlinks=True,
+                       transform_broken_symlinks=True)
         self.assertTrue(isinstance(dd,Directory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
@@ -3614,6 +3630,12 @@ class TestMakeCopy(unittest.TestCase):
                     os.path.getmtime(os.path.join(p, item)),
                     os.path.getmtime(os.path.join(dest_dir, item)),
                     "modification time differs for '%s'" % item)
+        # Check replaced file is not a symlink
+        self.assertFalse(os.path.islink(os.path.join(dest_dir,
+                                                     "symlink1.txt")))
+        # Check broken symlink was transformed into file
+        self.assertFalse(os.path.islink(
+            os.path.join(dest_dir, "subdir", "broken_symlink.txt")))
         # Check extra items aren't present
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
@@ -3664,6 +3686,9 @@ class TestMakeCopy(unittest.TestCase):
                     os.path.getmtime(os.path.join(p, item)),
                     os.path.getmtime(os.path.join(dest_dir, item)),
                     "modification time differs for '%s'" % item)
+        # Check broken symlink was transformed into file
+        self.assertFalse(os.path.islink(
+            os.path.join(dest_dir, "subdir", "broken_symlink.txt")))
         # Check extra items aren't present
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
