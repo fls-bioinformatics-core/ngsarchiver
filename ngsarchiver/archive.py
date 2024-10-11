@@ -174,6 +174,24 @@ class Directory:
         return False
 
     @property
+    def dirlinks(self):
+        """
+        Return all symlinks which point to directories
+        """
+        for o in self.symlinks:
+            if Path(o).resolve().is_dir():
+                yield o
+
+    @property
+    def has_dirlinks(self):
+        """
+        Check if directory has any symlink pointing to dirs
+        """
+        for o in self.dirlinks:
+            return True
+        return False
+
+    @property
     def hard_linked_files(self):
         """
         Return files that are hard links

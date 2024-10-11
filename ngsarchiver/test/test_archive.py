@@ -243,6 +243,26 @@ class TestDirectory(unittest.TestCase):
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
 
+    def test_directory_dirlinks(self):
+        """
+        Directory: check reporting of dirlinks
+        """
+        # Build example dir without dirlinks
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("subdir1",type="dir")
+        example_dir.create()
+        p = example_dir.path
+        # No dirlinks should be detected
+        d = Directory(p)
+        self.assertEqual(list(d.dirlinks),[])
+        self.assertFalse(d.has_dirlinks)
+        # Add dirlink
+        dirlink = os.path.join(p,"dirlink1")
+        os.symlink("./subdir1",dirlink)
+        # Dirlink should be detected
+        self.assertEqual(list(d.dirlinks),[dirlink,])
+        self.assertTrue(d.has_dirlinks)
+
     def test_directory_readability(self):
         """
         Directory: check readability
