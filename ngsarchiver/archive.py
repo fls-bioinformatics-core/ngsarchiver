@@ -456,11 +456,17 @@ class Directory:
             os.chown(o,uid,gid)
         os.chown(self.path,uid,gid)
 
-    def walk(self):
+    def walk(self, followlinks=False):
         """
         Yields full paths of all directory and file objects
+
+        Arguments:
+          followlinks (bool): if True then treat symlinks
+            to directories as directories (and descend into
+            them); otherwise treat as files (the default)
         """
-        for dirpath,dirnames,filenames in os.walk(self._path):
+        for dirpath,dirnames,filenames in os.walk(self._path,
+                                                  followlinks=followlinks):
             for name in filenames:
                 yield os.path.join(dirpath,name)
             for name in dirnames:

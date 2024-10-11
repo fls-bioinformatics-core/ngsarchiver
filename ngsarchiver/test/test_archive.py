@@ -726,6 +726,55 @@ class TestDirectory(unittest.TestCase):
                                     "subdir1/subdir12",
                                     "subdir1/subdir12/ex3.txt")])
 
+    def test_directory_walk_dirlinks(self):
+        """
+        Directory: check 'walk' method with dirlinks
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        example_dir.add("subdir2",type="symlink",target="./subdir1")
+        example_dir.create()
+        p = example_dir.path
+        # Check walk method
+        d = Directory(p)
+        self.assertEqual(list(d.walk()),
+                         [os.path.join(p,f)
+                          for f in ("ex1.txt",
+                                    "subdir2",
+                                    "subdir1",
+                                    "subdir1/ex2.txt",
+                                    "subdir1/subdir12",
+                                    "subdir1/subdir12/ex3.txt")])
+
+    def test_directory_walk_follow_dirlinks(self):
+        """
+        Directory: check 'walk' method follows dirlinks
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        example_dir.add("subdir2",type="symlink",target="./subdir1")
+        example_dir.create()
+        p = example_dir.path
+        # Check walk method
+        d = Directory(p)
+        self.assertEqual(list(d.walk(followlinks=True)),
+                         [os.path.join(p,f)
+                          for f in ("ex1.txt",
+                                    "subdir2",
+                                    "subdir1",
+                                    "subdir2/ex2.txt",
+                                    "subdir2/subdir12",
+                                    "subdir2/subdir12/ex3.txt",
+                                    "subdir1/ex2.txt",
+                                    "subdir1/subdir12",
+                                    "subdir1/subdir12/ex3.txt")])
+
 class TestGenericRun(unittest.TestCase):
 
     def setUp(self):
