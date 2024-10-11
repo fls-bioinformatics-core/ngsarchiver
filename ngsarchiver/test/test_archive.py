@@ -3455,6 +3455,56 @@ class TestMakeCopy(unittest.TestCase):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
 
+    def test_make_copy_handle_hard_link(self):
+        """
+        make_copy: handle hard link
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/link1.txt",type="link",
+                        target=os.path.join(self.wd,
+                                            "example",
+                                            "subdir",
+                                            "ex2.txt"))
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Make copy
+        d = Directory(p)
+        dd = make_copy(d,dest_dir)
+        self.assertTrue(isinstance(dd,Directory))
+        # Check resulting directory
+        self.assertEqual(dd.path, dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        expected = ("ex1.txt",
+                    "subdir",
+                    "subdir/ex2.txt",
+                    "subdir/link1.txt",
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json")
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(dest_dir, item)),
+                "missing '%s'" % item)
+            if not item.startswith("ARCHIVE_METADATA"):
+                self.assertEqual(
+                    os.path.getmtime(os.path.join(p, item)),
+                    os.path.getmtime(os.path.join(dest_dir, item)),
+                    "modification time differs for '%s'" % item)
+        # Check extra items aren't present
+        for item in dd.walk():
+            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
+                            "'%s' not expected" % item)
+        # Check hard linked file has been replaced
+        link = os.path.join(dest_dir, "subdir", "link1.txt")
+        self.assertFalse(
+            os.path.isfile(link) and os.stat(link).st_nlink > 1)
+
     def test_make_copy_replace_symlink(self):
         """
         make_copy: replace internal symlink
