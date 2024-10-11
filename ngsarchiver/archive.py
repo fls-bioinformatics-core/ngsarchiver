@@ -1555,7 +1555,7 @@ def make_copy(d, dest, replace_symlinks=False,
     print(f"- moved final copy to {dest}")
     return Directory(dest)
 
-def make_manifest_file(d, manifest_file):
+def make_manifest_file(d, manifest_file, follow_dirlinks=False):
     """
     Create a 'manifest' file for a directory
 
@@ -1568,11 +1568,15 @@ def make_manifest_file(d, manifest_file):
         manifest for
       manifest_file (str): path to the file to
         write the manifest data to
+      follow_dirlinks (bool): if True then transform
+        symbolic links to directories into the
+        referent directories (and include files and
+        directories underneath)
     """
     if Path(manifest_file).exists():
         raise NgsArchiverException(f"{manifest_file}: already exists")
     with open(manifest_file, 'wt') as fp:
-        for o in d.walk():
+        for o in d.walk(followlinks=follow_dirlinks):
             o = Path(o)
             try:
                 owner = Path(o).owner()

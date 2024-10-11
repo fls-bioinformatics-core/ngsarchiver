@@ -3882,6 +3882,62 @@ class TestMakeManifestFile(unittest.TestCase):
                 self.assertTrue(line.rstrip() in expected_lines,
                                 f"'{line.rstrip()}': unexpected line")
 
+    def test_make_manifest_file_follow_dirlinks(self):
+        """
+        make_manifest_file: check manifest file with dirlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir2",type="symlink",target="./subdir")
+        example_dir.create()
+        # Get user and group
+        username = getpass.getuser()
+        group = grp.getgrgid(pwd.getpwnam(username).pw_gid).gr_name
+        # Create manifest file without following dirlinks
+        manifest_file = make_manifest_file(Directory(example_dir.path),
+                                           os.path.join(self.wd, "manifest"))
+        self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
+        self.assertTrue(os.path.exists(manifest_file))
+        # Check contents
+        expected_lines = [f"{username}\t{group}\tex1.txt",
+                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/ex2.txt",
+                          f"{username}\t{group}\tsubdir2"]
+        manifest_lines = []
+        with open(manifest_file, 'rt') as fp:
+            for line in fp:
+                manifest_lines.append(line.rstrip())
+        for line in manifest_lines:
+            self.assertTrue(line in expected_lines,
+                            f"'{line}': unexpected line in manifest")
+        for line in expected_lines:
+            self.assertTrue(line in manifest_lines,
+                            f"'{line}': missing line in manifest")
+        # Create manifest file following dirlinks
+        manifest_file = make_manifest_file(Directory(example_dir.path),
+                                           os.path.join(self.wd, "manifest2"),
+                                           follow_dirlinks=True)
+        self.assertEqual(manifest_file, os.path.join(self.wd, "manifest2"))
+        self.assertTrue(os.path.exists(manifest_file))
+        # Check contents
+        expected_lines = [f"{username}\t{group}\tex1.txt",
+                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/ex2.txt",
+                          f"{username}\t{group}\tsubdir2",
+                          f"{username}\t{group}\tsubdir2/ex2.txt"]
+        manifest_lines = []
+        with open(manifest_file, 'rt') as fp:
+            for line in fp:
+                manifest_lines.append(line.rstrip())
+        for line in manifest_lines:
+            self.assertTrue(line in expected_lines,
+                            f"'{line}': unexpected line in manifest")
+        for line in expected_lines:
+            self.assertTrue(line in manifest_lines,
+                            f"'{line}': missing line in manifest")
+
     def test_make_manifest_file_noclobber(self):
         """
         make_manifest_file: raises exception if file already exists
