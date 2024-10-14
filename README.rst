@@ -408,6 +408,16 @@ created under ``/PATH/TO/ARCHIVES_DIR/SRC_DIR`` called
 * ``checksums.md5``: MD5 checksum file
 * ``archiver_metadata.json``: metadata about the
   archiver, user and creation date of the copy.
+* ``symlinks``: a tab-delimted file listing each of
+  the symlinks in the source directory along with
+  their targets, and the path that the target
+  resolved to (only present if the source contained
+  symlinks)
+* ``broken_symlinks``: a file with the same format
+  as the ``symlinks`` file above, but only containing
+  information on the broken symlinks in the source
+  directory (only present if the source contained
+  broken symlinks)
 
 The copy will be aborted unconditionally for the
 following cases:
@@ -433,10 +443,42 @@ performed but can be overridden:
   the current system.
 
 In these cases the archiver can still be forced to
-perform the copy by specifying the ``--force`` option.
+perform the copy by specifying the ``--force`` option:
+
+* Symlinks will be copied as-is (i.e. preserving their
+  targets); this may result in broken symlinks in the
+  copy
+* Each instance of a hard linked file will be copied as
+  a separate file (i.e. hard links are not preserved);
+  this may result in multiple identical copies of each
+  hard linked file
 
 The ``--check`` option will check for the above problems
 without attempting to perform the copy.
+
+There are also a set of options for handling symbolic
+links:
+
+* ``--replace-symlinks`` will replace symlinks by
+  their targets, provided that the target exists (i.e.
+  is not a broken link, see ``--transform-broken-symlinks``
+  below) and that it's not a directory (see
+  ``--follow-dirlinks``)
+* ``--transform-broken-symlinks`` will replace broken
+  symbolic links with a file containg the name of the
+  link target)
+* ``--follow-dirlinks`` will replace symlinked
+  directories with actual directories, and recursively
+  copy the contents of each directory
+
+Symlink replacement may be necessary when copying to a
+file system which doesn't support the creation of
+symbolic links.
+
+Note that if using ``--follow-dirlinks``, that the
+copied directories are not checked before starting the
+copy operation, and so may contain "problem" entities
+which can cause the operation to fail.
 
 ------------------------
 Archive directory format
