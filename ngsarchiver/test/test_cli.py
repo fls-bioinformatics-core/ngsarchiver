@@ -446,6 +446,29 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
                                    "copied",
                                    "example")).has_symlinks)
 
+    def test_copy_with_follow_dirlinks(self):
+        """
+        CLI: test the 'copy' command with --follow-dirlinks
+        """
+        # Make example directory to copy
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir2",type="symlink",target="subdir1")
+        example_dir.create()
+        copy_dir = os.path.join(self.wd,"copied")
+        os.mkdir(copy_dir)
+        self.assertEqual(main(['copy', '--follow-dirlinks',
+                               example_dir.path, copy_dir]),
+                         CLIStatus.OK)
+        self.assertTrue(os.path.isdir(os.path.join(self.wd,
+                                                   "copied",
+                                                   "example")))
+        self.assertFalse(
+            Directory(os.path.join(self.wd,
+                                   "copied",
+                                   "example")).has_dirlinks)
+
     def test_copy_with_transform_broken_symlinks(self):
         """
         CLI: test the 'copy' command with --transform-broken-symlinks

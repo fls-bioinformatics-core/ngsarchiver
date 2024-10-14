@@ -180,7 +180,13 @@ def main(argv=None):
                              help="replace symbolic links with their "
                              "target (default is to copy links as-is; will "
                              "fail for broken links unless '-t' option "
-                             "is also specified)")
+                             "is also specified; will fail for dirlinks "
+                             "unless '-f' option is also specified)")
+    parser_copy.add_argument('-f','--follow-dirlinks',action='store_true',
+                             help="replace dirlinks (symbolic links to "
+                             "directories) with actual directories, and "
+                             "recursively copy the contents of those "
+                             "directories")
     parser_copy.add_argument('-t','--transform-broken-symlinks',
                              action='store_true',
                              help="replace broken symbolic links with "
@@ -499,6 +505,8 @@ def main(argv=None):
         print("-- symlinks         : %s" % format_bool(has_symlinks))
         is_readable = d.is_readable
         print("-- unreadable files : %s" % format_bool(not is_readable))
+        has_dirlinks = d.has_dirlinks
+        print("-- dirlinks         : %s" % format_bool(has_dirlinks))
         has_external_symlinks = d.has_external_symlinks
         print("-- external symlinks: %s" % format_bool(has_external_symlinks))
         has_broken_symlinks = d.has_broken_symlinks
@@ -527,6 +535,20 @@ def main(argv=None):
             else:
                 error_msgs.append(msg)
                 check_status = 1
+        if has_dirlinks:
+            if args.follow_dirlinks:
+                info_msgs.append("Dirlinks detected (ignored; symlinks "
+                                 "to directories will be converted to "
+                                 "directories and the contents copied "
+                                 "recursively")
+            elif args.replace_symlinks:
+                unrecoverable_errors.append("Dirlinks detected but "
+                                            "--replace-symlinks was "
+                                            "specified (add "
+                                            "--follow-dirlinks to fix)")
+                check_status = 1
+            else:
+                pass
         if has_external_symlinks:
             if args.replace_symlinks:
                 info_msgs.append("External symlinks detected (ignored; "
@@ -594,6 +616,7 @@ def main(argv=None):
             dcopy = d.copy(
                 dest_dir,
                 replace_symlinks=args.replace_symlinks,
+                follow_dirlinks=args.follow_dirlinks,
                 transform_broken_symlinks=args.transform_broken_symlinks)
         except Exception as ex:
             logger.critical(f"exception creating copy: {ex}")
