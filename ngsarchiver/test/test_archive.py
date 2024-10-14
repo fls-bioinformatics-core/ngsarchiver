@@ -3351,7 +3351,7 @@ class TestMakeCopy(unittest.TestCase):
         # Check symlink appears in symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/symlink1.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
 
@@ -3408,7 +3408,7 @@ class TestMakeCopy(unittest.TestCase):
         # Check symlink appears in symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/rel_ext_symlink.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
 
@@ -3464,13 +3464,13 @@ class TestMakeCopy(unittest.TestCase):
         # Check symlink appears in symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
         # Check symlink appears in broken symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "broken_symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
@@ -3578,7 +3578,7 @@ class TestMakeCopy(unittest.TestCase):
         # Check symlink appears in symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/ex3.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
 
@@ -3639,7 +3639,7 @@ class TestMakeCopy(unittest.TestCase):
         # Check symlink appears in symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/rel_ext_symlink.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
 
@@ -3722,13 +3722,13 @@ class TestMakeCopy(unittest.TestCase):
         # Check symlink appears in symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
         # Check symlink appears in broken symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "broken_symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
@@ -3794,7 +3794,7 @@ class TestMakeCopy(unittest.TestCase):
         # Check symlink appears in symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("symlink1.txt",
                       "subdir/rel_ext_symlink.txt",
                       "subdir/broken_symlink.txt"):
@@ -3802,7 +3802,7 @@ class TestMakeCopy(unittest.TestCase):
         # Check symlink appears in broken symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "broken_symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
@@ -3855,7 +3855,7 @@ class TestMakeCopy(unittest.TestCase):
         # Check symlink appears in symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("symlink1.txt",
                       "subdir/rel_ext_symlink.txt",
                       "subdir/broken_symlink.txt"):
@@ -3863,7 +3863,7 @@ class TestMakeCopy(unittest.TestCase):
         # Check symlink appears in broken symlinks file
         with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "broken_symlinks"),
                   "rt") as fp:
-            symlinks = fp.read()
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
