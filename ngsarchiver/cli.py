@@ -229,6 +229,11 @@ def main(argv=None):
                 is_readable = False
             if is_readable:
                 print("-- no unreadable files")
+            print("Dirlinks:")
+            has_dirlinks = False
+            for s in d.dirlinks:
+                print("-- %s" % s)
+                has_dirlinks = True
             print("External symlinks:")
             has_external_symlinks = False
             for s in d.external_symlinks:
@@ -260,6 +265,8 @@ def main(argv=None):
         else:
             print("Unreadable files : %s" %
                   format_bool(not d.is_readable))
+            print("Dirlinks         : %s" %
+                  format_bool(d.has_dirlinks))
             print("External symlinks: %s" %
                   format_bool(d.has_external_symlinks))
             print("Broken symlinks  : %s" %
