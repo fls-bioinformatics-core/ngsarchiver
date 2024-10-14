@@ -24,6 +24,7 @@ import tarfile
 import hashlib
 import fnmatch
 import getpass
+import tempfile
 import logging
 from pathlib import Path
 from .exceptions import NgsArchiverException
@@ -1647,6 +1648,23 @@ def make_manifest_file(d, manifest_file, follow_dirlinks=False):
                 group=group,
                 obj=o.relative_to(d.path)))
     return manifest_file
+
+def check_make_symlink(d):
+    """
+    Check if it's possible to make a symbolic link
+    """
+    if not Path(d).is_dir():
+        raise OSError(f"{d}: is not a directory")
+    try:
+        with tempfile.TemporaryDirectory(dir=d) as tmpdir:
+            test_file = os.path.join(tmpdir, "test_file")
+            with open(test_file, "wt") as fp:
+                fp.write("")
+            os.symlink(test_file, os.path.join(tmpdir, "test_symlink"))
+            return True
+    except Exception as ex:
+        print(f"check_make_symlink failed: {ex}")
+    return False
 
 def getsize(p,blocksize=512):
     """

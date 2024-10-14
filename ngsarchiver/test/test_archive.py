@@ -26,6 +26,7 @@ from ngsarchiver.archive import make_archive_multitgz
 from ngsarchiver.archive import unpack_archive_multitgz
 from ngsarchiver.archive import make_copy
 from ngsarchiver.archive import make_manifest_file
+from ngsarchiver.archive import check_make_symlink
 from ngsarchiver.archive import getsize
 from ngsarchiver.archive import convert_size_to_bytes
 from ngsarchiver.archive import format_size
@@ -4198,6 +4199,21 @@ class TestMakeManifestFile(unittest.TestCase):
                           make_manifest_file,
                           Directory(example_dir.path),
                           os.path.join(self.wd, "manifest"))
+
+class TestCheckMakeSymlink(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestGetSize')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_check_make_symlink(self):
+        """
+        check_make_symlink: is possible
+        """
+        self.assertTrue(check_make_symlink(self.wd))
 
 class TestGetSize(unittest.TestCase):
 
