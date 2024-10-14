@@ -308,7 +308,8 @@ class Directory:
         return True
 
     def copy(self,dest, replace_symlinks=False,
-             transform_broken_symlinks=False):
+             transform_broken_symlinks=False,
+             follow_dirlinks=False):
         """
         Create a copy of the directory contents
 
@@ -321,11 +322,14 @@ class Directory:
         transform_broken_symlinks (bool): if True then replace
           broken symbolic links in the source directory with
           "placeholder" files with the same name in the copy
+        follow_dirlinks (bool): if True then transform symbolic
+          links to directories into the referent directories
         """
         return make_copy(self,
                          dest,
                          replace_symlinks=replace_symlinks,
-                         transform_broken_symlinks=transform_broken_symlinks)
+                         transform_broken_symlinks=transform_broken_symlinks,
+                         follow_dirlinks=follow_dirlinks)
 
     def verify_checksums(self,md5file):
         """
