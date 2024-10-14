@@ -174,6 +174,24 @@ class Directory:
         return False
 
     @property
+    def dirlinks(self):
+        """
+        Return all symlinks which point to directories
+        """
+        for o in self.symlinks:
+            if Path(o).resolve().is_dir():
+                yield o
+
+    @property
+    def has_dirlinks(self):
+        """
+        Check if directory has any symlink pointing to dirs
+        """
+        for o in self.dirlinks:
+            return True
+        return False
+
+    @property
     def hard_linked_files(self):
         """
         Return files that are hard links
@@ -182,7 +200,9 @@ class Directory:
         link count greater than one.
         """
         for o in self.walk():
-            if os.path.isfile(o) and os.stat(o).st_nlink > 1:
+            if not Path(o).is_symlink() and \
+               os.path.isfile(o) and \
+               os.stat(o).st_nlink > 1:
                 yield o
 
     @property
@@ -287,14 +307,29 @@ class Directory:
                 return False
         return True
 
-    def copy(self,dest):
+    def copy(self,dest, replace_symlinks=False,
+             transform_broken_symlinks=False,
+             follow_dirlinks=False):
         """
         Create a copy of the directory contents
 
         Arguments:
           dest (str): path for the copy
+        replace_symlinks (bool): if True then copy the
+          targets pointed to by symbolic links in the source
+          directory rather than the links themselves (NB will
+          fail for any broken symlinks in the source directory)
+        transform_broken_symlinks (bool): if True then replace
+          broken symbolic links in the source directory with
+          "placeholder" files with the same name in the copy
+        follow_dirlinks (bool): if True then transform symbolic
+          links to directories into the referent directories
         """
-        return make_copy(self,dest)
+        return make_copy(self,
+                         dest,
+                         replace_symlinks=replace_symlinks,
+                         transform_broken_symlinks=transform_broken_symlinks,
+                         follow_dirlinks=follow_dirlinks)
 
     def verify_checksums(self,md5file):
         """
@@ -310,11 +345,12 @@ class Directory:
         return verify_checksums(md5file,
                                 root_dir=os.path.dirname(self._path))
 
-    def verify_copy(self,d):
+    def verify_copy(self,d,follow_symlinks=False,
+                    broken_symlinks_placeholders=False):
         """
         Verify the directory contents against a copy
 
-        The following checks are performed:
+        In default mode the following checks are performed:
 
         - All files, directories and symlinks in one directory
           are also present in the other (i.e. none are missing
@@ -324,8 +360,41 @@ class Directory:
         - Symlink targets match between the source and the copy
         - MD5 checksums match for regular files
 
+        if 'follow_symlinks' is set to True then the checks
+        above are modified to replace symlinks with their
+        target files and then checking that the MD5 checksums
+        match.
+
+        Note that in this mode:
+
+        - all symlinks are replaced by their targets for
+          comparison, regardless of whether they appear in the
+          source or the target directories
+        - any broken symlinks will cause the verification to
+          fail (as they cannot be resolved, but see below)
+
+        If 'broken_symlink_placeholders' is set to True then
+        as long as a broken symlink in the source has an
+        equivalent "placeholder" file with the same name in
+        the target directory then it is considered to be a
+        verified match.
+
+        (Note that the reverse is not true i.e. a broken
+        symlink in the target cannot match a non-symlink
+        file in the source.)
+
+        The 'broken_symlink_placeholders' option operates
+        independently of the 'follow_symlinks' option.
+
         Arguments:
           d (str): path to directory to check against
+          follow_symlinks (bool): if True then checks are
+            performed against symlink targets rather than
+            comparing the symlinks themselves
+          broken_symlinks_placeholders (bool): if True then
+            checks for broken symlinks in the source
+            directory will succeed as long as there is
+            an equivalent "placeholder" file in the target
         """
         d = os.path.abspath(d)
         for o in self.walk():
@@ -338,11 +407,42 @@ class Directory:
                     print("%s: not a directory in copy" % o)
                     return False
             elif os.path.islink(o):
-                if not os.path.islink(o):
-                    print("%s: not a symlink in copy" % o)
-                    return False
-                if os.readlink(o) != os.readlink(o_):
-                    print("%s: symlink target differs in copy" % o)
+                if follow_symlinks or broken_symlinks_placeholders:
+                    if not Path(o).resolve().exists():
+                        if broken_symlinks_placeholders:
+                            if not os.path.lexists(o_):
+                                print("%s: no placeholder in copy for "
+                                      "broken symlink" % o)
+                                return False
+                        elif follow_symlinks:
+                            print("%s: unable to resolve symlink "
+                                  "(following symlinks)" % o)
+                            return False
+                    elif follow_symlinks:
+                        if not Path(o_).resolve().exists():
+                            print("%s: unable to resolve symlink "
+                                  "(following symlinks)" % o_)
+                            return False
+                        if md5sum(Path(o).resolve()) != \
+                           md5sum(Path(o_).resolve()):
+                            print("%s: MD5 sum differs in copy "
+                                  "(following symlinks)" % o)
+                            return False
+                else:
+                    if not os.path.islink(o_):
+                        print("%s: not a symlink in copy" % o)
+                        return False
+                    if os.readlink(o) != os.readlink(o_):
+                        print("%s: symlink target differs in copy" % o)
+                        return False
+            elif os.path.islink(o_):
+                if follow_symlinks:
+                    if md5sum(Path(o).resolve()) != md5sum(Path(o_).resolve()):
+                        print("%s: MD5 sum differs in copy "
+                              "(following symlinks)" % o)
+                        return False
+                else:
+                    print("%s: is a symlink in copy, not in source" % o)
                     return False
             elif md5sum(o) != md5sum(o_):
                 print("%s: MD5 sum differs in copy" % o)
@@ -378,11 +478,17 @@ class Directory:
             os.chown(o,uid,gid)
         os.chown(self.path,uid,gid)
 
-    def walk(self):
+    def walk(self, followlinks=False):
         """
         Yields full paths of all directory and file objects
+
+        Arguments:
+          followlinks (bool): if True then treat symlinks
+            to directories as directories (and descend into
+            them); otherwise treat as files (the default)
         """
-        for dirpath,dirnames,filenames in os.walk(self._path):
+        for dirpath,dirnames,filenames in os.walk(self._path,
+                                                  followlinks=followlinks):
             for name in filenames:
                 yield os.path.join(dirpath,name)
             for name in dirnames:
@@ -1341,7 +1447,9 @@ def unpack_archive_multitgz(archive_list,extract_dir=None):
                 chmod(o_,o.mode)
                 utime(o_,(atime,o.mtime))
 
-def make_copy(d,dest):
+def make_copy(d, dest, replace_symlinks=False,
+              transform_broken_symlinks=False,
+              follow_dirlinks=False):
     """
     Make a copy of a directory
 
@@ -1350,6 +1458,15 @@ def make_copy(d,dest):
         the directory to be copied
       dest (str): path to directory into which the directory
         contents will be copied
+      replace_symlinks (bool): if True then copy the targets
+        pointed to by symbolic links in the source directory
+        rather than the links themselves (NB will fail for
+        any broken symlinks in the source directory)
+      transform_broken_symlinks (bool): if True then replace
+        broken symbolic links in the source directory with
+        "placeholder" files with the same name in the copy
+      follow_dirlinks (bool): if True then transform symbolic
+        links to directories into the referent directories
     """
     # Create temporary (.part) directory
     dest = str(Path(dest).absolute())
@@ -1358,15 +1475,73 @@ def make_copy(d,dest):
         raise NgsArchiverException(f"{d}: found existing partial copy "
                                    "'{temp_copy}' (remove before retrying)")
     # Do the copy
-    try:
-        shutil.copytree(d.path, temp_copy, symlinks=True)
-    except shutil.Error as err:
-        print(f"Copy: shutil error: {err}")
-    except Exception as ex:
-        print(f"Copy: exception: {ex}")
+    print(f"- starting copy to {temp_copy}...")
+    os.makedirs(temp_copy)
+    print(f"- replace working symlinks?....{format_bool(replace_symlinks)}")
+    print(f"- transform broken symlinks?...{format_bool(transform_broken_symlinks)}")
+    print(f"- follow directory symlinks?...{format_bool(follow_dirlinks)}")
+    for o in d.walk(followlinks=follow_dirlinks):
+        src = Path(o)
+        dst = os.path.join(temp_copy, src.relative_to(d.path))
+        try:
+            if src.is_symlink():
+                if not (replace_symlinks or
+                        transform_broken_symlinks or
+                        follow_dirlinks):
+                    logger.debug(f"->#1 copy2 '{dst}' from '{src}'")
+                    shutil.copy2(src, dst, follow_symlinks=False)
+                else:
+                    replace_src = src.resolve()
+                    if replace_src.exists():
+                        if not replace_src.is_dir():
+                            if replace_symlinks:
+                                logger.debug(f"->#2 copy2.1 '{dst}' from "
+                                             f"'{replace_src}' (replacing "
+                                             "symlink)")
+                                shutil.copy2(replace_src, dst,
+                                             follow_symlinks=replace_symlinks)
+                            else:
+                                logger.debug(f"->#2 copy2.2 '{dst}' from "
+                                             f"'{src}' (keeping symlink)")
+                                shutil.copy2(src, dst,
+                                             follow_symlinks=replace_symlinks)
+                        else:
+                            logger.debug(f"->#3 making dir '{dst}' from "
+                                         f"symlink '{src}'")
+                            os.makedirs(dst)
+                            shutil.copystat(replace_src, dst,
+                                            follow_symlinks=False)
+                    elif transform_broken_symlinks:
+                        logger.debug(f"->#4 making '{dst}' from broken "
+                                     f"link '{src}'")
+                        with open(dst, "wt") as fp:
+                            fp.write(f"{os.readlink(o)}")
+                        shutil.copystat(src, dst, follow_symlinks=False)
+                    else:
+                        logger.error(f"{src}: cannot replace broken symlink")
+            elif src.is_dir():
+                logger.debug(f"->#5 making dir '{dst}' from '{src}'")
+                os.makedirs(dst)
+            else:
+                logger.debug(f"->#6 copy2 '{dst}' from '{src}'")
+                shutil.copy2(src, dst, follow_symlinks=False)
+        except Exception as ex:
+            logger.warning(f"Copy: exception handling '{src}': {ex} "
+                           "(ignored)")
+    # Update the modification times for directories
+    # after copying files
+    for o in d.walk(followlinks=follow_dirlinks):
+        src = Path(o)
+        if src.is_dir():
+            dst = os.path.join(temp_copy, src.relative_to(d.path))
+            shutil.copystat(src, dst, follow_symlinks=False)
+    print(f"- copy completed")
     # Verify against the original
-    if d.verify_copy(temp_copy):
-        print(f"{d}: verified copy in '{temp_copy}'")
+    print("- starting verification...")
+    if d.verify_copy(temp_copy,
+                     follow_symlinks=replace_symlinks,
+                     broken_symlinks_placeholders=transform_broken_symlinks):
+        print(f"- verified copy in '{temp_copy}'")
     else:
         raise NgsArchiverException(f"{d}: failed to verify copy in "
                                    f"'{temp_copy}'")
@@ -1374,23 +1549,54 @@ def make_copy(d,dest):
     metadata_dir = os.path.join(temp_copy, "ARCHIVE_METADATA")
     os.mkdir(metadata_dir)
     # Create a manifest file
-    manifest = make_manifest_file(d, os.path.join(metadata_dir, "manifest"))
-    print(f"Created manifest file '{manifest}'")
+    manifest = make_manifest_file(d, os.path.join(metadata_dir, "manifest"),
+                                  follow_dirlinks=follow_dirlinks)
+    print(f"- created manifest file '{manifest}'")
+    # Create symlinks file
+    if d.has_symlinks:
+        symlinks_file = os.path.join(metadata_dir, "symlinks")
+        with open(symlinks_file, 'wt') as fp:
+            for o in d.symlinks:
+                o = Path(o)
+                fp.write(f"{o.relative_to(d.path)}\t{os.readlink(o)}\t{o.resolve()}\n")
+    # Create broken symlinks file
+    if d.has_broken_symlinks:
+        broken_symlinks_file = os.path.join(metadata_dir, "broken_symlinks")
+        with open(broken_symlinks_file, 'wt') as fp:
+            for o in d.broken_symlinks:
+                o = Path(o)
+                fp.write(f"{o.relative_to(d.path)}\t{os.readlink(o)}\t{o.resolve()}\n")
     # Create checksum file
     md5sums = os.path.join(metadata_dir, "checksums.md5")
     with open(md5sums, 'wt') as fp:
-        for o in d.walk():
+        for o in d.walk(followlinks=follow_dirlinks):
             o = Path(o)
-            if o.is_dir() or o.is_symlink():
+            if o.is_dir():
                 continue
-            fp.write(f"{md5sum(o)}  {o.relative_to(d.path)}\n")
-    print(f"Created checksums file '{md5sums}'")
+            if o.is_symlink():
+                if replace_symlinks or transform_broken_symlinks:
+                    o_ = o.resolve()
+                    if o_.exists():
+                        md5 = md5sum(o_)
+                    elif transform_broken_symlinks:
+                        md5 = os.path.join(temp_copy, o.relative_to(d.path))
+                    else:
+                        continue
+                else:
+                    continue
+            else:
+                md5 = md5sum(o)
+            fp.write(f"{md5}  {o.relative_to(d.path)}\n")
+    print(f"- created checksums file '{md5sums}'")
     # Add JSON file with archiver info
     archive_metadata = {
         'name': d.basename,
         'source': d.path,
         'user': getpass.getuser(),
         'creation_date': time.strftime("%Y-%m-%d %H:%M:%S"),
+        'replace_symlinks': format_bool(replace_symlinks),
+        'transform_broken_symlinks': format_bool(transform_broken_symlinks),
+        'follow_dirlinks': format_bool(follow_dirlinks),
         'ngsarchiver_version': get_version(),
     }
     # Write archive contents to JSON file
@@ -1399,10 +1605,11 @@ def make_copy(d,dest):
         json.dump(archive_metadata, fp, indent=2)
     # Move to final location
     shutil.move(temp_copy, dest)
-    print(f"Final copy in {dest}")
+    shutil.copystat(d.path, dest)
+    print(f"- moved final copy to {dest}")
     return Directory(dest)
 
-def make_manifest_file(d, manifest_file):
+def make_manifest_file(d, manifest_file, follow_dirlinks=False):
     """
     Create a 'manifest' file for a directory
 
@@ -1415,11 +1622,15 @@ def make_manifest_file(d, manifest_file):
         manifest for
       manifest_file (str): path to the file to
         write the manifest data to
+      follow_dirlinks (bool): if True then transform
+        symbolic links to directories into the
+        referent directories (and include files and
+        directories underneath)
     """
     if Path(manifest_file).exists():
         raise NgsArchiverException(f"{manifest_file}: already exists")
     with open(manifest_file, 'wt') as fp:
-        for o in d.walk():
+        for o in d.walk(followlinks=follow_dirlinks):
             o = Path(o)
             try:
                 owner = Path(o).owner()

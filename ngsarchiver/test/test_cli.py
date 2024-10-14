@@ -5,6 +5,7 @@ import tempfile
 import shutil
 import os
 import base64
+from ngsarchiver.archive import Directory
 from ngsarchiver.cli import CLIStatus
 from ngsarchiver.cli import main
 
@@ -421,3 +422,72 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
         self.assertFalse(os.path.isdir(os.path.join(self.wd,
                                                     "copied",
                                                     "example")))
+
+    def test_copy_with_replace_symlinks(self):
+        """
+        CLI: test the 'copy' command with --replace-symlinks
+        """
+        # Make example directory to copy
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/ex3.txt",type="symlink",target="ex2.txt")
+        example_dir.create()
+        copy_dir = os.path.join(self.wd,"copied")
+        os.mkdir(copy_dir)
+        self.assertEqual(main(['copy', '--replace-symlinks',
+                               example_dir.path, copy_dir]),
+                         CLIStatus.OK)
+        self.assertTrue(os.path.isdir(os.path.join(self.wd,
+                                                   "copied",
+                                                   "example")))
+        self.assertFalse(
+            Directory(os.path.join(self.wd,
+                                   "copied",
+                                   "example")).has_symlinks)
+
+    def test_copy_with_follow_dirlinks(self):
+        """
+        CLI: test the 'copy' command with --follow-dirlinks
+        """
+        # Make example directory to copy
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir2",type="symlink",target="subdir1")
+        example_dir.create()
+        copy_dir = os.path.join(self.wd,"copied")
+        os.mkdir(copy_dir)
+        self.assertEqual(main(['copy', '--follow-dirlinks',
+                               example_dir.path, copy_dir]),
+                         CLIStatus.OK)
+        self.assertTrue(os.path.isdir(os.path.join(self.wd,
+                                                   "copied",
+                                                   "example")))
+        self.assertFalse(
+            Directory(os.path.join(self.wd,
+                                   "copied",
+                                   "example")).has_dirlinks)
+
+    def test_copy_with_transform_broken_symlinks(self):
+        """
+        CLI: test the 'copy' command with --transform-broken-symlinks
+        """
+        # Make example directory to copy
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/broken",type="symlink",target="doesnt_exist")
+        example_dir.create()
+        copy_dir = os.path.join(self.wd,"copied")
+        os.mkdir(copy_dir)
+        self.assertEqual(main(['copy', '--transform-broken-symlinks',
+                               example_dir.path, copy_dir]),
+                         CLIStatus.OK)
+        self.assertTrue(os.path.isdir(os.path.join(self.wd,
+                                                   "copied",
+                                                   "example")))
+        self.assertFalse(
+            Directory(os.path.join(self.wd,
+                                   "copied",
+                                   "example")).has_broken_symlinks)
