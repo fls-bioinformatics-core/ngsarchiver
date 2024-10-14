@@ -412,7 +412,7 @@ class Directory:
                         if broken_symlinks_placeholders:
                             if not os.path.lexists(o_):
                                 print("%s: no placeholder in copy for "
-                                      "broken symlink" % obj)
+                                      "broken symlink" % o)
                                 return False
                         elif follow_symlinks:
                             print("%s: unable to resolve symlink "
