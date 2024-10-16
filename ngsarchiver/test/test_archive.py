@@ -376,6 +376,38 @@ class TestDirectory(unittest.TestCase):
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
 
+    def test_directory_unresolvable_symlinks(self):
+        """
+        Directory: check handling of unresolvable symlinks
+        """
+        # Build example dir without unresolvable symlinks
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./ex1.txt")
+        example_dir.create()
+        p = example_dir.path
+        # No unresolvable symlinks or unreadable files should be
+        # detected and unknown UID detection should function correctly
+        d = Directory(p)
+        self.assertEqual(list(d.unresolvable_symlinks),[])
+        self.assertFalse(d.has_unresolvable_symlinks)
+        self.assertEqual(list(d.unreadable_files),[])
+        self.assertTrue(d.is_readable)
+        self.assertEqual(list(d.unknown_uids),[])
+        self.assertFalse(d.has_unknown_uids)
+        # Add unresolvable symlink loop
+        unresolvable_symlink = os.path.join(p,"unresolvable")
+        os.symlink("./unresolvable",unresolvable_symlink)
+        # Unresolvable symlink should be detected but no unreadable
+        # files and unknown UID detection should function correctly
+        self.assertEqual(list(d.unresolvable_symlinks),
+                         [unresolvable_symlink,])
+        self.assertTrue(d.has_unresolvable_symlinks)
+        self.assertEqual(list(d.unreadable_files),[])
+        self.assertTrue(d.is_readable)
+        self.assertEqual(list(d.unknown_uids),[])
+        self.assertFalse(d.has_unknown_uids)
+
     def test_directory_dirlinks(self):
         """
         Directory: check reporting of dirlinks

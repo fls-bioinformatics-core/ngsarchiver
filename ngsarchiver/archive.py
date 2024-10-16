@@ -233,6 +233,28 @@ class Directory:
         return False
 
     @property
+    def unresolvable_symlinks(self):
+        """
+        Return symlinks that cannot be resolved
+
+        Examples include symlink loops (where a symbolic link
+        ends up pointing back to itself either directly or via
+        intermediate links)
+        """
+        for o in self.symlinks:
+            if Path(o).is_unresolvable_symlink():
+                yield o
+
+    @property
+    def has_unresolvable_symlinks(self):
+        """
+        Check if any symlinks cannot be resolved
+        """
+        for o in self.unresolvable_symlinks:
+            return True
+        return False
+
+    @property
     def dirlinks(self):
         """
         Return all symlinks which point to directories
