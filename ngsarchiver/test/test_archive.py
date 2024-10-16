@@ -11,6 +11,7 @@ import string
 import shutil
 import base64
 import getpass
+from ngsarchiver.archive import Path
 from ngsarchiver.archive import Directory
 from ngsarchiver.archive import GenericRun
 from ngsarchiver.archive import MultiSubdirRun
@@ -121,6 +122,138 @@ def random_text(n):
     # Return random ASCII text consisting of
     # n characters
     return ''.join(random.choice(string.ascii_lowercase) for i in range(n))
+
+
+class TestPath(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestPath')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_path_is_regular_file(self):
+        """
+        Path: check regular file
+        """
+        f = os.path.join(self.wd, "file1.txt")
+        with open(f, "wt") as fp:
+            fp.write("Placeholder")
+        self.assertTrue(Path(f).is_file())
+        self.assertFalse(Path(f).is_hardlink())
+        self.assertFalse(Path(f).is_dirlink())
+        self.assertFalse(Path(f).is_broken_symlink())
+        self.assertFalse(Path(f).is_unresolvable_symlink())
+
+    def test_path_is_directory(self):
+        """
+        Path: check regular directory
+        """
+        d = os.path.join(self.wd, "dir1")
+        os.makedirs(d)
+        self.assertTrue(Path(d).is_dir())
+        self.assertFalse(Path(d).is_hardlink())
+        self.assertFalse(Path(d).is_dirlink())
+        self.assertFalse(Path(d).is_broken_symlink())
+        self.assertFalse(Path(d).is_unresolvable_symlink())
+
+    def test_path_is_symlink(self):
+        """
+        Path: check regular symlink
+        """
+        f = os.path.join(self.wd, "file1.txt")
+        with open(f, "wt") as fp:
+            fp.write("Placeholder")
+        s = os.path.join(self.wd, "symlink1")
+        os.symlink(f, s)
+        self.assertTrue(Path(s).is_symlink())
+        self.assertFalse(Path(s).is_hardlink())
+        self.assertFalse(Path(s).is_dirlink())
+        self.assertFalse(Path(s).is_broken_symlink())
+        self.assertFalse(Path(s).is_unresolvable_symlink())
+
+    def test_path_is_dirlink(self):
+        """
+        Path: check dirlink
+        """
+        d = os.path.join(self.wd, "dir1")
+        os.makedirs(d)
+        s = os.path.join(self.wd, "dirlink1")
+        os.symlink(d, s)
+        self.assertTrue(Path(s).is_symlink())
+        self.assertTrue(Path(s).is_dirlink())
+        self.assertFalse(Path(s).is_hardlink())
+        self.assertFalse(Path(s).is_broken_symlink())
+        self.assertFalse(Path(s).is_unresolvable_symlink())
+
+    def test_path_is_broken_symlink(self):
+        """
+        Path: check broken symlink
+        """
+        s = os.path.join(self.wd, "broken_symlink")
+        os.symlink("doesnt_exist", s)
+        self.assertTrue(Path(s).is_symlink())
+        self.assertTrue(Path(s).is_broken_symlink())
+        self.assertFalse(Path(s).is_hardlink())
+        self.assertFalse(Path(s).is_dirlink())
+        self.assertFalse(Path(s).is_unresolvable_symlink())
+
+    def test_path_is_hard_link(self):
+        """
+        Path: check hard linked file
+        """
+        f = os.path.join(self.wd, "file1.txt")
+        with open(f, "wt") as fp:
+            fp.write("Placeholder")
+        h = os.path.join(self.wd, "hard_link1.txt")
+        os.link(f, h)
+        self.assertTrue(Path(h).is_file())
+        self.assertTrue(Path(h).is_hardlink())
+        self.assertFalse(Path(h).is_dirlink())
+        self.assertFalse(Path(h).is_broken_symlink())
+        self.assertFalse(Path(h).is_unresolvable_symlink())
+
+    def test_path_is_symlink_loop_single_symlink(self):
+        """
+        Path: check symlink loop (symlink points to itself)
+        """
+        s = os.path.join(self.wd, "symlink_to_self")
+        os.symlink(s, s)
+        self.assertTrue(Path(s).is_symlink())
+        self.assertTrue(Path(s).is_unresolvable_symlink())
+        self.assertFalse(Path(s).is_hardlink())
+        self.assertFalse(Path(s).is_dirlink())
+        self.assertFalse(Path(s).is_broken_symlink())
+
+    def test_path_is_symlink_loop_pair_of_symlink(self):
+        """
+        Path: check symlink loop (symlinks point to each other)
+        """
+        s1 = os.path.join(self.wd, "symlink1")
+        s2 = os.path.join(self.wd, "symlink2")
+        os.symlink(s1, s2)
+        os.symlink(s2, s1)
+        self.assertTrue(Path(s1).is_symlink())
+        self.assertTrue(Path(s1).is_unresolvable_symlink())
+        self.assertFalse(Path(s1).is_hardlink())
+        self.assertFalse(Path(s1).is_dirlink())
+        self.assertFalse(Path(s1).is_broken_symlink())
+
+    def test_path_is_symlink_to_broken_symlink(self):
+        """
+        Path: check symlink to broken symlink
+        """
+        b = os.path.join(self.wd, "broken_symlink")
+        os.symlink("doesnt_exist", b)
+        s = os.path.join(self.wd, "symlink_to_broken")
+        os.symlink(b, s)
+        self.assertTrue(Path(s).is_symlink())
+        self.assertTrue(Path(s).is_broken_symlink())
+        self.assertFalse(Path(s).is_hardlink())
+        self.assertFalse(Path(s).is_dirlink())
+        self.assertFalse(Path(s).is_unresolvable_symlink())
+
 
 class TestDirectory(unittest.TestCase):
 

@@ -25,7 +25,7 @@ import hashlib
 import fnmatch
 import getpass
 import logging
-from pathlib import Path
+import pathlib
 from .exceptions import NgsArchiverException
 from . import get_version
 
@@ -45,6 +45,66 @@ MD5_BLOCKSIZE = 1024*1024
 #######################################################################
 # Classes
 #######################################################################
+
+
+class Path(type(pathlib.Path())):
+    """
+    Wrapper for pathlib.Path class with additional methods
+
+    This class wraps the 'Path' class from the 'pathlib' module
+    in order to implement additional methods:
+
+    - is_hardlink: checks if path is a hard linked file
+    - is_dirlink: checks if path is a symbolic link to a directory
+    - is_broken_symlink: checks if path is a symbolic link where
+      the target doesn't exist
+    - is_unresolvable_symlink: checks if path is a symbolic link
+      which cannot be resolved (for example, if it's a part of a
+      symlink loop which ends up pointing back to itself)
+
+    (Use suggestion from https://stackoverflow.com/a/34116756
+    to subclass 'Path')
+    """
+
+    def __init__(self, *args, **kws):
+        super().__init__()
+
+    def is_hardlink(self):
+        """
+        Returns True if Path is a hard linked file
+        """
+        if not self.is_symlink() and self.is_file() and \
+           os.stat(self).st_nlink > 1:
+            return True
+        return False
+
+    def is_dirlink(self):
+        """
+        Returns True if Path is a symbolic link to a directory
+        """
+        if self.is_symlink() and not self.is_unresolvable_symlink():
+            return self.resolve().is_dir()
+        return False
+
+    def is_broken_symlink(self):
+        """
+        Returns True if Path is a symbolic link with non-existent target
+        """
+        if self.is_symlink() and not self.is_unresolvable_symlink():
+            return not self.resolve().exists()
+        return False
+
+    def is_unresolvable_symlink(self):
+        """
+        Returns True if Path is a symbolic link that resolves to itself
+        """
+        if self.is_symlink():
+            try:
+                self.resolve()
+            except Exception:
+                return True
+        return False
+
 
 class Directory:
     """
