@@ -254,6 +254,13 @@ def main(argv=None):
                 has_broken_symlinks = True
             if not has_broken_symlinks:
                 print("-- no broken symlinks")
+            print("Unresolvable symlinks:")
+            has_unresolvable_symlinks = False
+            for s in d.unresolvable_symlinks:
+                print("-- %s" % s)
+                has_unresolvable_symlinks = True
+            if not has_unresolvable_symlinks:
+                print("-- no unresolvable symlinks")
             print("Hard linked files:")
             has_hard_links = False
             for f in d.hard_linked_files:
@@ -269,17 +276,19 @@ def main(argv=None):
             if not has_unknown_uids:
                 print("-- no files with unknown UIDs")
         else:
-            print("Unreadable files : %s" %
+            print("Unreadable files     : %s" %
                   format_bool(not d.is_readable))
-            print("Dirlinks         : %s" %
+            print("Dirlinks             : %s" %
                   format_bool(d.has_dirlinks))
-            print("External symlinks: %s" %
+            print("External symlinks    : %s" %
                   format_bool(d.has_external_symlinks))
-            print("Broken symlinks  : %s" %
+            print("Broken symlinks      : %s" %
                   format_bool(d.has_broken_symlinks))
-            print("Hard linked files: %s" %
+            print("Unresolvable symlinks: %s" %
+                  format_bool(d.has_unresolvable_symlinks))
+            print("Hard linked files    : %s" %
                   format_bool(d.has_hard_linked_files))
-            print("Unknown UIDs     : %s" %
+            print("Unknown UIDs         : %s" %
                   format_bool(d.has_unknown_uids))
         return CLIStatus.OK
 
