@@ -220,8 +220,7 @@ class Directory:
         Return symlinks that point to non-existent targets
         """
         for o in self.symlinks:
-            target = Path(o).resolve()
-            if not Path(target).exists():
+            if Path(o).is_broken_symlink():
                 yield o
 
     @property
@@ -239,7 +238,7 @@ class Directory:
         Return all symlinks which point to directories
         """
         for o in self.symlinks:
-            if Path(o).resolve().is_dir():
+            if Path(o).is_dirlink():
                 yield o
 
     @property
@@ -260,9 +259,7 @@ class Directory:
         link count greater than one.
         """
         for o in self.walk():
-            if not Path(o).is_symlink() and \
-               os.path.isfile(o) and \
-               os.stat(o).st_nlink > 1:
+            if Path(o).is_hardlink():
                 yield o
 
     @property
