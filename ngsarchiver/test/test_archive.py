@@ -395,6 +395,9 @@ class TestDirectory(unittest.TestCase):
         self.assertTrue(d.is_readable)
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
+        # Also check external symlinks
+        self.assertEqual(list(d.external_symlinks), [])
+        self.assertFalse(d.has_external_symlinks)
         # Add unresolvable symlink loop
         unresolvable_symlink = os.path.join(p,"unresolvable")
         os.symlink("./unresolvable",unresolvable_symlink)
@@ -407,6 +410,9 @@ class TestDirectory(unittest.TestCase):
         self.assertTrue(d.is_readable)
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
+        # Also check external symlinks
+        self.assertEqual(list(d.external_symlinks), [])
+        self.assertFalse(d.has_external_symlinks)
 
     def test_directory_dirlinks(self):
         """

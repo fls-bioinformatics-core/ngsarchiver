@@ -199,11 +199,14 @@ class Directory:
         Return symlinks that point outside the directory
         """
         for o in self.symlinks:
-            target = Path(o).resolve()
             try:
-                Path(target).relative_to(self._path)
-            except ValueError:
-                yield o
+                target = Path(o).resolve()
+                try:
+                    Path(target).relative_to(self._path)
+                except ValueError:
+                    yield o
+            except Exception:
+                pass
 
     @property
     def has_external_symlinks(self):
