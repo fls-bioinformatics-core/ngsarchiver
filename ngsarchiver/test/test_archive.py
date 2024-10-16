@@ -225,6 +225,8 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s).is_hardlink())
         self.assertFalse(Path(s).is_dirlink())
         self.assertFalse(Path(s).is_broken_symlink())
+        # Check unresolvable symlinks don't upset 'is_dir'
+        self.assertFalse(Path(s).is_dir())
 
     def test_path_is_symlink_loop_pair_of_symlink(self):
         """
@@ -239,6 +241,8 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s1).is_hardlink())
         self.assertFalse(Path(s1).is_dirlink())
         self.assertFalse(Path(s1).is_broken_symlink())
+        # Check unresolvable symlinks don't upset 'is_dir'
+        self.assertFalse(Path(s1).is_dir())
 
     def test_path_is_symlink_to_broken_symlink(self):
         """

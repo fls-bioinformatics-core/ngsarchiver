@@ -69,6 +69,14 @@ class Path(type(pathlib.Path())):
     def __init__(self, *args, **kws):
         super().__init__()
 
+    def is_dir(self):
+        """
+        Overrides 'is_dir' method from base class
+        """
+        if not self.is_unresolvable_symlink():
+            return super().is_dir()
+        return False
+
     def is_hardlink(self):
         """
         Returns True if Path is a hard linked file
