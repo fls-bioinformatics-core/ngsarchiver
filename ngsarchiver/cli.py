@@ -303,21 +303,24 @@ def main(argv=None):
         largest_file = d.largest_file
         check_status = 0
         print("Checking %s..." % d)
-        print("-- type          : %s" % d.__class__.__name__)
-        print("-- size          : %s" % format_size(size,
-                                                    human_readable=True))
-        print("-- largest file     : %s" % format_size(largest_file[1],
-                                                       human_readable=True))
+        print("-- type        : %s" % d.__class__.__name__)
+        print("-- size        : %s" % format_size(size,
+                                                  human_readable=True))
+        print("-- largest file: %s" % format_size(largest_file[1],
+                                                  human_readable=True))
         is_readable = d.is_readable
-        print("-- unreadable files : %s" % format_bool(not is_readable))
+        print(f"-- unreadable files     : {format_bool(not is_readable)}")
         has_external_symlinks = d.has_external_symlinks
-        print("-- external symlinks: %s" % format_bool(has_external_symlinks))
+        print(f"-- external symlinks    : {format_bool(has_external_symlinks)}")
         has_broken_symlinks = d.has_broken_symlinks
-        print("-- broken symlinks  : %s" % format_bool(has_broken_symlinks))
+        print(f"-- broken symlinks      : {format_bool(has_broken_symlinks)}")
+        has_unresolvable_symlinks = d.has_unresolvable_symlinks
+        print(f"-- unresolvable symlinks: "
+              f"{format_bool(has_unresolvable_symlinks)}")
         has_unknown_uids = d.has_unknown_uids
-        print("-- unknown UIDs     : %s" % format_bool(has_unknown_uids))
+        print(f"-- unknown UIDs         : {format_bool(has_unknown_uids)}")
         has_hard_linked_files = d.has_hard_linked_files
-        print("-- hard linked files: %s" % format_bool(has_hard_linked_files))
+        print(f"-- hard linked files    : {format_bool(has_hard_linked_files)}")
         if has_external_symlinks or \
            has_broken_symlinks or \
            not is_readable or \
@@ -330,9 +333,11 @@ def main(argv=None):
                 msg += " (ignored"
                 if not is_readable:
                     msg += "; unreadable files will be omitted"
-                if has_external_symlinks or has_broken_symlinks:
-                    msg += "; broken/external links will be archived " \
-                    "as-is"
+                if has_external_symlinks or \
+                   has_broken_symlinks or \
+                   has_unresolvable_symlinks:
+                    msg += "; broken/unresolvable and/or external links " \
+                           "will be archived as-is"
                 msg += ")"
                 logger.warning(msg)
             else:
