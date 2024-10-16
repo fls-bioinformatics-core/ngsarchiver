@@ -498,7 +498,8 @@ class Directory:
                     return False
             elif os.path.islink(o):
                 if follow_symlinks or broken_symlinks_placeholders:
-                    if not Path(o).resolve().exists():
+                    if Path(o).is_broken_symlink() \
+                       or Path(o).is_unresolvable_symlink():
                         if broken_symlinks_placeholders:
                             if not os.path.lexists(o_):
                                 print("%s: no placeholder in copy for "

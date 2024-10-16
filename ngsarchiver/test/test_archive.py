@@ -791,6 +791,65 @@ class TestDirectory(unittest.TestCase):
                                        follow_symlinks=True,
                                        broken_symlinks_placeholders=True))
 
+    def test_directory_verify_copy_with_symlink_loop_placeholder(self):
+        """
+        Directory: check 'verify_copy' method with placeholder for unresolvable symlink loop
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./symlink1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Check standard verification works
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertTrue(d1.verify_copy(dir2))
+        self.assertTrue(d2.verify_copy(dir1))
+        # Replace symlink loop in one copy with placeholder file
+        os.remove(os.path.join(dir2, "symlink1"))
+        with open(os.path.join(dir2, "symlink1"), "wt") as fp:
+            fp.write(f"./symlink1")
+        # Check standard verification now fails
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+        # Check verification with broken symlinks placeholders
+        self.assertTrue(d1.verify_copy(dir2,
+                                       broken_symlinks_placeholders=True))
+        # Verification still fails the other way around
+        # (because a regular file cannot match a symlink)
+        self.assertFalse(d2.verify_copy(dir1,
+                                        broken_symlinks_placeholders=True))
+
+    def test_directory_verify_copy_with_unresolvable_symlink_loop(self):
+        """
+        Directory: check 'verify_copy' method with unresolvable symlink loop
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./symlink1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Check verification when identical
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertTrue(d1.verify_copy(dir2))
+        self.assertTrue(d2.verify_copy(dir1))
+        # Add a file to second directory
+        with open(os.path.join(dir2,"extra.txt"),'wt') as fp:
+            fp.write("extra stuff")
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+
     def test_directory_verify_copy_missing_file(self):
         """
         Directory: check 'verify_copy' method for missing file
