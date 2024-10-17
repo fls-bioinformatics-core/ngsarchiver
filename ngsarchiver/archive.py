@@ -1596,11 +1596,12 @@ def make_copy(d, dest, replace_symlinks=False,
         raise NgsArchiverException(f"{d}: found existing partial copy "
                                    "'{temp_copy}' (remove before retrying)")
     # Do the copy
-    print(f"- starting copy to {temp_copy}...")
     os.makedirs(temp_copy)
+    print(f"- copying to {temp_copy}...")
     print(f"- replace working symlinks?....{format_bool(replace_symlinks)}")
     print(f"- transform broken symlinks?...{format_bool(transform_broken_symlinks)}")
     print(f"- follow directory symlinks?...{format_bool(follow_dirlinks)}")
+    print(f"- starting...")
     has_errors = False
     for o in d.walk(followlinks=follow_dirlinks):
         src = Path(o)
