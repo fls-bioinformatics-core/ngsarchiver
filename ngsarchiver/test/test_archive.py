@@ -4433,6 +4433,63 @@ class TestMakeManifestFile(unittest.TestCase):
                 self.assertTrue(line.rstrip() in expected_lines,
                                 f"'{line.rstrip()}': unexpected line")
 
+    def test_make_manifest_file_with_broken_symlinks(self):
+        """
+        make_manifest_file: check manifest file with broken symlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/symlink1.txt",type="symlink",target="missing")
+        example_dir.create()
+        # Get user and group
+        username = getpass.getuser()
+        group = grp.getgrgid(pwd.getpwnam(username).pw_gid).gr_name
+        # Create manifest file
+        manifest_file = make_manifest_file(Directory(example_dir.path),
+                                           os.path.join(self.wd, "manifest"))
+        self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
+        self.assertTrue(os.path.exists(manifest_file))
+        # Check contents
+        expected_lines = [f"{username}\t{group}\tex1.txt",
+                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/ex2.txt",
+                          f"{username}\t{group}\tsubdir/symlink1.txt"]
+        with open(manifest_file, 'rt') as fp:
+            for line in fp:
+                self.assertTrue(line.rstrip() in expected_lines,
+                                f"'{line.rstrip()}': unexpected line")
+
+    def test_make_manifest_file_with_unresolvable_symlinks(self):
+        """
+        make_manifest_file: check manifest file with unresolvable symlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/symlink1.txt",type="symlink",
+                        target="./symlink1.txt")
+        example_dir.create()
+        # Get user and group
+        username = getpass.getuser()
+        group = grp.getgrgid(pwd.getpwnam(username).pw_gid).gr_name
+        # Create manifest file
+        manifest_file = make_manifest_file(Directory(example_dir.path),
+                                           os.path.join(self.wd, "manifest"))
+        self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
+        self.assertTrue(os.path.exists(manifest_file))
+        # Check contents
+        expected_lines = [f"{username}\t{group}\tex1.txt",
+                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/ex2.txt",
+                          f"{username}\t{group}\tsubdir/symlink1.txt"]
+        with open(manifest_file, 'rt') as fp:
+            for line in fp:
+                self.assertTrue(line.rstrip() in expected_lines,
+                                f"'{line.rstrip()}': unexpected line")
+
     def test_make_manifest_file_follow_dirlinks(self):
         """
         make_manifest_file: check manifest file with dirlinks

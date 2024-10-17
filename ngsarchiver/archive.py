@@ -1753,16 +1753,8 @@ def make_manifest_file(d, manifest_file, follow_dirlinks=False):
     with open(manifest_file, 'wt') as fp:
         for o in d.walk(followlinks=follow_dirlinks):
             o = Path(o)
-            try:
-                owner = Path(o).owner()
-            except (KeyError,FileNotFoundError):
-                # Unknown user, fall back to UID
-                owner = os.stat(o,follow_symlinks=False).st_uid
-            try:
-                group = Path(o).group()
-            except (KeyError,FileNotFoundError):
-                # Unknown group, fall back to GID
-                group = os.stat(o,follow_symlinks=False).st_gid
+            owner = Path(o).owner()
+            group = Path(o).group()
             fp.write("{owner}\t{group}\t{obj}\n".format(
                 owner=owner,
                 group=group,
