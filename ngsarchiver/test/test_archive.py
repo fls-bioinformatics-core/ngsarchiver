@@ -3950,6 +3950,79 @@ class TestMakeCopy(unittest.TestCase):
             for f in ("subdir/rel_ext_symlink.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
 
+    def test_make_copy_transform_unresolvable_symlink(self):
+        """
+        make_copy: transform unresolvable symlink (symlink loop)
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/symlink_to_self",
+                        type="symlink",
+                        target=os.path.join(self.wd,
+                                            "example",
+                                            "subdir",
+                                            "symlink_to_self"))
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Make copy
+        d = Directory(p)
+        dd = make_copy(d, dest_dir, transform_broken_symlinks=True)
+        self.assertTrue(isinstance(dd,Directory))
+        # Check resulting directory
+        self.assertEqual(dd.path, dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        expected = ("ex1.txt",
+                    "subdir",
+                    "subdir/ex2.txt",
+                    "subdir/symlink_to_self",
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/symlinks",
+                    "ARCHIVE_METADATA/unresolvable_symlinks",
+                    "ARCHIVE_METADATA/checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json")
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(dest_dir, item)),
+                "missing '%s'" % item)
+            if not item.startswith("ARCHIVE_METADATA") and \
+               not os.path.basename(item) == "symlink_to_self":
+                self.assertEqual(
+                    os.path.getmtime(os.path.join(p, item)),
+                    os.path.getmtime(os.path.join(dest_dir, item)),
+                    "modification time differs for '%s'" % item)
+        # Check extra items aren't present
+        for item in dd.walk():
+            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
+                            "'%s' not expected" % item)
+        # Check replaced file is not a symlink
+        self.assertFalse(os.path.islink(os.path.join(dest_dir,
+                                                     "subdir",
+                                                     "symlink_to_self")))
+        # Check replaced file appears in checksum file
+        with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            self.assertTrue("subdir/symlink_to_self" in fp.read())
+        # Check symlink appears in symlinks file
+        with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
+                  "rt") as fp:
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
+            for f in ("subdir/symlink_to_self",):
+                self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
+        # Check symlink appears in unresolvable symlinks file
+        with open(os.path.join(dest_dir,
+                               "ARCHIVE_METADATA",
+                               "unresolvable_symlinks"),
+                  "rt") as fp:
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
+            for f in ("subdir/symlink_to_self",):
+                self.assertTrue(f in symlinks,
+                                "%s: not in unresolvable symlinks file" % f)
+
     def test_make_copy_replace_broken_symlink(self):
         """
         make_copy: fails attempting to replace broken symlink
@@ -4174,6 +4247,77 @@ class TestMakeCopy(unittest.TestCase):
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
+
+    def test_make_copy_replace_and_transform_symlink_pointing_to_broken_link(self):
+        """
+        make_copy: replace/transform links with symlink that points to a broken link
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/broken_link", type="symlink",
+                        target="doesnt_exist")
+        example_dir.add("subdir/symlink_to_broken", type="symlink",
+                        target="./broken_link")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Make copy
+        d = Directory(p)
+        dd = make_copy(d, dest_dir, replace_symlinks=True,
+                       transform_broken_symlinks=True)
+        self.assertTrue(isinstance(dd,Directory))
+        # Check resulting directory
+        self.assertEqual(dd.path, dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        expected = ("ex1.txt",
+                    "subdir",
+                    "subdir/ex2.txt",
+                    "subdir/broken_link",
+                    "subdir/symlink_to_broken",
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/symlinks",
+                    "ARCHIVE_METADATA/broken_symlinks",
+                    "ARCHIVE_METADATA/checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json")
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(dest_dir, item)),
+                "missing '%s'" % item)
+            if not item.startswith("ARCHIVE_METADATA") and \
+               os.path.basename(item) not in ("broken_link",
+                                              "symlink_to_broken"):
+                self.assertEqual(
+                    os.path.getmtime(os.path.join(p, item)),
+                    os.path.getmtime(os.path.join(dest_dir, item)),
+                    "modification time differs for '%s'" % item)
+        # Check extra items aren't present
+        for item in dd.walk():
+            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
+                            "'%s' not expected" % item)
+        # Check replaced/transformed files exist and are not symlinks
+        for f in ("broken_link", "symlink_to_broken"):
+            self.assertTrue(os.path.exists(os.path.join(dest_dir, "subdir", f)),
+                            f"{f}: doesn't exist (but should)")
+            self.assertFalse(os.path.islink(os.path.join(dest_dir, "subdir", f)),
+                             f"{f}: is a symlink (but shouldn't be)")
+        # Check replaced/transformed files appear in checksum file
+        with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            checksum_files = [line.split("  ")[-1] for line in fp.read().split("\n")]
+            for f in ("broken_link", "symlink_to_broken"):
+                self.assertTrue(f"subdir/{f}" in checksum_files,
+                                "%s: not in checksums file" % f)
+        # Check replaced/transformed symlinks appear in symlinks file
+        with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
+                  "rt") as fp:
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
+            for f in ("broken_link", "symlink_to_broken",):
+                self.assertTrue(f"subdir/{f}" in symlinks,
+                                "%s: not in symlinks file" % f)
 
     def test_make_copy_follow_dirlink(self):
         """
