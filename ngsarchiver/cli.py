@@ -512,26 +512,28 @@ def main(argv=None):
         size = d.size
         check_status = 0
         print("Checking %s..." % d)
-        print("-- type          : %s" % d.__class__.__name__)
-        print("-- size          : %s" % format_size(size,
-                                                    human_readable=True))
+        print("-- type: %s" % d.__class__.__name__)
+        print("-- size: %s" % format_size(size, human_readable=True))
         has_symlinks = d.has_symlinks
-        print(f"-- symlinks         : %s" % format_bool(has_symlinks))
+        print(f"-- symlinks             : %s" % format_bool(has_symlinks))
         is_readable = d.is_readable
-        print(f"-- unreadable files : %s" % format_bool(not is_readable))
+        print(f"-- unreadable files     : %s" % format_bool(not is_readable))
         has_dirlinks = d.has_dirlinks
-        print(f"-- dirlinks         : %s" % format_bool(has_dirlinks))
+        print(f"-- dirlinks             : %s" % format_bool(has_dirlinks))
         has_external_symlinks = d.has_external_symlinks
-        print(f"-- external symlinks: %s" % format_bool(has_external_symlinks))
+        print(f"-- external symlinks    : %s" %
+              format_bool(has_external_symlinks))
         has_broken_symlinks = d.has_broken_symlinks
-        print(f"-- broken symlinks  : %s" % format_bool(has_broken_symlinks))
+        print(f"-- broken symlinks      : %s" %
+              format_bool(has_broken_symlinks))
         has_unresolvable_symlinks = d.has_unresolvable_symlinks
         print(f"-- unresolvable symlinks: "
               f"{format_bool(has_unresolvable_symlinks)}")
         has_unknown_uids = d.has_unknown_uids
-        print("-- unknown UIDs     : %s" % format_bool(has_unknown_uids))
+        print("-- unknown UIDs          : %s" % format_bool(has_unknown_uids))
         has_hard_linked_files = d.has_hard_linked_files
-        print("-- hard linked files: %s" % format_bool(has_hard_linked_files))
+        print("-- hard linked files     : %s" %
+              format_bool(has_hard_linked_files))
         # Messaging for warnings and errors
         info_msgs = []
         error_msgs = []
@@ -557,7 +559,7 @@ def main(argv=None):
                 info_msgs.append("Dirlinks detected (ignored; symlinks "
                                  "to directories will be converted to "
                                  "directories and the contents copied "
-                                 "recursively")
+                                 "recursively)")
             elif args.replace_symlinks:
                 unrecoverable_errors.append("Dirlinks detected but "
                                             "--replace-symlinks was "
