@@ -69,6 +69,36 @@ class Path(type(pathlib.Path())):
     def __init__(self, *args, **kws):
         super().__init__()
 
+    def owner(self):
+        """
+        Overrides 'owner' method from base class
+        """
+        try:
+            return super().owner()
+        except (KeyError, FileNotFoundError, OSError):
+            pass
+        # Fall back to UID
+        uid = os.lstat(self).st_uid
+        try:
+            return pwd.getpwuid(uid).pw_name
+        except Exception:
+            return uid
+
+    def group(self):
+        """
+        Overrides 'group' method from base class
+        """
+        try:
+            return super().group()
+        except (KeyError, FileNotFoundError, OSError):
+            pass
+        # Fall back to GID
+        gid = os.lstat(self).st_gid
+        try:
+            return grp.getgrgid(gid).gr_name
+        except Exception:
+            return gid
+
     def is_dir(self):
         """
         Overrides 'is_dir' method from base class

@@ -258,6 +258,79 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s).is_dirlink())
         self.assertFalse(Path(s).is_unresolvable_symlink())
 
+    def test_path_owner(self):
+        """
+        Path: check 'owner' works for different cases
+        """
+        # Current user
+        username = getpass.getuser()
+        # Regular file
+        f = os.path.join(self.wd, "file1.txt")
+        with open(f, "wt") as fp:
+            fp.write("Placeholder")
+        self.assertEqual(Path(f).owner(), username)
+        # Regular directory
+        d = os.path.join(self.wd, "dir1")
+        os.makedirs(d)
+        self.assertEqual(Path(d).owner(), username)
+        # Symlink
+        s = os.path.join(self.wd, "symlink1")
+        os.symlink(f, s)
+        self.assertEqual(Path(s).owner(), username)
+        # Dirlink
+        s = os.path.join(self.wd, "dirlink1")
+        os.symlink(d, s)
+        self.assertEqual(Path(s).owner(), username)
+        # Broken symlink
+        s = os.path.join(self.wd, "broken_symlink")
+        os.symlink("doesnt_exist", s)
+        self.assertEqual(Path(s).owner(), username)
+        # Hard linked file
+        h = os.path.join(self.wd, "hard_link1.txt")
+        os.link(f, h)
+        self.assertEqual(Path(h).owner(), username)
+        # Symlink to self
+        s = os.path.join(self.wd, "symlink_to_self")
+        os.symlink(s, s)
+        self.assertEqual(Path(h).owner(), username)
+
+    def test_path_group(self):
+        """
+        Path: check 'group' works for different cases
+        """
+        # Current group
+        groupname = grp.getgrgid(
+            pwd.getpwnam(getpass.getuser()).pw_gid).gr_name
+        # Regular file
+        f = os.path.join(self.wd, "file1.txt")
+        with open(f, "wt") as fp:
+            fp.write("Placeholder")
+        self.assertEqual(Path(f).group(), groupname)
+        # Regular directory
+        d = os.path.join(self.wd, "dir1")
+        os.makedirs(d)
+        self.assertEqual(Path(d).group(), groupname)
+        # Symlink
+        s = os.path.join(self.wd, "symlink1")
+        os.symlink(f, s)
+        self.assertEqual(Path(s).group(), groupname)
+        # Dirlink
+        s = os.path.join(self.wd, "dirlink1")
+        os.symlink(d, s)
+        self.assertEqual(Path(s).group(), groupname)
+        # Broken symlink
+        s = os.path.join(self.wd, "broken_symlink")
+        os.symlink("doesnt_exist", s)
+        self.assertEqual(Path(s).group(), groupname)
+        # Hard linked file
+        h = os.path.join(self.wd, "hard_link1.txt")
+        os.link(f, h)
+        self.assertEqual(Path(h).group(), groupname)
+        # Symlink to self
+        s = os.path.join(self.wd, "symlink_to_self")
+        os.symlink(s, s)
+        self.assertEqual(Path(h).group(), groupname)
+
 
 class TestDirectory(unittest.TestCase):
 
