@@ -1637,7 +1637,7 @@ def make_copy(d, dest, replace_symlinks=False,
                         logger.debug(f"-> transforming broken/unresolvable "
                                      "symlink")
                         with open(dst, "wt") as fp:
-                            fp.write(f"{os.readlink(o)}")
+                            fp.write(f"{os.readlink(o)}\n")
                             logger.debug(f"-> updating stat for broken link")
                             # Workaround as shutil.copystat doesn't work
                             # for broken or unresolvable symlinks
