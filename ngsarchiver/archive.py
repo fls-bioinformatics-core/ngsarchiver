@@ -1743,7 +1743,8 @@ def make_copy(d, dest, replace_symlinks=False,
                 continue
             elif o.is_broken_symlink() or o.is_unresolvable_symlink():
                 if transform_broken_symlinks:
-                    md5 = os.path.join(temp_copy, o.relative_to(d.path))
+                    md5 = md5sum(os.path.join(temp_copy,
+                                              o.relative_to(d.path)))
                 else:
                     continue
             elif o.is_symlink():

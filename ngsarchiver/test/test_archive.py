@@ -3,6 +3,7 @@
 import os
 import pwd
 import grp
+import re
 import unittest
 import tempfile
 import tarfile
@@ -3563,6 +3564,13 @@ class TestMakeCopy(unittest.TestCase):
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
                             "'%s' not expected" % item)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                self.assertEqual(len(line.rstrip("\n").split("  ")), 2,
+                                 f"checksum file: incorrectly formatted "
+                                 f"line: {line.rstrip()}")
 
     def test_make_copy_handle_hidden(self):
         """
@@ -3608,6 +3616,15 @@ class TestMakeCopy(unittest.TestCase):
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
                             "'%s' not expected" % item)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_handle_symlink(self):
         """
@@ -3661,6 +3678,15 @@ class TestMakeCopy(unittest.TestCase):
             symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/symlink1.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_handle_external_symlink(self):
         """
@@ -3718,6 +3744,15 @@ class TestMakeCopy(unittest.TestCase):
             symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/rel_ext_symlink.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_handle_broken_symlink(self):
         """
@@ -3781,6 +3816,15 @@ class TestMakeCopy(unittest.TestCase):
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_handle_hard_link(self):
         """
@@ -3831,6 +3875,15 @@ class TestMakeCopy(unittest.TestCase):
         link = os.path.join(dest_dir, "subdir", "link1.txt")
         self.assertFalse(
             os.path.isfile(link) and os.stat(link).st_nlink > 1)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_replace_symlink(self):
         """
@@ -3888,6 +3941,15 @@ class TestMakeCopy(unittest.TestCase):
             symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/ex3.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_replace_external_symlink(self):
         """
@@ -3949,6 +4011,15 @@ class TestMakeCopy(unittest.TestCase):
             symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/rel_ext_symlink.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_transform_unresolvable_symlink(self):
         """
@@ -4022,6 +4093,15 @@ class TestMakeCopy(unittest.TestCase):
             for f in ("subdir/symlink_to_self",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in unresolvable symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_replace_broken_symlink(self):
         """
@@ -4112,6 +4192,15 @@ class TestMakeCopy(unittest.TestCase):
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_replace_and_transform_symlinks(self):
         """
@@ -4247,6 +4336,15 @@ class TestMakeCopy(unittest.TestCase):
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_replace_and_transform_symlink_pointing_to_broken_link(self):
         """
@@ -4318,6 +4416,15 @@ class TestMakeCopy(unittest.TestCase):
             for f in ("broken_link", "symlink_to_broken",):
                 self.assertTrue(f"subdir/{f}" in symlinks,
                                 "%s: not in symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_follow_dirlink(self):
         """
@@ -4405,6 +4512,15 @@ class TestMakeCopy(unittest.TestCase):
                 if os.path.isfile(os.path.join(dest_dir, item)):
                     self.assertTrue(item in checksum_file_list,
                                     f"{item}: not in checksum file")
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_follow_dirlink_and_replace_symlinks(self):
         """
@@ -4492,6 +4608,15 @@ class TestMakeCopy(unittest.TestCase):
                 if os.path.isfile(os.path.join(dest_dir, item)):
                     self.assertTrue(item in checksum_file_list,
                                     f"{item}: not in checksum file")
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_raises_exception_for_existing_partial_copy(self):
         """
