@@ -2,6 +2,20 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.1.0 (2024-10-21)
+---------------------------
+
+* New ``symlinks`` method for ``Directory`` class (detects all
+  symbolic links) (PR #16)
+* Add options to transform symlinks (``--replace-symlinks``,
+  ``--transform-broken-symlinks`` and ``--follow-dirlinks``) on
+  ``copy`` command (PR #17)
+* Check if symlink creation is possible on target area for ``copy``
+  command before starting copy (PR #18)
+* Updates to detect and handle unresolvable symlinks (e.g. symlink
+  loops) for ``copy`` command and ``make_copy`` function (PR #19)
+
+---------------------------
 Version 1.0.2 (2024-09-30)
 ---------------------------
 
