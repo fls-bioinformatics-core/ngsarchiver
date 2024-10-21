@@ -563,6 +563,8 @@ def main(argv=None):
         print(f"-- symlinks             : {format_bool(has_symlinks)}")
         has_dirlinks = d.has_dirlinks
         print(f"-- dirlinks             : {format_bool(has_dirlinks)}")
+        has_circular_dirlinks = d.has_circular_dirlinks
+        print(f"-- circular dirlinks    : {format_bool(has_circular_dirlinks)}")
         has_external_symlinks = d.has_external_symlinks
         print(f"-- external symlinks    : {format_bool(has_external_symlinks)}")
         has_broken_symlinks = d.has_broken_symlinks
@@ -614,7 +616,12 @@ def main(argv=None):
                 error_msgs.append(msg)
                 check_status = 1
         if has_dirlinks:
-            if args.follow_dirlinks:
+            if has_circular_dirlinks and args.follow_dirlinks:
+                    unrecoverable_errors.append("Cannot follow circular "
+                                                "dirlinks (leads to "
+                                                "infinite recursion)")
+                    check_status = 1
+            elif args.follow_dirlinks:
                 info_msgs.append("Dirlinks detected (ignored; symlinks "
                                  "to directories will be converted to "
                                  "directories and the contents copied "
