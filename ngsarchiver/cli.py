@@ -16,6 +16,7 @@ import os
 import logging
 from argparse import ArgumentParser
 from .archive import ArchiveDirectory
+from .archive import check_make_symlink
 from .archive import convert_size_to_bytes
 from .archive import format_size
 from .archive import format_bool
@@ -528,6 +529,26 @@ def main(argv=None):
             unrecoverable_errors.append("Unreadable files and/or "
                                         "directories detected")
             check_status = 1
+        if has_symlinks:
+            needs_symlink_creation = \
+                    (len(list(d.symlinks)) > len(list(d.dirlinks)) and
+                     not args.replace_symlinks) or \
+                    (has_dirlinks and not args.follow_dirlinks) or \
+                    (has_broken_symlinks and not args.transform_broken_symlinks)
+            if needs_symlink_creation:
+                # Test if the target allows us to make symlinks
+                parent_dest_dir = os.path.dirname(dest_dir)
+                try:
+                    if not check_make_symlink(parent_dest_dir):
+                        unrecoverable_errors.append("Cannot make symlinks "
+                                                    "under destination "
+                                                    "directory")
+                        check_status = 1
+                except Exception as ex:
+                    unrecoverable_errors.append("Unable to check if symlinks "
+                                                "can be made under destination "
+                                                f"directory ({ex})")
+                    check_status = 1
         if has_unknown_uids:
             msg = "Unknown UID(s) detected"
             if args.force:
