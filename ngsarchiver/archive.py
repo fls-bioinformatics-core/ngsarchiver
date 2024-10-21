@@ -325,6 +325,17 @@ class Directory:
         return False
 
     @property
+    def has_circular_dirlinks(self):
+        """
+        Check if directory contains circular dirlinks
+        """
+        for d in self.dirlinks:
+            dd = Path(d).resolve()
+            if str(d).startswith(str(dd)+os.sep):
+                return True
+        return False
+
+    @property
     def hard_linked_files(self):
         """
         Return files that are hard links
