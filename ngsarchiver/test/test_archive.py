@@ -1069,14 +1069,14 @@ class TestDirectory(unittest.TestCase):
         p = example_dir.path
         # Check walk method
         d = Directory(p)
-        self.assertEqual(list(d.walk()),
+        self.assertEqual(sorted(list(d.walk())),
                          [os.path.join(p,f)
                           for f in ("ex1.txt",
-                                    "subdir2",
                                     "subdir1",
                                     "subdir1/ex2.txt",
                                     "subdir1/subdir12",
-                                    "subdir1/subdir12/ex3.txt")])
+                                    "subdir1/subdir12/ex3.txt",
+                                    "subdir2")])
 
     def test_directory_walk_follow_dirlinks(self):
         """
