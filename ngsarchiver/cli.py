@@ -190,9 +190,9 @@ def main(argv=None):
                              "directories")
     parser_copy.add_argument('-t','--transform-broken-symlinks',
                              action='store_true',
-                             help="replace broken symbolic links with "
-                             "placeholder files (default is to copy broken "
-                             "links as-is)")
+                             help="replace broken and unresolvable symbolic "
+                             "links with placeholder files (default is to "
+                             "copy broken and unresolvable links as-is)")
     parser_copy.add_argument('--force',action='store_true',
                              help="ignore issues and perform "
                              "copy anyway (may result in incomplete "
@@ -255,6 +255,13 @@ def main(argv=None):
                 has_broken_symlinks = True
             if not has_broken_symlinks:
                 print("-- no broken symlinks")
+            print("Unresolvable symlinks:")
+            has_unresolvable_symlinks = False
+            for s in d.unresolvable_symlinks:
+                print("-- %s" % s)
+                has_unresolvable_symlinks = True
+            if not has_unresolvable_symlinks:
+                print("-- no unresolvable symlinks")
             print("Hard linked files:")
             has_hard_links = False
             for f in d.hard_linked_files:
@@ -270,17 +277,19 @@ def main(argv=None):
             if not has_unknown_uids:
                 print("-- no files with unknown UIDs")
         else:
-            print("Unreadable files : %s" %
+            print("Unreadable files     : %s" %
                   format_bool(not d.is_readable))
-            print("Dirlinks         : %s" %
+            print("Dirlinks             : %s" %
                   format_bool(d.has_dirlinks))
-            print("External symlinks: %s" %
+            print("External symlinks    : %s" %
                   format_bool(d.has_external_symlinks))
-            print("Broken symlinks  : %s" %
+            print("Broken symlinks      : %s" %
                   format_bool(d.has_broken_symlinks))
-            print("Hard linked files: %s" %
+            print("Unresolvable symlinks: %s" %
+                  format_bool(d.has_unresolvable_symlinks))
+            print("Hard linked files    : %s" %
                   format_bool(d.has_hard_linked_files))
-            print("Unknown UIDs     : %s" %
+            print("Unknown UIDs         : %s" %
                   format_bool(d.has_unknown_uids))
         return CLIStatus.OK
 
@@ -295,21 +304,24 @@ def main(argv=None):
         largest_file = d.largest_file
         check_status = 0
         print("Checking %s..." % d)
-        print("-- type          : %s" % d.__class__.__name__)
-        print("-- size          : %s" % format_size(size,
-                                                    human_readable=True))
-        print("-- largest file     : %s" % format_size(largest_file[1],
-                                                       human_readable=True))
+        print("-- type        : %s" % d.__class__.__name__)
+        print("-- size        : %s" % format_size(size,
+                                                  human_readable=True))
+        print("-- largest file: %s" % format_size(largest_file[1],
+                                                  human_readable=True))
         is_readable = d.is_readable
-        print("-- unreadable files : %s" % format_bool(not is_readable))
+        print(f"-- unreadable files     : {format_bool(not is_readable)}")
         has_external_symlinks = d.has_external_symlinks
-        print("-- external symlinks: %s" % format_bool(has_external_symlinks))
+        print(f"-- external symlinks    : {format_bool(has_external_symlinks)}")
         has_broken_symlinks = d.has_broken_symlinks
-        print("-- broken symlinks  : %s" % format_bool(has_broken_symlinks))
+        print(f"-- broken symlinks      : {format_bool(has_broken_symlinks)}")
+        has_unresolvable_symlinks = d.has_unresolvable_symlinks
+        print(f"-- unresolvable symlinks: "
+              f"{format_bool(has_unresolvable_symlinks)}")
         has_unknown_uids = d.has_unknown_uids
-        print("-- unknown UIDs     : %s" % format_bool(has_unknown_uids))
+        print(f"-- unknown UIDs         : {format_bool(has_unknown_uids)}")
         has_hard_linked_files = d.has_hard_linked_files
-        print("-- hard linked files: %s" % format_bool(has_hard_linked_files))
+        print(f"-- hard linked files    : {format_bool(has_hard_linked_files)}")
         if has_external_symlinks or \
            has_broken_symlinks or \
            not is_readable or \
@@ -322,9 +334,11 @@ def main(argv=None):
                 msg += " (ignored"
                 if not is_readable:
                     msg += "; unreadable files will be omitted"
-                if has_external_symlinks or has_broken_symlinks:
-                    msg += "; broken/external links will be archived " \
-                    "as-is"
+                if has_external_symlinks or \
+                   has_broken_symlinks or \
+                   has_unresolvable_symlinks:
+                    msg += "; broken/unresolvable and/or external links " \
+                           "will be archived as-is"
                 msg += ")"
                 logger.warning(msg)
             else:
@@ -499,23 +513,28 @@ def main(argv=None):
         size = d.size
         check_status = 0
         print("Checking %s..." % d)
-        print("-- type          : %s" % d.__class__.__name__)
-        print("-- size          : %s" % format_size(size,
-                                                    human_readable=True))
+        print("-- type: %s" % d.__class__.__name__)
+        print("-- size: %s" % format_size(size, human_readable=True))
         has_symlinks = d.has_symlinks
-        print("-- symlinks         : %s" % format_bool(has_symlinks))
+        print(f"-- symlinks             : %s" % format_bool(has_symlinks))
         is_readable = d.is_readable
-        print("-- unreadable files : %s" % format_bool(not is_readable))
+        print(f"-- unreadable files     : %s" % format_bool(not is_readable))
         has_dirlinks = d.has_dirlinks
-        print("-- dirlinks         : %s" % format_bool(has_dirlinks))
+        print(f"-- dirlinks             : %s" % format_bool(has_dirlinks))
         has_external_symlinks = d.has_external_symlinks
-        print("-- external symlinks: %s" % format_bool(has_external_symlinks))
+        print(f"-- external symlinks    : %s" %
+              format_bool(has_external_symlinks))
         has_broken_symlinks = d.has_broken_symlinks
-        print("-- broken symlinks  : %s" % format_bool(has_broken_symlinks))
+        print(f"-- broken symlinks      : %s" %
+              format_bool(has_broken_symlinks))
+        has_unresolvable_symlinks = d.has_unresolvable_symlinks
+        print(f"-- unresolvable symlinks: "
+              f"{format_bool(has_unresolvable_symlinks)}")
         has_unknown_uids = d.has_unknown_uids
-        print("-- unknown UIDs     : %s" % format_bool(has_unknown_uids))
+        print("-- unknown UIDs          : %s" % format_bool(has_unknown_uids))
         has_hard_linked_files = d.has_hard_linked_files
-        print("-- hard linked files: %s" % format_bool(has_hard_linked_files))
+        print("-- hard linked files     : %s" %
+              format_bool(has_hard_linked_files))
         # Messaging for warnings and errors
         info_msgs = []
         error_msgs = []
@@ -561,7 +580,7 @@ def main(argv=None):
                 info_msgs.append("Dirlinks detected (ignored; symlinks "
                                  "to directories will be converted to "
                                  "directories and the contents copied "
-                                 "recursively")
+                                 "recursively)")
             elif args.replace_symlinks:
                 unrecoverable_errors.append("Dirlinks detected but "
                                             "--replace-symlinks was "
@@ -582,22 +601,24 @@ def main(argv=None):
                 else:
                     error_msgs.append(msg)
                     check_status = 1
-        if has_broken_symlinks:
+        if has_broken_symlinks or has_unresolvable_symlinks:
             if args.transform_broken_symlinks:
-                info_msgs.append("Broken symlinks detected (ignored; "
-                                 "will be replaced by placeholder files)")
+                info_msgs.append("Broken and/or unresolvable symlinks "
+                                 "detected (ignored; will be replaced by "
+                                 "placeholder files)")
             elif args.replace_symlinks:
-                unrecoverable_errors.append("Broken symlinks detected but "
+                unrecoverable_errors.append("Broken and/or unresolvable "
+                                            "symlinks detected but "
                                             "--replace-symlinks was "
                                             "specified (add "
                                             "--transform-broken-symlinks "
                                             "to fix)")
                 check_status = 1
             else:
-                msg = "Broken symlinks detected"
+                msg = "Broken and/or unresolvable symlinks detected"
                 if args.force:
-                    info_msgs.append(f"{msg} (ignored; broken links "
-                                     "will be copied as-is)")
+                    info_msgs.append(f"{msg} (ignored; broken/unresolvable "
+                                     "links will be copied as-is)")
                 else:
                     error_msgs.append(msg)
                     check_status = 1

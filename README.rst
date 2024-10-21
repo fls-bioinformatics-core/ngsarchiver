@@ -379,8 +379,8 @@ Copies any directory and its contents to another
 location for archiving purposes, but without
 performing compression or other manipulations.
 
-Essentially this is a straight copy of the source
-directory.
+At its most basic this is a straight copy of the
+source directory, with some metadata files added.
 
 For example:
 
@@ -418,6 +418,11 @@ created under ``/PATH/TO/ARCHIVES_DIR/SRC_DIR`` called
   information on the broken symlinks in the source
   directory (only present if the source contained
   broken symlinks)
+* ``unresolvable_symlinks``: a tab-delimited file
+  listing each of the unresolvable symlinks in the
+  source directory along with their targets (only
+  present if the source contained unresolvable
+  symlinks)
 
 The copy will be aborted unconditionally for the
 following cases:
@@ -435,8 +440,10 @@ copy.
 Other situations will also prevent the copy from being
 performed but can be overridden:
 
-* The source directory contains broken symlinks, or
-  symlinks to files outside the source directory
+* The source directory contains broken or otherwise
+  unresolvable symlinks, or symlinks to files outside
+  the source directory (unresolvable symlinks include
+  things like symlink loops)
 * The source directory contains hard linked files
 * The source directory contains files or directories
   where the owner or grop UIDs don't match a user on
@@ -465,8 +472,8 @@ links:
   below) and that it's not a directory (see
   ``--follow-dirlinks``)
 * ``--transform-broken-symlinks`` will replace broken
-  symbolic links with a file containg the name of the
-  link target)
+  and unresolvable symbolic links with a file containing
+  the name of the link target
 * ``--follow-dirlinks`` will replace symlinked
   directories with actual directories, and recursively
   copy the contents of each directory
@@ -561,16 +568,31 @@ problems in themselves when data are restored:
 
 - **Broken symlinks**: these are symbolic links which point
   to targets that no longer exist on the filesystem.
+- **Unresolvable symlinks**: these are symbolic links which
+  cannot be resolved for some reason (for example if by
+  following the link it ends up pointing back to itself).
 - **Unknown user IDs**: where the user name is replaced by
   a number (user ID aka UID) which doesn't correspond to a
   known user on the system.
 
 There are currently no workarounds within the archiver for
-any of these issues. It is recommended that where possible
-steps are taken to address them in the source directory prior
-to creating the archive; alternatively they can be ignored
-using the ``--force`` option of the ``archive`` command
-(with the consequences outlined above).
+any of these issues when using the ``archive`` command: it
+is recommended that where possible steps are taken to address
+them in the source directory prior to creating the archive;
+alternatively they can be ignored using the ``--force``
+option of the ``archive`` command (with the consequences
+outlined above).
+
+Similarly the ``--force`` option is also available for the
+archiver's ``copy`` command, however there are also some
+mitigations available for some of the issues:
+
+* Working symbolic links can be replaced by their target
+  files or directories using the ``--replace-symlinks``
+  and ``--follow-dirlinks`` options respectively;
+* Broken and unresolvable files can be replaced with
+  placeholder files using the
+  ``--transform-broken-symlinks`` option.
 
 --------------
 Example recipe
@@ -622,9 +644,9 @@ for archiving:
       exit 1
    fi
 
-------------------------
-Performance observations
-------------------------
+-----------------------------------
+Archiving performance: observations
+-----------------------------------
 
 The code was tested on a set of real runs and the
 following initial observations have been made:

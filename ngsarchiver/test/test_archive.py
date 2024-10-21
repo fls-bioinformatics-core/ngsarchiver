@@ -3,6 +3,7 @@
 import os
 import pwd
 import grp
+import re
 import unittest
 import tempfile
 import tarfile
@@ -11,6 +12,7 @@ import string
 import shutil
 import base64
 import getpass
+from ngsarchiver.archive import Path
 from ngsarchiver.archive import Directory
 from ngsarchiver.archive import GenericRun
 from ngsarchiver.archive import MultiSubdirRun
@@ -122,6 +124,215 @@ def random_text(n):
     # Return random ASCII text consisting of
     # n characters
     return ''.join(random.choice(string.ascii_lowercase) for i in range(n))
+
+
+class TestPath(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestPath')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_path_is_regular_file(self):
+        """
+        Path: check regular file
+        """
+        f = os.path.join(self.wd, "file1.txt")
+        with open(f, "wt") as fp:
+            fp.write("Placeholder")
+        self.assertTrue(Path(f).is_file())
+        self.assertFalse(Path(f).is_hardlink())
+        self.assertFalse(Path(f).is_dirlink())
+        self.assertFalse(Path(f).is_broken_symlink())
+        self.assertFalse(Path(f).is_unresolvable_symlink())
+
+    def test_path_is_directory(self):
+        """
+        Path: check regular directory
+        """
+        d = os.path.join(self.wd, "dir1")
+        os.makedirs(d)
+        self.assertTrue(Path(d).is_dir())
+        self.assertFalse(Path(d).is_hardlink())
+        self.assertFalse(Path(d).is_dirlink())
+        self.assertFalse(Path(d).is_broken_symlink())
+        self.assertFalse(Path(d).is_unresolvable_symlink())
+
+    def test_path_is_symlink(self):
+        """
+        Path: check regular symlink
+        """
+        f = os.path.join(self.wd, "file1.txt")
+        with open(f, "wt") as fp:
+            fp.write("Placeholder")
+        s = os.path.join(self.wd, "symlink1")
+        os.symlink(f, s)
+        self.assertTrue(Path(s).is_symlink())
+        self.assertFalse(Path(s).is_hardlink())
+        self.assertFalse(Path(s).is_dirlink())
+        self.assertFalse(Path(s).is_broken_symlink())
+        self.assertFalse(Path(s).is_unresolvable_symlink())
+
+    def test_path_is_dirlink(self):
+        """
+        Path: check dirlink
+        """
+        d = os.path.join(self.wd, "dir1")
+        os.makedirs(d)
+        s = os.path.join(self.wd, "dirlink1")
+        os.symlink(d, s)
+        self.assertTrue(Path(s).is_symlink())
+        self.assertTrue(Path(s).is_dirlink())
+        self.assertFalse(Path(s).is_hardlink())
+        self.assertFalse(Path(s).is_broken_symlink())
+        self.assertFalse(Path(s).is_unresolvable_symlink())
+
+    def test_path_is_broken_symlink(self):
+        """
+        Path: check broken symlink
+        """
+        s = os.path.join(self.wd, "broken_symlink")
+        os.symlink("doesnt_exist", s)
+        self.assertTrue(Path(s).is_symlink())
+        self.assertTrue(Path(s).is_broken_symlink())
+        self.assertFalse(Path(s).is_hardlink())
+        self.assertFalse(Path(s).is_dirlink())
+        self.assertFalse(Path(s).is_unresolvable_symlink())
+
+    def test_path_is_hard_link(self):
+        """
+        Path: check hard linked file
+        """
+        f = os.path.join(self.wd, "file1.txt")
+        with open(f, "wt") as fp:
+            fp.write("Placeholder")
+        h = os.path.join(self.wd, "hard_link1.txt")
+        os.link(f, h)
+        self.assertTrue(Path(h).is_file())
+        self.assertTrue(Path(h).is_hardlink())
+        self.assertFalse(Path(h).is_dirlink())
+        self.assertFalse(Path(h).is_broken_symlink())
+        self.assertFalse(Path(h).is_unresolvable_symlink())
+
+    def test_path_is_symlink_loop_single_symlink(self):
+        """
+        Path: check symlink loop (symlink points to itself)
+        """
+        s = os.path.join(self.wd, "symlink_to_self")
+        os.symlink(s, s)
+        self.assertTrue(Path(s).is_symlink())
+        self.assertTrue(Path(s).is_unresolvable_symlink())
+        self.assertFalse(Path(s).is_hardlink())
+        self.assertFalse(Path(s).is_dirlink())
+        self.assertFalse(Path(s).is_broken_symlink())
+        # Check unresolvable symlinks don't upset 'is_dir'
+        self.assertFalse(Path(s).is_dir())
+
+    def test_path_is_symlink_loop_pair_of_symlink(self):
+        """
+        Path: check symlink loop (symlinks point to each other)
+        """
+        s1 = os.path.join(self.wd, "symlink1")
+        s2 = os.path.join(self.wd, "symlink2")
+        os.symlink(s1, s2)
+        os.symlink(s2, s1)
+        self.assertTrue(Path(s1).is_symlink())
+        self.assertTrue(Path(s1).is_unresolvable_symlink())
+        self.assertFalse(Path(s1).is_hardlink())
+        self.assertFalse(Path(s1).is_dirlink())
+        self.assertFalse(Path(s1).is_broken_symlink())
+        # Check unresolvable symlinks don't upset 'is_dir'
+        self.assertFalse(Path(s1).is_dir())
+
+    def test_path_is_symlink_to_broken_symlink(self):
+        """
+        Path: check symlink to broken symlink
+        """
+        b = os.path.join(self.wd, "broken_symlink")
+        os.symlink("doesnt_exist", b)
+        s = os.path.join(self.wd, "symlink_to_broken")
+        os.symlink(b, s)
+        self.assertTrue(Path(s).is_symlink())
+        self.assertTrue(Path(s).is_broken_symlink())
+        self.assertFalse(Path(s).is_hardlink())
+        self.assertFalse(Path(s).is_dirlink())
+        self.assertFalse(Path(s).is_unresolvable_symlink())
+
+    def test_path_owner(self):
+        """
+        Path: check 'owner' works for different cases
+        """
+        # Current user
+        username = getpass.getuser()
+        # Regular file
+        f = os.path.join(self.wd, "file1.txt")
+        with open(f, "wt") as fp:
+            fp.write("Placeholder")
+        self.assertEqual(Path(f).owner(), username)
+        # Regular directory
+        d = os.path.join(self.wd, "dir1")
+        os.makedirs(d)
+        self.assertEqual(Path(d).owner(), username)
+        # Symlink
+        s = os.path.join(self.wd, "symlink1")
+        os.symlink(f, s)
+        self.assertEqual(Path(s).owner(), username)
+        # Dirlink
+        s = os.path.join(self.wd, "dirlink1")
+        os.symlink(d, s)
+        self.assertEqual(Path(s).owner(), username)
+        # Broken symlink
+        s = os.path.join(self.wd, "broken_symlink")
+        os.symlink("doesnt_exist", s)
+        self.assertEqual(Path(s).owner(), username)
+        # Hard linked file
+        h = os.path.join(self.wd, "hard_link1.txt")
+        os.link(f, h)
+        self.assertEqual(Path(h).owner(), username)
+        # Symlink to self
+        s = os.path.join(self.wd, "symlink_to_self")
+        os.symlink(s, s)
+        self.assertEqual(Path(h).owner(), username)
+
+    def test_path_group(self):
+        """
+        Path: check 'group' works for different cases
+        """
+        # Current group
+        groupname = grp.getgrgid(
+            pwd.getpwnam(getpass.getuser()).pw_gid).gr_name
+        # Regular file
+        f = os.path.join(self.wd, "file1.txt")
+        with open(f, "wt") as fp:
+            fp.write("Placeholder")
+        self.assertEqual(Path(f).group(), groupname)
+        # Regular directory
+        d = os.path.join(self.wd, "dir1")
+        os.makedirs(d)
+        self.assertEqual(Path(d).group(), groupname)
+        # Symlink
+        s = os.path.join(self.wd, "symlink1")
+        os.symlink(f, s)
+        self.assertEqual(Path(s).group(), groupname)
+        # Dirlink
+        s = os.path.join(self.wd, "dirlink1")
+        os.symlink(d, s)
+        self.assertEqual(Path(s).group(), groupname)
+        # Broken symlink
+        s = os.path.join(self.wd, "broken_symlink")
+        os.symlink("doesnt_exist", s)
+        self.assertEqual(Path(s).group(), groupname)
+        # Hard linked file
+        h = os.path.join(self.wd, "hard_link1.txt")
+        os.link(f, h)
+        self.assertEqual(Path(h).group(), groupname)
+        # Symlink to self
+        s = os.path.join(self.wd, "symlink_to_self")
+        os.symlink(s, s)
+        self.assertEqual(Path(h).group(), groupname)
+
 
 class TestDirectory(unittest.TestCase):
 
@@ -243,6 +454,44 @@ class TestDirectory(unittest.TestCase):
         self.assertTrue(d.is_readable)
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
+
+    def test_directory_unresolvable_symlinks(self):
+        """
+        Directory: check handling of unresolvable symlinks
+        """
+        # Build example dir without unresolvable symlinks
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./ex1.txt")
+        example_dir.create()
+        p = example_dir.path
+        # No unresolvable symlinks or unreadable files should be
+        # detected and unknown UID detection should function correctly
+        d = Directory(p)
+        self.assertEqual(list(d.unresolvable_symlinks),[])
+        self.assertFalse(d.has_unresolvable_symlinks)
+        self.assertEqual(list(d.unreadable_files),[])
+        self.assertTrue(d.is_readable)
+        self.assertEqual(list(d.unknown_uids),[])
+        self.assertFalse(d.has_unknown_uids)
+        # Also check external symlinks
+        self.assertEqual(list(d.external_symlinks), [])
+        self.assertFalse(d.has_external_symlinks)
+        # Add unresolvable symlink loop
+        unresolvable_symlink = os.path.join(p,"unresolvable")
+        os.symlink("./unresolvable",unresolvable_symlink)
+        # Unresolvable symlink should be detected but no unreadable
+        # files and unknown UID detection should function correctly
+        self.assertEqual(list(d.unresolvable_symlinks),
+                         [unresolvable_symlink,])
+        self.assertTrue(d.has_unresolvable_symlinks)
+        self.assertEqual(list(d.unreadable_files),[])
+        self.assertTrue(d.is_readable)
+        self.assertEqual(list(d.unknown_uids),[])
+        self.assertFalse(d.has_unknown_uids)
+        # Also check external symlinks
+        self.assertEqual(list(d.external_symlinks), [])
+        self.assertFalse(d.has_external_symlinks)
 
     def test_directory_dirlinks(self):
         """
@@ -616,6 +865,65 @@ class TestDirectory(unittest.TestCase):
         self.assertTrue(d1.verify_copy(dir2,
                                        follow_symlinks=True,
                                        broken_symlinks_placeholders=True))
+
+    def test_directory_verify_copy_with_symlink_loop_placeholder(self):
+        """
+        Directory: check 'verify_copy' method with placeholder for unresolvable symlink loop
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./symlink1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Check standard verification works
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertTrue(d1.verify_copy(dir2))
+        self.assertTrue(d2.verify_copy(dir1))
+        # Replace symlink loop in one copy with placeholder file
+        os.remove(os.path.join(dir2, "symlink1"))
+        with open(os.path.join(dir2, "symlink1"), "wt") as fp:
+            fp.write(f"./symlink1")
+        # Check standard verification now fails
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+        # Check verification with broken symlinks placeholders
+        self.assertTrue(d1.verify_copy(dir2,
+                                       broken_symlinks_placeholders=True))
+        # Verification still fails the other way around
+        # (because a regular file cannot match a symlink)
+        self.assertFalse(d2.verify_copy(dir1,
+                                        broken_symlinks_placeholders=True))
+
+    def test_directory_verify_copy_with_unresolvable_symlink_loop(self):
+        """
+        Directory: check 'verify_copy' method with unresolvable symlink loop
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./symlink1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Check verification when identical
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertTrue(d1.verify_copy(dir2))
+        self.assertTrue(d2.verify_copy(dir1))
+        # Add a file to second directory
+        with open(os.path.join(dir2,"extra.txt"),'wt') as fp:
+            fp.write("extra stuff")
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
 
     def test_directory_verify_copy_missing_file(self):
         """
@@ -3257,6 +3565,13 @@ class TestMakeCopy(unittest.TestCase):
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
                             "'%s' not expected" % item)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                self.assertEqual(len(line.rstrip("\n").split("  ")), 2,
+                                 f"checksum file: incorrectly formatted "
+                                 f"line: {line.rstrip()}")
 
     def test_make_copy_handle_hidden(self):
         """
@@ -3302,6 +3617,15 @@ class TestMakeCopy(unittest.TestCase):
         for item in dd.walk():
             self.assertTrue(os.path.relpath(item, dest_dir) in expected,
                             "'%s' not expected" % item)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_handle_symlink(self):
         """
@@ -3355,6 +3679,15 @@ class TestMakeCopy(unittest.TestCase):
             symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/symlink1.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_handle_external_symlink(self):
         """
@@ -3412,6 +3745,15 @@ class TestMakeCopy(unittest.TestCase):
             symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/rel_ext_symlink.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_handle_broken_symlink(self):
         """
@@ -3475,6 +3817,15 @@ class TestMakeCopy(unittest.TestCase):
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_handle_hard_link(self):
         """
@@ -3525,6 +3876,15 @@ class TestMakeCopy(unittest.TestCase):
         link = os.path.join(dest_dir, "subdir", "link1.txt")
         self.assertFalse(
             os.path.isfile(link) and os.stat(link).st_nlink > 1)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_replace_symlink(self):
         """
@@ -3582,6 +3942,15 @@ class TestMakeCopy(unittest.TestCase):
             symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/ex3.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_replace_external_symlink(self):
         """
@@ -3643,6 +4012,97 @@ class TestMakeCopy(unittest.TestCase):
             symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
             for f in ("subdir/rel_ext_symlink.txt",):
                 self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
+
+    def test_make_copy_transform_unresolvable_symlink(self):
+        """
+        make_copy: transform unresolvable symlink (symlink loop)
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/symlink_to_self",
+                        type="symlink",
+                        target=os.path.join(self.wd,
+                                            "example",
+                                            "subdir",
+                                            "symlink_to_self"))
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Make copy
+        d = Directory(p)
+        dd = make_copy(d, dest_dir, transform_broken_symlinks=True)
+        self.assertTrue(isinstance(dd,Directory))
+        # Check resulting directory
+        self.assertEqual(dd.path, dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        expected = ("ex1.txt",
+                    "subdir",
+                    "subdir/ex2.txt",
+                    "subdir/symlink_to_self",
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/symlinks",
+                    "ARCHIVE_METADATA/unresolvable_symlinks",
+                    "ARCHIVE_METADATA/checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json")
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(dest_dir, item)),
+                "missing '%s'" % item)
+            if not item.startswith("ARCHIVE_METADATA") and \
+               not os.path.basename(item) == "symlink_to_self":
+                self.assertEqual(
+                    os.path.getmtime(os.path.join(p, item)),
+                    os.path.getmtime(os.path.join(dest_dir, item)),
+                    "modification time differs for '%s'" % item)
+        # Check extra items aren't present
+        for item in dd.walk():
+            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
+                            "'%s' not expected" % item)
+        # Check replaced file is not a symlink
+        self.assertFalse(os.path.islink(os.path.join(dest_dir,
+                                                     "subdir",
+                                                     "symlink_to_self")))
+        # Check replaced file appears in checksum file
+        with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            self.assertTrue("subdir/symlink_to_self" in fp.read())
+        # Check symlink appears in symlinks file
+        with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
+                  "rt") as fp:
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
+            for f in ("subdir/symlink_to_self",):
+                self.assertTrue(f in symlinks, "%s: not in symlinks file" % f)
+        # Check symlink appears in unresolvable symlinks file
+        with open(os.path.join(dest_dir,
+                               "ARCHIVE_METADATA",
+                               "unresolvable_symlinks"),
+                  "rt") as fp:
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
+            for f in ("subdir/symlink_to_self",):
+                self.assertTrue(f in symlinks,
+                                "%s: not in unresolvable symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_replace_broken_symlink(self):
         """
@@ -3733,6 +4193,15 @@ class TestMakeCopy(unittest.TestCase):
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_replace_and_transform_symlinks(self):
         """
@@ -3868,6 +4337,95 @@ class TestMakeCopy(unittest.TestCase):
             for f in ("subdir/broken_symlink.txt",):
                 self.assertTrue(f in symlinks,
                                 "%s: not in broken_symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
+
+    def test_make_copy_replace_and_transform_symlink_pointing_to_broken_link(self):
+        """
+        make_copy: replace/transform links with symlink that points to a broken link
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/broken_link", type="symlink",
+                        target="doesnt_exist")
+        example_dir.add("subdir/symlink_to_broken", type="symlink",
+                        target="./broken_link")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Make copy
+        d = Directory(p)
+        dd = make_copy(d, dest_dir, replace_symlinks=True,
+                       transform_broken_symlinks=True)
+        self.assertTrue(isinstance(dd,Directory))
+        # Check resulting directory
+        self.assertEqual(dd.path, dest_dir)
+        self.assertTrue(os.path.exists(dest_dir))
+        expected = ("ex1.txt",
+                    "subdir",
+                    "subdir/ex2.txt",
+                    "subdir/broken_link",
+                    "subdir/symlink_to_broken",
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/symlinks",
+                    "ARCHIVE_METADATA/broken_symlinks",
+                    "ARCHIVE_METADATA/checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json")
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(dest_dir, item)),
+                "missing '%s'" % item)
+            if not item.startswith("ARCHIVE_METADATA") and \
+               os.path.basename(item) not in ("broken_link",
+                                              "symlink_to_broken"):
+                self.assertEqual(
+                    os.path.getmtime(os.path.join(p, item)),
+                    os.path.getmtime(os.path.join(dest_dir, item)),
+                    "modification time differs for '%s'" % item)
+        # Check extra items aren't present
+        for item in dd.walk():
+            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
+                            "'%s' not expected" % item)
+        # Check replaced/transformed files exist and are not symlinks
+        for f in ("broken_link", "symlink_to_broken"):
+            self.assertTrue(os.path.exists(os.path.join(dest_dir, "subdir", f)),
+                            f"{f}: doesn't exist (but should)")
+            self.assertFalse(os.path.islink(os.path.join(dest_dir, "subdir", f)),
+                             f"{f}: is a symlink (but shouldn't be)")
+        # Check replaced/transformed files appear in checksum file
+        with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            checksum_files = [line.split("  ")[-1] for line in fp.read().split("\n")]
+            for f in ("broken_link", "symlink_to_broken"):
+                self.assertTrue(f"subdir/{f}" in checksum_files,
+                                "%s: not in checksums file" % f)
+        # Check replaced/transformed symlinks appear in symlinks file
+        with open(os.path.join(dest_dir, "ARCHIVE_METADATA", "symlinks"),
+                  "rt") as fp:
+            symlinks = [line.split("\t")[0] for line in fp.read().split("\n")]
+            for f in ("broken_link", "symlink_to_broken",):
+                self.assertTrue(f"subdir/{f}" in symlinks,
+                                "%s: not in symlinks file" % f)
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_follow_dirlink(self):
         """
@@ -3955,6 +4513,15 @@ class TestMakeCopy(unittest.TestCase):
                 if os.path.isfile(os.path.join(dest_dir, item)):
                     self.assertTrue(item in checksum_file_list,
                                     f"{item}: not in checksum file")
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_follow_dirlink_and_replace_symlinks(self):
         """
@@ -4042,6 +4609,15 @@ class TestMakeCopy(unittest.TestCase):
                 if os.path.isfile(os.path.join(dest_dir, item)):
                     self.assertTrue(item in checksum_file_list,
                                     f"{item}: not in checksum file")
+        # Check MD5 file is properly formatted
+        with open(os.path.join(dd.path, "ARCHIVE_METADATA", "checksums.md5"),
+                  "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                is not None,
+                                f"checksum file: incorrectly formatted "
+                                f"line: {line}")
 
     def test_make_copy_raises_exception_for_existing_partial_copy(self):
         """
@@ -4108,6 +4684,63 @@ class TestMakeManifestFile(unittest.TestCase):
         example_dir.add("ex1.txt",type="file",content="Example text\n")
         example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
         example_dir.add("subdir/symlink1.txt",type="symlink",target="./ex2.txt")
+        example_dir.create()
+        # Get user and group
+        username = getpass.getuser()
+        group = grp.getgrgid(pwd.getpwnam(username).pw_gid).gr_name
+        # Create manifest file
+        manifest_file = make_manifest_file(Directory(example_dir.path),
+                                           os.path.join(self.wd, "manifest"))
+        self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
+        self.assertTrue(os.path.exists(manifest_file))
+        # Check contents
+        expected_lines = [f"{username}\t{group}\tex1.txt",
+                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/ex2.txt",
+                          f"{username}\t{group}\tsubdir/symlink1.txt"]
+        with open(manifest_file, 'rt') as fp:
+            for line in fp:
+                self.assertTrue(line.rstrip() in expected_lines,
+                                f"'{line.rstrip()}': unexpected line")
+
+    def test_make_manifest_file_with_broken_symlinks(self):
+        """
+        make_manifest_file: check manifest file with broken symlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/symlink1.txt",type="symlink",target="missing")
+        example_dir.create()
+        # Get user and group
+        username = getpass.getuser()
+        group = grp.getgrgid(pwd.getpwnam(username).pw_gid).gr_name
+        # Create manifest file
+        manifest_file = make_manifest_file(Directory(example_dir.path),
+                                           os.path.join(self.wd, "manifest"))
+        self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
+        self.assertTrue(os.path.exists(manifest_file))
+        # Check contents
+        expected_lines = [f"{username}\t{group}\tex1.txt",
+                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/ex2.txt",
+                          f"{username}\t{group}\tsubdir/symlink1.txt"]
+        with open(manifest_file, 'rt') as fp:
+            for line in fp:
+                self.assertTrue(line.rstrip() in expected_lines,
+                                f"'{line.rstrip()}': unexpected line")
+
+    def test_make_manifest_file_with_unresolvable_symlinks(self):
+        """
+        make_manifest_file: check manifest file with unresolvable symlinks
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/symlink1.txt",type="symlink",
+                        target="./symlink1.txt")
         example_dir.create()
         # Get user and group
         username = getpass.getuser()

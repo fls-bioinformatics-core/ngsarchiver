@@ -26,7 +26,7 @@ import fnmatch
 import getpass
 import tempfile
 import logging
-from pathlib import Path
+import pathlib
 from .exceptions import NgsArchiverException
 from . import get_version
 
@@ -46,6 +46,104 @@ MD5_BLOCKSIZE = 1024*1024
 #######################################################################
 # Classes
 #######################################################################
+
+
+class Path(type(pathlib.Path())):
+    """
+    Wrapper for pathlib.Path class with additional methods
+
+    This class wraps the 'Path' class from the 'pathlib' module
+    in order to implement additional methods:
+
+    - is_hardlink: checks if path is a hard linked file
+    - is_dirlink: checks if path is a symbolic link to a directory
+    - is_broken_symlink: checks if path is a symbolic link where
+      the target doesn't exist
+    - is_unresolvable_symlink: checks if path is a symbolic link
+      which cannot be resolved (for example, if it's a part of a
+      symlink loop which ends up pointing back to itself)
+
+    (Use suggestion from https://stackoverflow.com/a/34116756
+    to subclass 'Path')
+    """
+
+    def __init__(self, *args, **kws):
+        super().__init__()
+
+    def owner(self):
+        """
+        Overrides 'owner' method from base class
+        """
+        try:
+            return super().owner()
+        except (KeyError, FileNotFoundError, OSError):
+            pass
+        # Fall back to UID
+        uid = os.lstat(self).st_uid
+        try:
+            return pwd.getpwuid(uid).pw_name
+        except Exception:
+            return uid
+
+    def group(self):
+        """
+        Overrides 'group' method from base class
+        """
+        try:
+            return super().group()
+        except (KeyError, FileNotFoundError, OSError):
+            pass
+        # Fall back to GID
+        gid = os.lstat(self).st_gid
+        try:
+            return grp.getgrgid(gid).gr_name
+        except Exception:
+            return gid
+
+    def is_dir(self):
+        """
+        Overrides 'is_dir' method from base class
+        """
+        if not self.is_unresolvable_symlink():
+            return super().is_dir()
+        return False
+
+    def is_hardlink(self):
+        """
+        Returns True if Path is a hard linked file
+        """
+        if not self.is_symlink() and self.is_file() and \
+           os.stat(self).st_nlink > 1:
+            return True
+        return False
+
+    def is_dirlink(self):
+        """
+        Returns True if Path is a symbolic link to a directory
+        """
+        if self.is_symlink() and not self.is_unresolvable_symlink():
+            return self.resolve().is_dir()
+        return False
+
+    def is_broken_symlink(self):
+        """
+        Returns True if Path is a symbolic link with non-existent target
+        """
+        if self.is_symlink() and not self.is_unresolvable_symlink():
+            return not self.resolve().exists()
+        return False
+
+    def is_unresolvable_symlink(self):
+        """
+        Returns True if Path is a symbolic link that resolves to itself
+        """
+        if self.is_symlink():
+            try:
+                self.resolve()
+            except Exception:
+                return True
+        return False
+
 
 class Directory:
     """
@@ -140,11 +238,14 @@ class Directory:
         Return symlinks that point outside the directory
         """
         for o in self.symlinks:
-            target = Path(o).resolve()
             try:
-                Path(target).relative_to(self._path)
-            except ValueError:
-                yield o
+                target = Path(o).resolve()
+                try:
+                    Path(target).relative_to(self._path)
+                except ValueError:
+                    yield o
+            except Exception:
+                pass
 
     @property
     def has_external_symlinks(self):
@@ -161,8 +262,7 @@ class Directory:
         Return symlinks that point to non-existent targets
         """
         for o in self.symlinks:
-            target = Path(o).resolve()
-            if not Path(target).exists():
+            if Path(o).is_broken_symlink():
                 yield o
 
     @property
@@ -175,12 +275,34 @@ class Directory:
         return False
 
     @property
+    def unresolvable_symlinks(self):
+        """
+        Return symlinks that cannot be resolved
+
+        Examples include symlink loops (where a symbolic link
+        ends up pointing back to itself either directly or via
+        intermediate links)
+        """
+        for o in self.symlinks:
+            if Path(o).is_unresolvable_symlink():
+                yield o
+
+    @property
+    def has_unresolvable_symlinks(self):
+        """
+        Check if any symlinks cannot be resolved
+        """
+        for o in self.unresolvable_symlinks:
+            return True
+        return False
+
+    @property
     def dirlinks(self):
         """
         Return all symlinks which point to directories
         """
         for o in self.symlinks:
-            if Path(o).resolve().is_dir():
+            if Path(o).is_dirlink():
                 yield o
 
     @property
@@ -201,9 +323,7 @@ class Directory:
         link count greater than one.
         """
         for o in self.walk():
-            if not Path(o).is_symlink() and \
-               os.path.isfile(o) and \
-               os.stat(o).st_nlink > 1:
+            if Path(o).is_hardlink():
                 yield o
 
     @property
@@ -409,7 +529,8 @@ class Directory:
                     return False
             elif os.path.islink(o):
                 if follow_symlinks or broken_symlinks_placeholders:
-                    if not Path(o).resolve().exists():
+                    if Path(o).is_broken_symlink() \
+                       or Path(o).is_unresolvable_symlink():
                         if broken_symlinks_placeholders:
                             if not os.path.lexists(o_):
                                 print("%s: no placeholder in copy for "
@@ -1476,59 +1597,88 @@ def make_copy(d, dest, replace_symlinks=False,
         raise NgsArchiverException(f"{d}: found existing partial copy "
                                    "'{temp_copy}' (remove before retrying)")
     # Do the copy
-    print(f"- starting copy to {temp_copy}...")
     os.makedirs(temp_copy)
+    print(f"- copying to {temp_copy}...")
     print(f"- replace working symlinks?....{format_bool(replace_symlinks)}")
     print(f"- transform broken symlinks?...{format_bool(transform_broken_symlinks)}")
     print(f"- follow directory symlinks?...{format_bool(follow_dirlinks)}")
+    print(f"- starting...")
+    has_errors = False
     for o in d.walk(followlinks=follow_dirlinks):
         src = Path(o)
         dst = os.path.join(temp_copy, src.relative_to(d.path))
+        logger.debug(f"Handling {src} -> {dst}")
         try:
             if src.is_symlink():
+                logger.debug(f"-> {src} is some form of symlink")
+                # Handle all types of symlinks
                 if not (replace_symlinks or
                         transform_broken_symlinks or
                         follow_dirlinks):
-                    logger.debug(f"->#1 copy2 '{dst}' from '{src}'")
+                    # Direct copy (no replace/transform/follow)
+                    logger.debug(f"-> direct copy symlink")
                     shutil.copy2(src, dst, follow_symlinks=False)
-                else:
-                    replace_src = src.resolve()
-                    if replace_src.exists():
-                        if not replace_src.is_dir():
-                            if replace_symlinks:
-                                logger.debug(f"->#2 copy2.1 '{dst}' from "
-                                             f"'{replace_src}' (replacing "
-                                             "symlink)")
-                                shutil.copy2(replace_src, dst,
-                                             follow_symlinks=replace_symlinks)
-                            else:
-                                logger.debug(f"->#2 copy2.2 '{dst}' from "
-                                             f"'{src}' (keeping symlink)")
-                                shutil.copy2(src, dst,
-                                             follow_symlinks=replace_symlinks)
-                        else:
-                            logger.debug(f"->#3 making dir '{dst}' from "
-                                         f"symlink '{src}'")
-                            os.makedirs(dst)
-                            shutil.copystat(replace_src, dst,
-                                            follow_symlinks=False)
-                    elif transform_broken_symlinks:
-                        logger.debug(f"->#4 making '{dst}' from broken "
-                                     f"link '{src}'")
-                        with open(dst, "wt") as fp:
-                            fp.write(f"{os.readlink(o)}")
-                        shutil.copystat(src, dst, follow_symlinks=False)
+                elif src.is_dirlink():
+                    # Dirlink
+                    logger.debug(f"-> {src} is dirlink")
+                    if follow_dirlinks:
+                        # Make directory
+                        logger.debug(f"-> creating equivalent dir in copy")
+                        os.makedirs(dst)
+                    elif replace_symlinks:
+                        logger.error(f"{src}: cannot replace dirlink")
+                        has_errors = True
                     else:
-                        logger.error(f"{src}: cannot replace broken symlink")
+                        # Direct copy (no replace/transform/follow)
+                        logger.debug(f"-> direct copy dirlink")
+                        shutil.copy2(src, dst, follow_symlinks=False)
+                elif src.is_broken_symlink() or src.is_unresolvable_symlink():
+                    # Broken or unresolvable symlink
+                    logger.debug(f"-> {src} is broken or unresolvable symlink")
+                    if transform_broken_symlinks:
+                        logger.debug(f"-> transforming broken/unresolvable "
+                                     "symlink")
+                        with open(dst, "wt") as fp:
+                            fp.write(f"{os.readlink(o)}\n")
+                            logger.debug(f"-> updating stat for broken link")
+                            # Workaround as shutil.copystat doesn't work
+                            # for broken or unresolvable symlinks
+                            st = os.lstat(src)
+                            os.utime(dst, times=(st.st_atime, st.st_mtime),
+                                     follow_symlinks=False)
+                    elif replace_symlinks:
+                        logger.error(f"{src}: cannot replace broken or "
+                                     "unresolvable symlink")
+                        has_errors = True
+                else:
+                    # Standard symlink
+                    logger.debug(f"-> {src} is a standard symlink")
+                    if replace_symlinks:
+                        replace_src = src.resolve()
+                        logger.debug(f"-> replacing with referent file "
+                                     f"{replace_src}")
+                        shutil.copy2(replace_src, dst,
+                                     follow_symlinks=True)
+                    else:
+                        logger.debug(f"-> direct copy of symlink")
+                        shutil.copy2(src, dst,
+                                     follow_symlinks=False)
             elif src.is_dir():
-                logger.debug(f"->#5 making dir '{dst}' from '{src}'")
+                # Directory
+                logger.debug(f"-> {src} is a directory")
+                logger.debug(f"-> creating equivalent dir in copy")
                 os.makedirs(dst)
             else:
-                logger.debug(f"->#6 copy2 '{dst}' from '{src}'")
+                logger.debug(f"-> {src} is a simple file")
+                logger.debug(f"-> direct copy of file")
                 shutil.copy2(src, dst, follow_symlinks=False)
         except Exception as ex:
-            logger.warning(f"Copy: exception handling '{src}': {ex} "
-                           "(ignored)")
+            logger.error(f"Copy: exception handling '{src}': {ex}")
+            has_errors = True
+    # Fail if errors occurred in copying
+    if has_errors:
+        raise NgsArchiverException(f"{d}: failed to make complete copy in "
+                                   f"'{temp_copy}'")
     # Update the modification times for directories
     # after copying files
     for o in d.walk(followlinks=follow_dirlinks):
@@ -1559,30 +1709,49 @@ def make_copy(d, dest, replace_symlinks=False,
         with open(symlinks_file, 'wt') as fp:
             for o in d.symlinks:
                 o = Path(o)
-                fp.write(f"{o.relative_to(d.path)}\t{os.readlink(o)}\t{o.resolve()}\n")
+                if not o.is_unresolvable_symlink():
+                    fp.write(f"{o.relative_to(d.path)}\t"
+                             f"{os.readlink(o)}\t"
+                             f"{o.resolve()}\n")
+                else:
+                    fp.write(f"{o.relative_to(d.path)}\t"
+                             f"{os.readlink(o)}\t"
+                             f"?\n")
     # Create broken symlinks file
     if d.has_broken_symlinks:
         broken_symlinks_file = os.path.join(metadata_dir, "broken_symlinks")
         with open(broken_symlinks_file, 'wt') as fp:
             for o in d.broken_symlinks:
                 o = Path(o)
-                fp.write(f"{o.relative_to(d.path)}\t{os.readlink(o)}\t{o.resolve()}\n")
+                fp.write(f"{o.relative_to(d.path)}\t"
+                         f"{os.readlink(o)}\t"
+                         f"{o.resolve()}\n")
+    # Create unresolvable symlinks file
+    if d.has_unresolvable_symlinks:
+        unresolvable_symlinks_file = os.path.join(metadata_dir,
+                                                  "unresolvable_symlinks")
+        with open(unresolvable_symlinks_file, 'wt') as fp:
+            for o in d.unresolvable_symlinks:
+                o = Path(o)
+                fp.write(f"{o.relative_to(d.path)}\t"
+                         f"{os.readlink(o)}\n")
     # Create checksum file
     md5sums = os.path.join(metadata_dir, "checksums.md5")
     with open(md5sums, 'wt') as fp:
         for o in d.walk(followlinks=follow_dirlinks):
             o = Path(o)
-            if o.is_dir():
+            if o.is_dir() or o.is_dirlink():
                 continue
-            if o.is_symlink():
-                if replace_symlinks or transform_broken_symlinks:
+            elif o.is_broken_symlink() or o.is_unresolvable_symlink():
+                if transform_broken_symlinks:
+                    md5 = md5sum(os.path.join(temp_copy,
+                                              o.relative_to(d.path)))
+                else:
+                    continue
+            elif o.is_symlink():
+                if replace_symlinks:
                     o_ = o.resolve()
-                    if o_.exists():
-                        md5 = md5sum(o_)
-                    elif transform_broken_symlinks:
-                        md5 = os.path.join(temp_copy, o.relative_to(d.path))
-                    else:
-                        continue
+                    md5 = md5sum(o_)
                 else:
                     continue
             else:
@@ -1633,16 +1802,8 @@ def make_manifest_file(d, manifest_file, follow_dirlinks=False):
     with open(manifest_file, 'wt') as fp:
         for o in d.walk(followlinks=follow_dirlinks):
             o = Path(o)
-            try:
-                owner = Path(o).owner()
-            except (KeyError,FileNotFoundError):
-                # Unknown user, fall back to UID
-                owner = os.stat(o,follow_symlinks=False).st_uid
-            try:
-                group = Path(o).group()
-            except (KeyError,FileNotFoundError):
-                # Unknown group, fall back to GID
-                group = os.stat(o,follow_symlinks=False).st_gid
+            owner = Path(o).owner()
+            group = Path(o).group()
             fp.write("{owner}\t{group}\t{obj}\n".format(
                 owner=owner,
                 group=group,
