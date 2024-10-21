@@ -1704,9 +1704,13 @@ def make_copy(d, dest, replace_symlinks=False,
     # after copying files
     for o in d.walk(followlinks=follow_dirlinks):
         src = Path(o)
-        if src.is_dir():
-            dst = os.path.join(temp_copy, src.relative_to(d.path))
-            shutil.copystat(src, dst, follow_symlinks=False)
+        try:
+            if src.is_dir():
+                dst = os.path.join(temp_copy, src.relative_to(d.path))
+                shutil.copystat(src, dst, follow_symlinks=False)
+        except Exception as ex:
+            raise NgsArchiverException(f"Exception attempting to set times "
+                                       f"on '{src}': {ex}")
     print(f"- copy completed")
     # Verify against the original
     print("- starting verification...")

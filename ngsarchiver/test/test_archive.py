@@ -4577,6 +4577,28 @@ class TestMakeCopy(unittest.TestCase):
                                 f"checksum file: incorrectly formatted "
                                 f"line: {line}")
 
+    def test_make_copy_cannot_follow_recursive_dirlink(self):
+        """
+        make_copy: cannot follow recursive dirlink
+        """
+        # Build example directory with circular dirlink
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt", type="file", content="Example text\n")
+        example_dir.add("subdir/ex2.txt", type="file", content="More text\n")
+        example_dir.add("subdir/ex3.txt", type="symlink", target="./ex2.txt")
+        example_dir.add("subdir/subdir1", type="symlink",target="../subdir")
+        example_dir.create()
+        p = example_dir.path
+        # Location for copies
+        dest_dir = os.path.join(self.wd, "copies", "example")
+        # Making copy raises exception
+        d = Directory(p)
+        self.assertRaises(NgsArchiverException, #OSError,
+                          make_copy,
+                          d,
+                          dest_dir,
+                          follow_dirlinks=True)
+
     def test_make_copy_follow_dirlink_and_replace_symlinks(self):
         """
         make_copy: follow symlink to directory (dirlink) and replace symlinks
