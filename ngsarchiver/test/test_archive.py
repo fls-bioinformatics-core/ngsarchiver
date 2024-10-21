@@ -1092,17 +1092,17 @@ class TestDirectory(unittest.TestCase):
         p = example_dir.path
         # Check walk method
         d = Directory(p)
-        self.assertEqual(list(d.walk(followlinks=True)),
+        self.assertEqual(sorted(list(d.walk(followlinks=True))),
                          [os.path.join(p,f)
                           for f in ("ex1.txt",
-                                    "subdir2",
                                     "subdir1",
-                                    "subdir2/ex2.txt",
-                                    "subdir2/subdir12",
-                                    "subdir2/subdir12/ex3.txt",
                                     "subdir1/ex2.txt",
                                     "subdir1/subdir12",
-                                    "subdir1/subdir12/ex3.txt")])
+                                    "subdir1/subdir12/ex3.txt",
+                                    "subdir2",
+                                    "subdir2/ex2.txt",
+                                    "subdir2/subdir12",
+                                    "subdir2/subdir12/ex3.txt")])
 
 class TestGenericRun(unittest.TestCase):
 
