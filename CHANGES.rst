@@ -2,6 +2,19 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.2.0 (2024-10-23)
+---------------------------
+
+* Fix minor formatting issues for stdout from ``copy`` command
+  (PR #25)
+* Update ``info`` command to take multiple directories on the
+  command line, and implement new ``--tsv`` option to output
+  information for each directory as a single tab-delimited line
+  (PR #24)
+* Fix unit tests for ``walk`` method of ``Directory`` class
+  when handling dirlinks (were non-deterministic) (PR #23, PR #22)
+
+---------------------------
 Version 1.1.0 (2024-10-21)
 ---------------------------
 
