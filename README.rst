@@ -202,6 +202,11 @@ detailed information on any "problem" files found
 within the directory, which can then be addressed
 prior to archiving.
 
+Alternatively the ``--tsv`` argument will print the
+basic information in a single tab-delimited line
+for each directory. (Note that this option is not
+compatible with the ``--list`` option).
+
 ------------------------------
 ``archive``: create an archive
 ------------------------------
