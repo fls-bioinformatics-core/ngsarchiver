@@ -176,14 +176,14 @@ subcommands).
    user.
 
 ----------------------------------
-``info``: characterise a directory
+``info``: characterise directories
 ----------------------------------
 
-Examines a directory and reports characteristics
-such as total size, type (as outlined in the section
-*Archive directory format* below) and whether the
-directory contains external and/or broken symbolic
-links, hard-linked files and so on.
+Examines one or more directories and report
+characteristics such as total size, type (as outlined
+in the section *Archive directory format* below) and
+whether the directory contains external and/or broken
+symbolic links, hard-linked files and so on.
 
 The simplest form of usage is:
 
@@ -191,10 +191,21 @@ The simplest form of usage is:
 
    archiver info /PATH/TO/DIR
 
+Multiple directories can be supplied:
+
+::
+
+   archiver info /PATH/TO/DIR1 /PATH/TO/DIR2 ...
+
 Including the ``--list`` argument will provide more
 detailed information on any "problem" files found
 within the directory, which can then be addressed
 prior to archiving.
+
+Alternatively the ``--tsv`` argument will print the
+basic information in a single tab-delimited line
+for each directory. (Note that this option is not
+compatible with the ``--list`` option).
 
 ------------------------------
 ``archive``: create an archive
