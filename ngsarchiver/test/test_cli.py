@@ -142,6 +142,34 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(main(['info',example_dir.path]),
                          CLIStatus.OK)
 
+    def test_info_list(self):
+        """
+        CLI: test the 'info' command (--list option)
+        """
+        # Empty directory
+        self.assertEqual(main(['info', '--list', self.wd]),0)
+        # Non-empty directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.create()
+        self.assertEqual(main(['info', '--list', example_dir.path]),
+                         CLIStatus.OK)
+
+    def test_info_tsv(self):
+        """
+        CLI: test the 'info' command (--tsv option)
+        """
+        # Empty directory
+        self.assertEqual(main(['info', '--tsv', self.wd]),0)
+        # Non-empty directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.create()
+        self.assertEqual(main(['info', '--tsv', example_dir.path]),
+                         CLIStatus.OK)
+
     def test_info_multiple_directories(self):
         """
         CLI: test the 'info' command (multiple directories)"

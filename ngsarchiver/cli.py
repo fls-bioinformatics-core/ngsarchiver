@@ -69,9 +69,13 @@ def main(argv=None):
                                help="get information on a directory")
     parser_info.add_argument('dir', nargs="+",
                              help="path to directory")
-    parser_info.add_argument('--list',action='store_true',
-                             help="list unreadable files, external "
-                             "symlinks etc")
+    mutex = parser_info.add_mutually_exclusive_group()
+    mutex.add_argument('--list',action='store_true',
+                       help="list unreadable files, external symlinks "
+                       "etc")
+    mutex.add_argument('--tsv',action='store_true',
+                       help="report details for each directory as a "
+                       "single line of tab-delimited values")
 
     # 'archive' command
     parser_archive = s.add_parser('archive',
@@ -203,6 +207,22 @@ def main(argv=None):
     
     # 'Info' subcommand
     if args.subcommand == "info":
+        if args.tsv:
+            header = ["Path",
+                      "Type",
+                      "Size",
+                      "Largest_file",
+                      "Compressed",
+                      "Compressed%",
+                      "Unreadable?",
+                      "Symlinks?",
+                      "Dirlinks?",
+                      "External?",
+                      "Broken?",
+                      "Unresolvable?",
+                      "Hardlinks?",
+                      "Unknown_uids"]
+            print("\t".join(header))
         for d in args.dir:
             try:
                 d = get_rundir_instance(d)
@@ -210,14 +230,32 @@ def main(argv=None):
                 logger.error(ex)
                 return CLIStatus.ERROR
             size = d.size
+            largest_file, largest_file_size = d.largest_file
+            compressed_file_size = d.getsize(d.compressed_files)
+            if args.tsv:
+                line = [d.path,
+                        d.__class__.__name__,
+                        format_size(size,human_readable=True),
+                        format_size(largest_file_size, human_readable=True),
+                        format_size(compressed_file_size,human_readable=True),
+                        f"{float(compressed_file_size)/float(size)*100.0:.1f}" \
+                        if not (compressed_file_size == 0 and size == 0) else "0.0",
+                        format_bool(not d.is_readable),
+                        format_bool(d.has_symlinks),
+                        format_bool(d.has_dirlinks),
+                        format_bool(d.has_external_symlinks),
+                        format_bool(d.has_broken_symlinks),
+                        format_bool(d.has_unresolvable_symlinks),
+                        format_bool(d.has_hard_linked_files),
+                        format_bool(d.has_unknown_uids)]
+                print("\t".join([str(x) for x in line]))
+                continue
             print(f"Path: {d.path}")
             print(f"Type: {d.__class__.__name__}")
             print(f"Size: {format_size(size,human_readable=True)}")
-            largest_file, largest_file_size = d.largest_file
             print(f"Largest file: "
                   f"{format_size(largest_file_size, human_readable=True)} "
                   f"({largest_file})")
-            compressed_file_size = d.getsize(d.compressed_files)
             if compressed_file_size > 0.0:
                 print(
                     f"Compressed contents: "
@@ -293,6 +331,8 @@ def main(argv=None):
                       f"{format_bool(d.has_hard_linked_files)}")
                 print(f"Unknown UIDs         : "
                       f"{format_bool(d.has_unknown_uids)}")
+            if len(args.dir) > 1:
+                print("")
         return CLIStatus.OK
 
     # 'Archive' subcommand
