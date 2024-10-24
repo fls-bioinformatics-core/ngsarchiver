@@ -260,6 +260,35 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s).is_dirlink())
         self.assertFalse(Path(s).is_unresolvable_symlink())
 
+    def test_path_is_symlink_to_inaccessible_file(self):
+        """
+        Path: check symlink to inaccessible file
+        """
+        # "Inaccessible file" is a file under a directory
+        # which is not readable by the current user
+        d = os.path.join(self.wd, "dir")
+        os.makedirs(d)
+        f = os.path.join(d, "file")
+        with open(f, "wt") as fp:
+            fp.write("some content")
+        s = os.path.join(self.wd, "symlink")
+        os.symlink(f, s)
+        self.assertTrue(Path(s).is_symlink())
+        self.assertFalse(Path(s).is_broken_symlink())
+        self.assertFalse(Path(s).is_hardlink())
+        self.assertFalse(Path(s).is_dirlink())
+        self.assertFalse(Path(s).is_unresolvable_symlink())
+        # Make subdirectory unreadable
+        try:
+            os.chmod(d, 0o000)
+            self.assertTrue(Path(s).is_symlink())
+            self.assertTrue(Path(s).is_broken_symlink())
+            self.assertFalse(Path(s).is_hardlink())
+            self.assertFalse(Path(s).is_dirlink())
+            self.assertFalse(Path(s).is_unresolvable_symlink())
+        finally:
+            os.chmod(d, 0o777)
+
     def test_path_owner(self):
         """
         Path: check 'owner' works for different cases

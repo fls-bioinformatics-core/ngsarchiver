@@ -122,7 +122,12 @@ class Path(type(pathlib.Path())):
         Returns True if Path is a symbolic link to a directory
         """
         if self.is_symlink() and not self.is_unresolvable_symlink():
-            return self.resolve().is_dir()
+            try:
+                return self.resolve().is_dir()
+            except PermissionError:
+                # Don't have permission to check
+                # i.e. essentially broken symlink
+                return False
         return False
 
     def is_broken_symlink(self):
@@ -130,12 +135,17 @@ class Path(type(pathlib.Path())):
         Returns True if Path is a symbolic link with non-existent target
         """
         if self.is_symlink() and not self.is_unresolvable_symlink():
-            return not self.resolve().exists()
+            try:
+                return not self.resolve().exists()
+            except PermissionError:
+                # Don't have permission to check
+                # i.e. essentially broken symlink
+                return True
         return False
 
     def is_unresolvable_symlink(self):
         """
-        Returns True if Path is a symbolic link that resolves to itself
+        Returns True if Path is a symbolic link that cannot be resolved
         """
         if self.is_symlink():
             try:
