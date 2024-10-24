@@ -394,6 +394,39 @@ class TestDirectory(unittest.TestCase):
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
 
+    def test_directory_properties_with_caching(self):
+        """
+        Directory: check basic properties (with caching)
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        # Check properties (no cache initially)
+        d = Directory(p, use_cache=True)
+        self.assertEqual(repr(d),p)
+        self.assertEqual(d.path,p)
+        self.assertEqual(d.basename,"example")
+        self.assertEqual(d.parent_dir,self.wd)
+        self.assertEqual(d.size,8192)
+        self.assertEqual(d.largest_file,("ex1.txt",4096))
+        self.assertEqual(list(d.compressed_files),[])
+        self.assertEqual(list(d.unknown_uids),[])
+        self.assertFalse(d.has_unknown_uids)
+        # Check again (should use cache)
+        d = Directory(p, use_cache=True)
+        self.assertEqual(repr(d),p)
+        self.assertEqual(d.path,p)
+        self.assertEqual(d.basename,"example")
+        self.assertEqual(d.parent_dir,self.wd)
+        self.assertEqual(d.size,8192)
+        self.assertEqual(d.largest_file,("ex1.txt",4096))
+        self.assertEqual(list(d.compressed_files),[])
+        self.assertEqual(list(d.unknown_uids),[])
+        self.assertFalse(d.has_unknown_uids)
+
     def test_directory_getsize(self):
         """
         Directory: check 'getsize' method
@@ -425,8 +458,30 @@ class TestDirectory(unittest.TestCase):
         # Add symlink
         symlink = os.path.join(p,"symlink2")
         os.symlink("ex1.txt", symlink)
-        # External symlink should be detected
+        # Symlink should be detected
         self.assertEqual(list(d.symlinks), [symlink,])
+        self.assertTrue(d.has_symlinks)
+
+    def test_directory_symlinks_with_caching(self):
+        """
+        Directory: check handling of symlinks (with caching)
+        """
+        # Build example dir with symlinks
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./ex1.txt")
+        example_dir.create()
+        p = example_dir.path
+        # Detect symlinks (no cache initially)
+        d =  Directory(p, use_cache=True)
+        self.assertEqual(list(d.symlinks), [os.path.join(p, "symlink1"),])
+        self.assertTrue(d.has_symlinks)
+        # Try again (should use cache)
+        self.assertEqual(list(d.symlinks), [os.path.join(p, "symlink1"),])
+        self.assertTrue(d.has_symlinks)
+        # Remove symlink - should still appear
+        os.remove(os.path.join(p, "symlink1"))
+        self.assertEqual(list(d.symlinks), [os.path.join(p, "symlink1"),])
         self.assertTrue(d.has_symlinks)
 
     def test_directory_external_symlinks(self):
@@ -451,6 +506,35 @@ class TestDirectory(unittest.TestCase):
         os.symlink("../external",external_symlink)
         # External symlink should be detected
         self.assertEqual(list(d.external_symlinks),[external_symlink,])
+        self.assertTrue(d.has_external_symlinks)
+
+    def test_directory_external_symlinks_with_caching(self):
+        """
+        Directory: check handling of external symlinks (with caching)
+        """
+        # Build example dir with external symlink
+        external_file = os.path.join(self.wd,"external")
+        with open(external_file,'wt') as fp:
+            fp.write("external content")
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./ex1.txt")
+        example_dir.add("symlink2",type="symlink",target="../external")
+        example_dir.create()
+        p = example_dir.path
+        # Detect external symlink (no cache initially)
+        d = Directory(p, use_cache=True)
+        self.assertEqual(list(d.external_symlinks),
+                         [os.path.join(p, "symlink2"),])
+        self.assertTrue(d.has_external_symlinks)
+        # Try again (should use cache)
+        self.assertEqual(list(d.external_symlinks),
+                         [os.path.join(p, "symlink2"),])
+        self.assertTrue(d.has_external_symlinks)
+        # Remove external link - should still appear
+        os.remove(os.path.join(p, "symlink2"))
+        self.assertEqual(list(d.external_symlinks),
+                         [os.path.join(p, "symlink2"),])
         self.assertTrue(d.has_external_symlinks)
 
     def test_directory_broken_symlinks(self):
@@ -483,6 +567,32 @@ class TestDirectory(unittest.TestCase):
         self.assertTrue(d.is_readable)
         self.assertEqual(list(d.unknown_uids),[])
         self.assertFalse(d.has_unknown_uids)
+
+    def test_directory_broken_symlinks_with_caching(self):
+        """
+        Directory: check handling of broken symlinks (with caching)
+        """
+        # Build example dir with broken symlink
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./ex1.txt")
+        example_dir.add("broken",type="symlink",target="./missing.txt")
+        example_dir.create()
+        p = example_dir.path
+        # Detect broken symlinks (no cache initially)
+        d = Directory(p, use_cache=True)
+        self.assertEqual(list(d.broken_symlinks),
+                         [os.path.join(p, "broken"),])
+        self.assertTrue(d.has_broken_symlinks)
+        # Try again (should use cache)
+        self.assertEqual(list(d.broken_symlinks),
+                         [os.path.join(p, "broken"),])
+        self.assertTrue(d.has_broken_symlinks)
+        # Remove broken link - should still appear
+        os.remove(os.path.join(p, "broken"))
+        self.assertEqual(list(d.broken_symlinks),
+                         [os.path.join(p, "broken"),])
+        self.assertTrue(d.has_broken_symlinks)
 
     def test_directory_unresolvable_symlinks(self):
         """
@@ -522,6 +632,33 @@ class TestDirectory(unittest.TestCase):
         self.assertEqual(list(d.external_symlinks), [])
         self.assertFalse(d.has_external_symlinks)
 
+    def test_directory_unresolvable_symlinks_with_caching(self):
+        """
+        Directory: check handling of unresolvable symlinks (with caching)
+        """
+        # Build example dir with unresolvable symlinks
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("symlink1",type="symlink",target="./ex1.txt")
+        example_dir.add("unresolvable",type="symlink",
+                        target="./unresolvable")
+        example_dir.create()
+        p = example_dir.path
+        # Detect unresolvable symlinks (no cache initially)
+        d = Directory(p, use_cache=True)
+        self.assertEqual(list(d.unresolvable_symlinks),
+                         [os.path.join(p, "unresolvable"),])
+        self.assertTrue(d.has_unresolvable_symlinks)
+        # Try again (should use cache)
+        self.assertEqual(list(d.unresolvable_symlinks),
+                         [os.path.join(p, "unresolvable"),])
+        self.assertTrue(d.has_unresolvable_symlinks)
+        # Remove symlink - should still appear
+        os.remove(os.path.join(p, "unresolvable"))
+        self.assertEqual(list(d.unresolvable_symlinks),
+                         [os.path.join(p, "unresolvable"),])
+        self.assertTrue(d.has_unresolvable_symlinks)
+
     def test_directory_dirlinks(self):
         """
         Directory: check reporting of dirlinks
@@ -542,6 +679,28 @@ class TestDirectory(unittest.TestCase):
         self.assertEqual(list(d.dirlinks),[dirlink,])
         self.assertTrue(d.has_dirlinks)
 
+    def test_directory_dirlinks_with_caching(self):
+        """
+        Directory: check reporting of dirlinks (with caching)
+        """
+        # Build example dir with dirlink
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("subdir1",type="dir")
+        example_dir.add("dirlink1",type="symlink",target="./subdir1")
+        example_dir.create()
+        p = example_dir.path
+        # Detect dirlinks (no cache initially)
+        d = Directory(p, use_cache=True)
+        self.assertEqual(list(d.dirlinks),[os.path.join(p, "dirlink1"),])
+        self.assertTrue(d.has_dirlinks)
+        # Try again (should use cache)
+        self.assertEqual(list(d.dirlinks),[os.path.join(p, "dirlink1"),])
+        self.assertTrue(d.has_dirlinks)
+        # Remove dirlink - should still appear
+        os.remove(os.path.join(p, "dirlink1"))
+        self.assertEqual(list(d.dirlinks),[os.path.join(p, "dirlink1"),])
+        self.assertTrue(d.has_dirlinks)
+
     def test_directory_readability(self):
         """
         Directory: check readability
@@ -559,6 +718,32 @@ class TestDirectory(unittest.TestCase):
         # Make unreadable file by stripping permissions
         unreadable_file = os.path.join(p,"ex1.txt")
         os.chmod(unreadable_file,0o266)
+        self.assertEqual(list(d.unreadable_files),[unreadable_file,])
+        self.assertFalse(d.is_readable)
+
+    def test_directory_readability_with_caching(self):
+        """
+        Directory: check readability (with caching)
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        # Make unreadable file by stripping permissions
+        unreadable_file = os.path.join(p,"ex1.txt")
+        os.chmod(unreadable_file,0o266)
+        # Check readability (no cache initially)
+        d = Directory(p, use_cache=True)
+        self.assertEqual(list(d.unreadable_files),[unreadable_file,])
+        self.assertFalse(d.is_readable)
+        # Try again (should use cache)
+        self.assertEqual(list(d.unreadable_files),[unreadable_file,])
+        self.assertFalse(d.is_readable)
+        # Restore mode to make file readable - should still be
+        # reported as unreadable
+        os.chmod(unreadable_file,0o655)
         self.assertEqual(list(d.unreadable_files),[unreadable_file,])
         self.assertFalse(d.is_readable)
 
@@ -601,6 +786,36 @@ class TestDirectory(unittest.TestCase):
         # Hard link should be detected
         self.assertEqual(sorted(list(d.hard_linked_files)),
                          sorted([hard_link_src,hard_link_dst]))
+        self.assertTrue(d.has_hard_linked_files)
+
+    def test_directory_hard_links_with_caching(self):
+        """
+        Directory: check handling of hard links (with caching)
+        """
+        # Build example dir with hard link
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("ex2.txt",type="file",content="example 2")
+        example_dir.add("ex12.txt",type="link",
+                        target=os.path.join(self.wd, "example", "ex1.txt"))
+        example_dir.create()
+        p = example_dir.path
+        # Detect hard links (no cache initially)
+        d = Directory(p, use_cache=True)
+        self.assertEqual(sorted(list(d.hard_linked_files)),
+                         sorted([os.path.join(p, "ex1.txt"),
+                                 os.path.join(p, "ex12.txt"),]))
+        self.assertTrue(d.has_hard_linked_files)
+        # Try again (should use cache)
+        self.assertEqual(sorted(list(d.hard_linked_files)),
+                         sorted([os.path.join(p, "ex1.txt"),
+                                 os.path.join(p, "ex12.txt"),]))
+        self.assertTrue(d.has_hard_linked_files)
+        # Remove hard link - should still appear
+        os.remove(os.path.join(p, "ex12.txt"))
+        self.assertEqual(sorted(list(d.hard_linked_files)),
+                         sorted([os.path.join(p, "ex1.txt"),
+                                 os.path.join(p, "ex12.txt"),]))
         self.assertTrue(d.has_hard_linked_files)
 
     def test_directory_symlink_to_hard_link(self):
