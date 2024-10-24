@@ -2,6 +2,13 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.2.1 (2024-10-24)
+---------------------------
+
+* Fix bug in ``Path`` class when handling symbolic links to
+  inaccesible files, and treat these as broken symlinks (PR #27)
+
+---------------------------
 Version 1.2.0 (2024-10-23)
 ---------------------------
 
