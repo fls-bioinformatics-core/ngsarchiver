@@ -159,6 +159,13 @@ class Directory:
     """
     Base class for characterising and handling a directory
 
+    Note that this class caches some information (for example
+    individual file sizes, whether a file is a symbolic link
+    etc). If the contents of the target directory change
+    during the lifespan of an instance of this class then it
+    is possible that the information returned by the instance
+    may not accurately reflect the reality on the file system.
+
     Arguments:
       d (str): path to directory
     """
