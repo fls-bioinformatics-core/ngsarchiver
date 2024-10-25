@@ -161,17 +161,13 @@ class Directory:
 
     Arguments:
       d (str): path to directory
-      use_cache (bool): if True then cache some data
-        rather than regenerating each time (default:
-        False, don't use caching)
     """
-    def __init__(self, d, use_cache=False):
+    def __init__(self, d):
         self._path = os.path.abspath(d)
+        self._cache = {}
         if not os.path.isdir(self._path):
             raise NgsArchiverException("%s: not a directory" %
                                        self._path)
-        self._use_cache = bool(use_cache)
-        self._cache = {}
 
     @property
     def path(self):
@@ -206,17 +202,16 @@ class Directory:
         """
         Return full paths to files etc that are not readable
         """
-        if self._use_cache:
-            if "unreadable_files" not in self._cache:
-                self._cache["unreadable_files"] = []
-                for o in self.walk():
-                   if not os.path.islink(o) and not os.access(o,os.R_OK):
-                       self._cache["unreadable_files"].append(o)
-            for o in self._cache["unreadable_files"]:
-                yield o
-        else:
-            for o in self.walk():
-                if not os.path.islink(o) and not os.access(o,os.R_OK):
+        for o in self.walk():
+            try:
+                if self._cache[o]["unreadable"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["unreadable"] = (not os.path.islink(o) and
+                                                not os.access(o,os.R_OK))
+                if self._cache[o]["unreadable"]:
                     yield o
 
     @property
@@ -243,17 +238,15 @@ class Directory:
         """
         Return all symlinks
         """
-        if self._use_cache:
-            if "symlinks" not in self._cache:
-                self._cache["symlinks"] = []
-                for o in self.walk():
-                    if Path(o).is_symlink():
-                        self._cache["symlinks"].append(o)
-            for o in self._cache["symlinks"]:
-                yield o
-        else:
-            for o in self.walk():
-                if Path(o).is_symlink():
+        for o in self.walk():
+            try:
+                if self._cache[o]["is_symlink"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_symlink"] = Path(o).is_symlink()
+                if self._cache[o]["is_symlink"]:
                     yield o
 
     @property
@@ -270,30 +263,24 @@ class Directory:
         """
         Return symlinks that point outside the directory
         """
-        if self._use_cache:
-            if "external_symlinks" not in self._cache:
-                self._cache["external_symlinks"] = []
-                for o in self.symlinks:
-                    try:
-                        target = Path(o).resolve()
-                        try:
-                            Path(target).relative_to(self._path)
-                        except ValueError:
-                            self._cache["external_symlinks"].append(o)
-                    except Exception:
-                        pass
-            for o in self._cache["external_symlinks"]:
-                yield o
-        else:
-            for o in self.symlinks:
+        for o in self.symlinks:
+            try:
+                if self._cache[o]["external_symlink"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["external_symlink"] = False
                 try:
                     target = Path(o).resolve()
                     try:
                         Path(target).relative_to(self._path)
                     except ValueError:
-                        yield o
+                        self._cache[o]["external_symlink"] = True
                 except Exception:
                     pass
+                if self._cache[o]["external_symlink"]:
+                    yield o
 
     @property
     def has_external_symlinks(self):
@@ -309,17 +296,16 @@ class Directory:
         """
         Return symlinks that point to non-existent targets
         """
-        if self._use_cache:
-            if "broken_symlinks" not in self._cache:
-                self._cache["broken_symlinks"] = []
-                for o in self.symlinks:
-                    if Path(o).is_broken_symlink():
-                        self._cache["broken_symlinks"].append(o)
-            for o in self._cache["broken_symlinks"]:
-                yield o
-        else:
-            for o in self.symlinks:
-                if Path(o).is_broken_symlink():
+        for o in self.symlinks:
+            try:
+                if self._cache[o]["is_broken_symlink"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_broken_symlink"] = \
+                            Path(o).is_broken_symlink()
+                if self._cache[o]["is_broken_symlink"]:
                     yield o
 
     @property
@@ -340,17 +326,16 @@ class Directory:
         ends up pointing back to itself either directly or via
         intermediate links)
         """
-        if self._use_cache:
-            if "unresolvable_symlinks" not in self._cache:
-                self._cache["unresolvable_symlinks"] = []
-                for o in self.symlinks:
-                    if Path(o).is_unresolvable_symlink():
-                        self._cache["unresolvable_symlinks"].append(o)
-            for o in self._cache["unresolvable_symlinks"]:
-                yield o
-        else:
-            for o in self.symlinks:
-                if Path(o).is_unresolvable_symlink():
+        for o in self.symlinks:
+            try:
+                if self._cache[o]["is_unresolvable_symlink"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_unresolvable_symlink"] = \
+                                    Path(o).is_unresolvable_symlink()
+                if self._cache[o]["is_unresolvable_symlink"]:
                     yield o
 
     @property
@@ -367,18 +352,16 @@ class Directory:
         """
         Return all symlinks which point to directories
         """
-        if self._use_cache:
-            if "dirlinks" not in self._cache:
-                self._cache["dirlinks"] = []
-                for o in self.symlinks:
-                    if Path(o).is_dirlink():
-                        self._cache["dirlinks"].append(o)
-            for o in self._cache["dirlinks"]:
-                yield o
-        else:
-            for o in self.symlinks:
-                if Path(o).is_dirlink():
+        for o in self.symlinks:
+            try:
+                if self._cache[o]["is_dirlink"]:
                     yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+            self._cache[o]["is_dirlink"] = Path(o).is_dirlink()
+            if self._cache[o]["is_dirlink"]:
+                yield o
 
     @property
     def has_dirlinks(self):
@@ -397,17 +380,15 @@ class Directory:
         Yields objects that are files and that have a
         link count greater than one.
         """
-        if self._use_cache:
-            if "hard_linked_files" not in self._cache:
-                self._cache["hard_linked_files"] = []
-                for o in self.walk():
-                    if Path(o).is_hardlink():
-                        self._cache["hard_linked_files"].append(o)
-            for o in self._cache["hard_linked_files"]:
-                yield o
-        else:
-            for o in self.walk():
-                if Path(o).is_hardlink():
+        for o in self.walk():
+            try:
+                if self._cache[o]["is_hardlink"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_hardlink"] = Path(o).is_hardlink()
+                if self._cache[o]["is_hardlink"]:
                     yield o
 
     @property
@@ -427,19 +408,17 @@ class Directory:
         Yields paths to files that end with '.gz', '.bz2'
         or '.zip'
         """
-        if self._use_cache:
-            if "compressed_files" not in self._cache:
-                self._cache["compressed_files"] = []
-                for o in self.walk():
-                    if os.path.isfile(o) and \
-                       o.split('.')[-1] in ('gz','bz2','zip'):
-                        self._cache["compressed_files"].append(o)
-            for o in self._cache["compressed_files"]:
-                yield o
-        else:
-            for o in self.walk():
-                if os.path.isfile(o) and \
-                   o.split('.')[-1] in ('gz','bz2','zip'):
+        for o in self.walk():
+            try:
+                if self._cache[o]["is_compressed_file"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_compressed_file"] = \
+                                os.path.isfile(o) and \
+                                o.split('.')[-1] in ('gz', 'bz2', 'zip')
+                if self._cache[o]["is_compressed_file"]:
                     yield o
 
     @property
@@ -463,23 +442,20 @@ class Directory:
         """
         Return paths that have unrecognised UIDs
         """
-        if self._use_cache:
-            if "unknown_uids" not in self._cache:
-                self._cache["unknown_uids"] = []
-                for o in self.walk():
-                    try:
-                        pwd.getpwuid(os.lstat(o).st_uid)
-                    except KeyError:
-                        # UID not in the system database
-                        self._cache["unknown_uids"].append(o)
-            for o in self._cache["unknown_uids"]:
-                yield o
-        else:
-            for o in self.walk():
+        for o in self.walk():
+            try:
+                if self._cache[o]["has_unknown_uid"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
                 try:
                     pwd.getpwuid(os.lstat(o).st_uid)
+                    self._cache[o]["has_unknown_uid"] = False
                 except KeyError:
                     # UID not in the system database
+                    self._cache[o]["has_unknown_uid"] = True
+                if self._cache[o]["has_unknown_uid"]:
                     yield o
 
     @property
