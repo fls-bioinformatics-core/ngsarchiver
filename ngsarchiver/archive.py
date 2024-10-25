@@ -480,20 +480,26 @@ class Directory:
         inodes = set()
         for o in file_list:
             o_ = os.path.join(self._path,o)
-            st = os.lstat(o_)
-            if st.st_nlink == 1:
-                if blocksize:
-                    size += st.st_blocks * blocksize
+            try:
+                self._cache[o_]["st_blocks"]
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                st = os.lstat(o_)
+                self._cache[o_]["st_blocks"] = st.st_blocks
+                self._cache[o_]["st_size"] = st.st_size
+                self._cache[o_]["st_nlink"] = st.st_nlink
+                self._cache[o_]["st_ino"] = st.st_ino
+            if self._cache[o_]["st_nlink"] > 1:
+                inode = self._cache[o_]["st_ino"]
+                if inode in inodes:
+                    continue
                 else:
-                    size += st.st_size
-            else:
-                inode = st.st_ino
-                if inode not in inodes:
-                    if blocksize:
-                        size += st.st_blocks * blocksize
-                    else:
-                        size += st.st_size
                     inodes.add(inode)
+            if blocksize:
+                size += self._cache[o_]["st_blocks"] * blocksize
+            else:
+                size += self._cache[o_]["st_size"]
         return int(size)
 
     def check_group(self,group):
