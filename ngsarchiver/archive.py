@@ -408,14 +408,16 @@ class Directory:
         return False
 
     @property
-    def case_insensitive_name_collisions(self):
+    def case_sensitive_filenames(self):
         """
-        Return files with case-insensitive name collisions
+        Return files with case sensitive names
 
-        Potential name collisions can occur if two
-        files or directories have the same name
-        except for case differences (e.g. "MyFile.txt" and
-        "myFile.txt"), when those files are then copied
+        File or directory names are case sensitive when two
+        files or directories in the same parent directory
+        have the same name except for case differences
+        (e.g. "MyFile.txt" and "myFile.txt").
+
+        This can be problematic if the files are then copied
         to a file system which is case insensitive with
         respect to file names.
 
@@ -431,11 +433,11 @@ class Directory:
                     yield f
 
     @property
-    def has_case_insensitive_name_collisions(self):
+    def has_case_sensitive_filenames(self):
         """
         Check if directory contains potential name collisions
         """
-        for o in self.case_insensitive_name_collisions:
+        for o in self.case_sensitive_filenames:
             return True
         return False
 
