@@ -17,6 +17,7 @@ import logging
 from argparse import ArgumentParser
 from .archive import ArchiveDirectory
 from .archive import check_make_symlink
+from .archive import check_case_sensitive_filenames
 from .archive import convert_size_to_bytes
 from .archive import format_size
 from .archive import format_bool
@@ -586,6 +587,8 @@ def main(argv=None):
         print(f"-- unknown UIDs         : {format_bool(has_unknown_uids)}")
         has_hard_linked_files = d.has_hard_linked_files
         print(f"-- hard linked files    : {format_bool(has_hard_linked_files)}")
+        has_case_sensitive_filenames = d.has_case_sensitive_filenames
+        print(f"-- case-sensitive files : {format_bool(has_case_sensitive_filenames)}")
         # Messaging for warnings and errors
         info_msgs = []
         error_msgs = []
@@ -681,10 +684,33 @@ def main(argv=None):
             else:
                 error_msgs.append(msg)
                 check_status = 1
+        if has_case_sensitive_filenames:
+            # Test if the target distinguishes filenames
+            # which only differ by case
+            parent_dest_dir = os.path.dirname(dest_dir)
+            try:
+                if not check_case_sensitive_filenames(parent_dest_dir):
+                    unrecoverable_errors.append("Destination directory "
+                                                "is case-insensitive "
+                                                "file system; cannot "
+                                                "handle file names which "
+                                                "only differ by case")
+                    check_status = 1
+            except Exception as ex:
+                unrecoverable_errors.append("Unable to check if destination "
+                                            "directory is on case-insensitive "
+                                            f"file system ({ex})")
+                check_status = 1
         if os.path.exists(dest_dir):
             unrecoverable_errors.append(
                 f"{dest_dir}: destination directory already exists")
             check_status = 1
+        # Estimate size of copy based on options
+        estimated_copy_size = d.getsize(
+            d.walk(followlinks=args.follow_dirlinks),
+            followlinks=args.replace_symlinks)
+        print(f"Estimated size of copy: "
+              f"{format_size(estimated_copy_size, human_readable=True)}")
         # Handle warnings and errors
         for msg in info_msgs:
             print(f"INFO: {msg}")
