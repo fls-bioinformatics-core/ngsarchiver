@@ -425,11 +425,11 @@ class Directory:
         tuple are equivalent for case insensitive file
         systems.
         """
-        for f in group_case_insensitive_names(Path(self.path).iterdir()):
+        for f in group_case_sensitive_names(Path(self.path).iterdir()):
             yield f
         for o in self.walk():
             if not Path(o).is_symlink() and Path(o).is_dir():
-                for f in group_case_insensitive_names(Path(o).iterdir()):
+                for f in group_case_sensitive_names(Path(o).iterdir()):
                     yield f
 
     @property
@@ -2050,16 +2050,16 @@ def format_bool(b,true="yes",false="no"):
     else:
         raise ValueError("%r: not a boolean" % b)
 
-def group_case_insensitive_names(file_list):
+def group_case_sensitive_names(file_list):
     """
-    Group matching file names by case insensitivity
+    Group file names where case sensitivity is important
 
-    Given a list of file names or paths, groups
-    together all the names which only differ by
-    case in the path basename.
+    Given a list of file names or paths, groups together
+    all the names which only differ by case in the path
+    basename.
 
-    Yields tuples with groups of files matched
-    according to this criterion.
+    Yields tuples with groups of files matched according
+    to this criterion.
     """
     group_names = {}
     for x in file_list:
