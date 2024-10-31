@@ -705,12 +705,6 @@ def main(argv=None):
             unrecoverable_errors.append(
                 f"{dest_dir}: destination directory already exists")
             check_status = 1
-        # Estimate size of copy based on options
-        estimated_copy_size = d.getsize(
-            d.walk(followlinks=args.follow_dirlinks),
-            followlinks=args.replace_symlinks)
-        print(f"Estimated size of copy: "
-              f"{format_size(estimated_copy_size, human_readable=True)}")
         # Handle warnings and errors
         for msg in info_msgs:
             print(f"INFO: {msg}")
