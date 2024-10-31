@@ -439,14 +439,23 @@ The copy will be aborted unconditionally for the
 following cases:
 
 * The original directory contains files or directories
+  which cannot be read by the user running the copy
+  operation
 * The original directory contains an ``ARCHIVE_METADATA``
-  subdirectory.
+  subdirectory
+* The original directory contains files or directories
+  where case sensitivity is required to differentiate
+  them (e.g. ``myfile.txt`` and ``myFile.txt``), but
+  the target filesystem doesn't support case
+  sensitive file names.
 
 There is no way to override this behaviour; for
 unreadable files, the solution is to fix the permissions
 in the source directory. For the existing metadata,
 either move it or find an alternative way to do the
-copy.
+copy. For case-sensitive filenames, either use a target
+filesystem which does support case sensitivity (or
+rename the files in the source directory).
 
 Other situations will also prevent the copy from being
 performed but can be overridden:
