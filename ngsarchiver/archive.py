@@ -408,6 +408,38 @@ class Directory:
         return False
 
     @property
+    def case_insensitive_name_collisions(self):
+        """
+        Return files with case-insensitive name collisions
+
+        Potential name collisions can occur if two
+        files or directories have the same name
+        except for case differences (e.g. "MyFile.txt" and
+        "myFile.txt"), when those files are then copied
+        to a file system which is case insensitive with
+        respect to file names.
+
+        Yields tuples of paths where all paths in the
+        tuple are equivalent for case insensitive file
+        systems.
+        """
+        for f in group_case_insensitive_names(Path(self.path).iterdir()):
+            yield f
+        for o in self.walk():
+            if not Path(o).is_symlink() and Path(o).is_dir():
+                for f in group_case_insensitive_names(Path(o).iterdir()):
+                    yield f
+
+    @property
+    def has_case_insensitive_name_collisions(self):
+        """
+        Check if directory contains potential name collisions
+        """
+        for o in self.case_insensitive_name_collisions:
+            return True
+        return False
+
+    @property
     def compressed_files(self):
         """
         Return files that are compressed

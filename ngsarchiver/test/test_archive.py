@@ -639,6 +639,42 @@ class TestDirectory(unittest.TestCase):
         self.assertEqual(list(d.symlinks), [symlink_dst])
         self.assertTrue(d.has_symlinks)
 
+    def test_directory_case_insensitive_name_collisions(self):
+        """
+        Directory: detect collisions for case-insensitive file names
+        """
+        # Build example dir without collisions
+        example_dir = UnittestDir(os.path.join(self.wd,"example1"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex1.txt",type="file")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/ex1.txt",type="file")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir2/ex1.txt",type="file")
+        example_dir.add("subdir2/ex2.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        d = Directory(p)
+        self.assertEqual(sorted(list(d.case_insensitive_name_collisions)), [])
+        self.assertFalse(d.has_case_insensitive_name_collisions)
+        # Build example dir with collisions
+        example_dir = UnittestDir(os.path.join(self.wd,"example2"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex1.txt",type="file")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/Ex2.txt",type="file")
+        example_dir.add("SubDir1/ex1.txt",type="file")
+        example_dir.add("SubDir1/ex2.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        d = Directory(p)
+        self.assertEqual(sorted(list(d.case_insensitive_name_collisions)),
+                         sorted([(os.path.join(p, "SubDir1"),
+                                  os.path.join(p, "subdir1")),
+                                 (os.path.join(p, "subdir1", "Ex2.txt"),
+                                  os.path.join(p, "subdir1", "ex2.txt"))]))
+        self.assertTrue(d.has_case_insensitive_name_collisions)
+
     def test_directory_check_group(self):
         """
         Directory: check 'check_group' method
