@@ -1956,6 +1956,28 @@ def check_make_symlink(d):
         print(f"check_make_symlink failed: {ex}")
     return False
 
+def check_case_sensitive_filenames(d):
+    """
+    Check if the filesystem supports case-sensitive file names
+    """
+    if not Path(d).is_dir():
+        raise OSError(f"{d}: is not a directory")
+    try:
+        test_files = ("test.1", "TEST.1")
+        with tempfile.TemporaryDirectory(dir=d) as tmpdir:
+            for f in test_files:
+                test_file = os.path.join(tmpdir, f)
+                with open(test_file, "wt") as fp:
+                    fp.write(f)
+            file_list = os.listdir(tmpdir)
+            for f in test_files:
+                if f not in file_list:
+                    return False
+            return True
+    except Exception as ex:
+        print(f"check_case_sensitive_filenames failed: {ex}")
+    return False
+
 def getsize(p,blocksize=512):
     """
     Return the size of a filesystem object

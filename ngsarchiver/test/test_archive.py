@@ -29,6 +29,7 @@ from ngsarchiver.archive import unpack_archive_multitgz
 from ngsarchiver.archive import make_copy
 from ngsarchiver.archive import make_manifest_file
 from ngsarchiver.archive import check_make_symlink
+from ngsarchiver.archive import check_case_sensitive_filenames
 from ngsarchiver.archive import getsize
 from ngsarchiver.archive import convert_size_to_bytes
 from ngsarchiver.archive import format_size
@@ -4916,6 +4917,21 @@ class TestCheckMakeSymlink(unittest.TestCase):
         check_make_symlink: is possible
         """
         self.assertTrue(check_make_symlink(self.wd))
+
+class TestCheckCaseSensitiveFileNames(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestCheckCaseSensitiveFileNames')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_check_case_sensitive_filenames(self):
+        """
+        check_case_sensitive_filenames: are allowed
+        """
+        self.assertTrue(check_case_sensitive_filenames(self.wd))
 
 class TestGetSize(unittest.TestCase):
 
