@@ -33,6 +33,7 @@ from ngsarchiver.archive import getsize
 from ngsarchiver.archive import convert_size_to_bytes
 from ngsarchiver.archive import format_size
 from ngsarchiver.archive import format_bool
+from ngsarchiver.archive import group_case_insensitive_names
 from ngsarchiver.exceptions import NgsArchiverException
 
 # Set to False to keep test output dirs
@@ -4987,3 +4988,46 @@ class TestFormatBool(unittest.TestCase):
         self.assertRaises(ValueError,
                           format_bool,
                           None)
+
+class TestGroupCaseInsensitiveNames(unittest.TestCase):
+
+    def test_group_case_insensitive_names(self):
+        """
+        group_case_insensitive_names: file names without paths
+        """
+        self.assertEqual(list(group_case_insensitive_names(
+            ["Ex1.txt", "ex1.txt", "ex2.txt", "Ex2.txt", "ex3.txt"])),
+                         [("Ex1.txt", "ex1.txt"),
+                          ("Ex2.txt", "ex2.txt")])
+
+    def test_group_case_insensitive_names_with_paths(self):
+        """
+        group_case_insensitive_names: file names with paths
+        """
+        self.assertEqual(list(group_case_insensitive_names(
+            ["/subdir1/Ex1.txt",
+             "/subdir1/ex1.txt",
+             "/subdir2/ex2.txt",
+             "/subdir2/Ex2.txt",
+             "/subdir3/ex3.txt"])),
+                         [("/subdir1/Ex1.txt", "/subdir1/ex1.txt"),
+                          ("/subdir2/Ex2.txt", "/subdir2/ex2.txt")])
+
+    def test_group_case_insensitive_names_with_different_dirs(self):
+        """
+        group_case_insensitive_names: file names with different dirs
+        """
+        self.assertEqual(list(group_case_insensitive_names(
+            ["/subdir1/Ex1.txt",
+             "/subdir1/ex1.txt",
+             "/subdir2/ex2.txt",
+             "/subdir2/Ex2.txt",
+             "/subdir3/ex1.txt"])),
+                         [("/subdir1/Ex1.txt", "/subdir1/ex1.txt"),
+                          ("/subdir2/Ex2.txt", "/subdir2/ex2.txt")])
+
+    def test_group_case_insensitive_names_empty_list(self):
+        """
+        group_case_insensitive_names: empty list as input
+        """
+        self.assertEqual(list(group_case_insensitive_names([])), [])

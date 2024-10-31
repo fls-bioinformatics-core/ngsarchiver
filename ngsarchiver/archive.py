@@ -2015,3 +2015,26 @@ def format_bool(b,true="yes",false="no"):
         return false
     else:
         raise ValueError("%r: not a boolean" % b)
+
+def group_case_insensitive_names(file_list):
+    """
+    Group matching file names by case insensitivity
+
+    Given a list of file names or paths, groups
+    together all the names which only differ by
+    case in the path basename.
+
+    Yields tuples with groups of files matched
+    according to this criterion.
+    """
+    group_names = {}
+    for x in file_list:
+        name = os.path.join(os.path.dirname(x),
+                            os.path.basename(x).lower())
+        if name not in group_names:
+            group_names[name] = [str(x)]
+        else:
+            group_names[name].append(str(x))
+    for name in group_names:
+        if len(group_names[name]) > 1:
+            yield tuple(sorted(group_names[name]))
