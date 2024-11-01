@@ -661,6 +661,10 @@ mitigations available for some of the issues:
   placeholder files using the
   ``--transform-broken-symlinks`` option.
 
+Note that replacing symbolic links and following directory
+links can result in significant bloating of the size of
+the copy compared to the original.
+
 -----------------------------------
 Compressed archiving example recipe
 -----------------------------------
