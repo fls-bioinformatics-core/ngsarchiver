@@ -425,7 +425,7 @@ class TestDirectory(unittest.TestCase):
         # Add symlink
         symlink = os.path.join(p,"symlink2")
         os.symlink("ex1.txt", symlink)
-        # External symlink should be detected
+        # Symlink should be detected
         self.assertEqual(list(d.symlinks), [symlink,])
         self.assertTrue(d.has_symlinks)
 
@@ -557,6 +557,7 @@ class TestDirectory(unittest.TestCase):
         self.assertEqual(list(d.unreadable_files),[])
         self.assertTrue(d.is_readable)
         # Make unreadable file by stripping permissions
+        d = Directory(p)
         unreadable_file = os.path.join(p,"ex1.txt")
         os.chmod(unreadable_file,0o266)
         self.assertEqual(list(d.unreadable_files),[unreadable_file,])
@@ -599,6 +600,7 @@ class TestDirectory(unittest.TestCase):
         hard_link_dst = os.path.join(p,"ex12.txt")
         os.link(hard_link_src,hard_link_dst)
         # Hard link should be detected
+        d = Directory(p)
         self.assertEqual(sorted(list(d.hard_linked_files)),
                          sorted([hard_link_src,hard_link_dst]))
         self.assertTrue(d.has_hard_linked_files)
@@ -628,6 +630,7 @@ class TestDirectory(unittest.TestCase):
         symlink_dst = os.path.join(p,"symlink.txt")
         os.symlink(hard_link_src,symlink_dst)
         # Hard link should be detected
+        d = Directory(p)
         self.assertEqual(sorted(list(d.hard_linked_files)),
                          sorted([hard_link_src,hard_link_dst]))
         self.assertTrue(d.has_hard_linked_files)

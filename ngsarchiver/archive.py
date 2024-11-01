@@ -159,11 +159,19 @@ class Directory:
     """
     Base class for characterising and handling a directory
 
+    Note that this class caches some information (for example
+    individual file sizes, whether a file is a symbolic link
+    etc). If the contents of the target directory change
+    during the lifespan of an instance of this class then it
+    is possible that the information returned by the instance
+    may not accurately reflect the reality on the file system.
+
     Arguments:
       d (str): path to directory
     """
-    def __init__(self,d):
+    def __init__(self, d):
         self._path = os.path.abspath(d)
+        self._cache = {}
         if not os.path.isdir(self._path):
             raise NgsArchiverException("%s: not a directory" %
                                        self._path)
@@ -202,8 +210,16 @@ class Directory:
         Return full paths to files etc that are not readable
         """
         for o in self.walk():
-            if not os.path.islink(o) and not os.access(o,os.R_OK):
-                yield o
+            try:
+                if self._cache[o]["unreadable"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["unreadable"] = (not os.path.islink(o) and
+                                                not os.access(o,os.R_OK))
+                if self._cache[o]["unreadable"]:
+                    yield o
 
     @property
     def is_readable(self):
@@ -230,8 +246,15 @@ class Directory:
         Return all symlinks
         """
         for o in self.walk():
-            if Path(o).is_symlink():
-                yield o
+            try:
+                if self._cache[o]["is_symlink"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_symlink"] = Path(o).is_symlink()
+                if self._cache[o]["is_symlink"]:
+                    yield o
 
     @property
     def has_symlinks(self):
@@ -249,13 +272,22 @@ class Directory:
         """
         for o in self.symlinks:
             try:
-                target = Path(o).resolve()
-                try:
-                    Path(target).relative_to(self._path)
-                except ValueError:
+                if self._cache[o]["external_symlink"]:
                     yield o
-            except Exception:
-                pass
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["external_symlink"] = False
+                try:
+                    target = Path(o).resolve()
+                    try:
+                        Path(target).relative_to(self._path)
+                    except ValueError:
+                        self._cache[o]["external_symlink"] = True
+                except Exception:
+                    pass
+                if self._cache[o]["external_symlink"]:
+                    yield o
 
     @property
     def has_external_symlinks(self):
@@ -272,8 +304,16 @@ class Directory:
         Return symlinks that point to non-existent targets
         """
         for o in self.symlinks:
-            if Path(o).is_broken_symlink():
-                yield o
+            try:
+                if self._cache[o]["is_broken_symlink"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_broken_symlink"] = \
+                            Path(o).is_broken_symlink()
+                if self._cache[o]["is_broken_symlink"]:
+                    yield o
 
     @property
     def has_broken_symlinks(self):
@@ -294,8 +334,16 @@ class Directory:
         intermediate links)
         """
         for o in self.symlinks:
-            if Path(o).is_unresolvable_symlink():
-                yield o
+            try:
+                if self._cache[o]["is_unresolvable_symlink"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_unresolvable_symlink"] = \
+                                    Path(o).is_unresolvable_symlink()
+                if self._cache[o]["is_unresolvable_symlink"]:
+                    yield o
 
     @property
     def has_unresolvable_symlinks(self):
@@ -312,7 +360,14 @@ class Directory:
         Return all symlinks which point to directories
         """
         for o in self.symlinks:
-            if Path(o).is_dirlink():
+            try:
+                if self._cache[o]["is_dirlink"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+            self._cache[o]["is_dirlink"] = Path(o).is_dirlink()
+            if self._cache[o]["is_dirlink"]:
                 yield o
 
     @property
@@ -333,8 +388,15 @@ class Directory:
         link count greater than one.
         """
         for o in self.walk():
-            if Path(o).is_hardlink():
-                yield o
+            try:
+                if self._cache[o]["is_hardlink"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_hardlink"] = Path(o).is_hardlink()
+                if self._cache[o]["is_hardlink"]:
+                    yield o
 
     @property
     def has_hard_linked_files(self):
@@ -354,9 +416,17 @@ class Directory:
         or '.zip'
         """
         for o in self.walk():
-            if os.path.isfile(o) and \
-               o.split('.')[-1] in ('gz','bz2','zip'):
-                yield o
+            try:
+                if self._cache[o]["is_compressed_file"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_compressed_file"] = \
+                                os.path.isfile(o) and \
+                                o.split('.')[-1] in ('gz', 'bz2', 'zip')
+                if self._cache[o]["is_compressed_file"]:
+                    yield o
 
     @property
     def largest_file(self):
@@ -381,10 +451,19 @@ class Directory:
         """
         for o in self.walk():
             try:
-                pwd.getpwuid(os.lstat(o).st_uid)
+                if self._cache[o]["has_unknown_uid"]:
+                    yield o
             except KeyError:
-                # UID not in the system database
-                yield o
+                if o not in self._cache:
+                    self._cache[o] = {}
+                try:
+                    pwd.getpwuid(os.lstat(o).st_uid)
+                    self._cache[o]["has_unknown_uid"] = False
+                except KeyError:
+                    # UID not in the system database
+                    self._cache[o]["has_unknown_uid"] = True
+                if self._cache[o]["has_unknown_uid"]:
+                    yield o
 
     @property
     def has_unknown_uids(self):
@@ -408,20 +487,26 @@ class Directory:
         inodes = set()
         for o in file_list:
             o_ = os.path.join(self._path,o)
-            st = os.lstat(o_)
-            if st.st_nlink == 1:
-                if blocksize:
-                    size += st.st_blocks * blocksize
+            try:
+                self._cache[o_]["st_blocks"]
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                st = os.lstat(o_)
+                self._cache[o_]["st_blocks"] = st.st_blocks
+                self._cache[o_]["st_size"] = st.st_size
+                self._cache[o_]["st_nlink"] = st.st_nlink
+                self._cache[o_]["st_ino"] = st.st_ino
+            if self._cache[o_]["st_nlink"] > 1:
+                inode = self._cache[o_]["st_ino"]
+                if inode in inodes:
+                    continue
                 else:
-                    size += st.st_size
-            else:
-                inode = st.st_ino
-                if inode not in inodes:
-                    if blocksize:
-                        size += st.st_blocks * blocksize
-                    else:
-                        size += st.st_size
                     inodes.add(inode)
+            if blocksize:
+                size += self._cache[o_]["st_blocks"] * blocksize
+            else:
+                size += self._cache[o_]["st_size"]
         return int(size)
 
     def check_group(self,group):
