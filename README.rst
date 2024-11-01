@@ -23,15 +23,24 @@ Specifically it provides a single executable called
 ``archiver`` which can be used to:
 
 * Archive and compress sequencing and analysis data
-  on a per-run (i.e. per-directory) basis
+  on a per-run (i.e. per-directory) basis, to
+  produce **compressed archive directories**
+* Copy arbitrary directories to an archive location
+  without compression or other manipulations, to
+  produce **copy archive directories**
+
+In addition for compressed archive directories it
+can also be used to:
+
 * Interrogate contents of archived directories
 * Restore archived runs and recover subsets of
   archived data
-* Copy arbitrary directories to an archive location
-  without compression or other manipulations
 
-This ``README`` comprises the whole of the usage
-documentation.
+The formats of the two types of archive directory
+are described in the relevant sections below.
+
+Note that this ``README`` comprises the whole of the
+usage documentation.
 
 ----------
 Background
@@ -53,19 +62,22 @@ external dataset has its own directory, which is
 referred to a "run directory", and archiving is
 performed at the run directory level.
 
-Furthermore, "archiving" in this context consists of
-two operations:
+"Archiving" in this context implies that the
+run directory has reached a point in its lifecycle
+where no new data will be added to it in future.
+
+Two types of archiving operation are supported by
+``ngsarchiver``, either:
 
 1. Compressing the data where possible (to reduce
    the overall space required to store it), and
-2. Converting to an essentially read-only format
+   converting to an essentially read-only format
    which can be restored in whole or in part (so
    archived data can be recovered back to its original
-   form)
-
-Archiving in this context therefore implies that the
-run directory has reached a point in its lifecycle
-where no new data will be added to it in future.
+   form), or
+2. Copying the data to an archive location
+   (optionally also transforming it in order to
+   allow as full a copy as is possible).
 
 There are broad conventions within the BCF about how
 data is structured within each run directory; however,
@@ -93,9 +105,12 @@ three types:
   non-project content grouped into an additional
   subarchive.
 
-(The fourth type is ``ArchiveDirectory``, describes
-an archive directory created by ``ngsarchiver`` and
-which therefore cannot be further archived.)
+``ngsarchiver`` recognises an additional type:
+
+- ``ArchiveDirectory`` is a compressed archive
+  directory created by ``ngsarchiver``
+
+This last type cannot be further archived.
 
 Individual files and directories within the source
 directory are bundled together in one or more ``tar``
@@ -214,8 +229,8 @@ compatible with the ``--list`` option).
 ``archive``: create an archive
 ------------------------------
 
-Makes an archive directory from the specified directory,
-for example in its simplest form:
+Makes a compressed archive directory from the specified
+directory, for example in its simplest form:
 
 ::
 
@@ -245,8 +260,8 @@ and directories will be omitted from the archive.
 
 The format of the archive directory is described
 below in a separate section (see
-*Archive directory format*). The archiver will
-refuse to make an archive of an archive directory.
+*Compressed archive directory format*). The archiver
+will refuse to make an archive of an archive directory.
 
 By default there is no limit on the size of ``tar.gz``
 files created within the archive; the ``--size``
@@ -391,7 +406,8 @@ permissions of the originals).
 
 Copies any directory and its contents to another
 location for archiving purposes, but without
-performing compression or other manipulations.
+performing compression (a "copy archive
+directory").
 
 At its most basic this is a straight copy of the
 source directory, with some metadata files added.
@@ -406,37 +422,18 @@ This will create a copy of ``SRC_DIR`` as
 ``/PATH/TO/ARCHIVES_DIR/SRC_DIR`` and verify the
 contents against the original version.
 
+The format of the archive directory is described
+below in a separate section (see
+*Copy archive directory format*). The archiver
+will refuse to make an archive of a copy archive
+directory.
+
 A directory called ``SRC_DIR`` must not already exist in
 the target location.
 
 If the destination directory is not explicitly specified
 on the command line then it defaults to the current
 directory.
-
-Once the copy is complete an additional directory is
-created under ``/PATH/TO/ARCHIVES_DIR/SRC_DIR`` called
-``ARCHIVE_METADATA``, which will contain:
-
-* ``manifest``: a manifest file listing the owner and
-  group associated with the original files
-* ``checksums.md5``: MD5 checksum file
-* ``archiver_metadata.json``: metadata about the
-  archiver, user and creation date of the copy.
-* ``symlinks``: a tab-delimted file listing each of
-  the symlinks in the source directory along with
-  their targets, and the path that the target
-  resolved to (only present if the source contained
-  symlinks)
-* ``broken_symlinks``: a file with the same format
-  as the ``symlinks`` file above, but only containing
-  information on the broken symlinks in the source
-  directory (only present if the source contained
-  broken symlinks)
-* ``unresolvable_symlinks``: a tab-delimited file
-  listing each of the unresolvable symlinks in the
-  source directory along with their targets (only
-  present if the source contained unresolvable
-  symlinks)
 
 The copy will be aborted unconditionally for the
 following cases:
@@ -510,15 +507,15 @@ copied directories are not checked before starting the
 copy operation, and so may contain "problem" entities
 which can cause the operation to fail.
 
-------------------------
-Archive directory format
-------------------------
+-----------------------------------
+Compressed archive directory format
+-----------------------------------
 
-Archive directories are regular directories named with
-after the source directory with the suffix ``.archive``
-appended.
+Compressed archive directories are regular directories
+named after the source directory with the suffix
+``.archive`` appended.
 
-Within an archive directory there will be:
+Within a compressed archive directory there will be:
 
 - one or more ``.tar.gz`` archive files;
 - none or more regular files;
@@ -557,6 +554,53 @@ Multi-volume archives are created when the ``archive``
 command is run specifying a maximum volume size, and
 are intended to mitigate potential issues with creating
 extremely large ``.tar.gz`` archives.
+
+-----------------------------
+Copy archive directory format
+-----------------------------
+
+Copy archive directories are regular directories. A
+copy archive will have the same name as the source
+directory.
+
+A copy archive directory will contain an additional
+subdirctory created by the archiver called
+``ARCHIVE_METADATA``, which in turn contains the
+following files:
+
+* ``manifest``: a manifest file listing the owner and
+  group associated with the original files
+* ``checksums.md5``: MD5 checksum file with checksums
+  generated from the source files
+* ``archiver_metadata.json``: metadata about the
+  archiver, user and creation date of the copy.
+
+Additional files may be present dependent on the
+contents of the source directory:
+
+* ``symlinks``: a tab-delimted file listing each of
+  the symlinks in the source directory along with
+  their targets, and the path that the target
+  resolved to (only present if the source contained
+  symlinks)
+* ``broken_symlinks``: a file with the same format
+  as the ``symlinks`` file above, but only containing
+  information on the broken symlinks in the source
+  directory (only present if the source contained
+  broken symlinks)
+* ``unresolvable_symlinks``: a tab-delimited file
+  listing each of the unresolvable symlinks in the
+  source directory along with their targets (only
+  present if the source contained unresolvable
+  symlinks)
+
+By default a copy archive directory should be same
+as the source directory (with the addition of the
+``ARCHIVE_METADATA`` subdirectory). However the
+copy may differ if any of the ``--replace-symlinks``,
+``--transform-broken-symlinks`` or
+``--follow-dirlinks`` options were specified (see
+the ``copy`` command for more details).
 
 ------------------
 Problem situations
@@ -617,12 +661,16 @@ mitigations available for some of the issues:
   placeholder files using the
   ``--transform-broken-symlinks`` option.
 
---------------
-Example recipe
---------------
+Note that replacing symbolic links and following directory
+links can result in significant bloating of the size of
+the copy compared to the original.
+
+-----------------------------------
+Compressed archiving example recipe
+-----------------------------------
 
 The following bash script provides an example recipe
-for archiving:
+for archiving to the compressed format:
 
 ::
 
@@ -667,18 +715,18 @@ for archiving:
       exit 1
    fi
 
------------------------------------
-Archiving performance: observations
------------------------------------
+----------------------------------------------
+Compressed archiving performance: observations
+----------------------------------------------
 
 The code was tested on a set of real runs and the
 following initial observations have been made:
 
-* Typically we saw archived run directories were
-  around 70-80% of the size of the original run.
-  A significant number showed greater reductions,
-  evenly distributed in the range 30-70% of the
-  original size.
+* Typically we saw compressed archived run
+  directories were around 70-80% of the size of
+  the original run. A significant number showed
+  greater reductions, evenly distributed in the
+  range 30-70% of the original size.
 * There was no difference in the final size
   between single-volume and multi-volume archives
   in the benchmarking data, indicating that

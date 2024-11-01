@@ -904,7 +904,7 @@ class MultiProjectRun(Directory):
 
 class ArchiveDirectory(Directory):
     """
-    Class to handle archive directories
+    Class to handle compressed archive directories
     """
     def __init__(self,d):
         Directory.__init__(self,d)
@@ -1203,7 +1203,7 @@ class ArchiveDirectory(Directory):
 
 class ArchiveDirMember:
     """
-    Class representing a member of an archive directory
+    Class representing a member of a compressed archive directory
 
     Has the following properties:
 
