@@ -2,7 +2,15 @@ Version History and Changes
 ===========================
 
 ---------------------------
-Version 1.2.1 (2024-11-01)
+Version 1.3.1 (2024-11-01)
+---------------------------
+
+* Add Zenodo badge to README file (PR #32)
+* Update README to distinguish between "compressed archives"
+  and "copy archives" (PR #33)
+
+---------------------------
+Version 1.3.0 (2024-11-01)
 ---------------------------
 
 * Implement detection of file and directory names where case
