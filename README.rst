@@ -406,8 +406,8 @@ permissions of the originals).
 
 Copies any directory and its contents to another
 location for archiving purposes, but without
-performing compression or other manipulations
-(a "copy archive directory").
+performing compression (a "copy archive
+directory").
 
 At its most basic this is a straight copy of the
 source directory, with some metadata files added.
