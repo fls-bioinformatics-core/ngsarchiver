@@ -17,6 +17,7 @@ import logging
 from argparse import ArgumentParser
 from .archive import ArchiveDirectory
 from .archive import check_make_symlink
+from .archive import check_case_sensitive_filenames
 from .archive import convert_size_to_bytes
 from .archive import format_size
 from .archive import format_bool
@@ -221,7 +222,8 @@ def main(argv=None):
                       "Broken?",
                       "Unresolvable?",
                       "Hardlinks?",
-                      "Unknown_uids"]
+                      "Unknown_uids?",
+                      "Case_sensitive?"]
             print("\t".join(header))
         for d in args.dir:
             try:
@@ -247,7 +249,8 @@ def main(argv=None):
                         format_bool(d.has_broken_symlinks),
                         format_bool(d.has_unresolvable_symlinks),
                         format_bool(d.has_hard_linked_files),
-                        format_bool(d.has_unknown_uids)]
+                        format_bool(d.has_unknown_uids),
+                        format_bool(d.has_case_sensitive_filenames)]
                 print("\t".join([str(x) for x in line]))
                 continue
             print(f"Path: {d.path}")
@@ -260,9 +263,9 @@ def main(argv=None):
                 print(
                     f"Compressed contents: "
                     f"{format_size(compressed_file_size,human_readable=True)} "
-                    f"[{float(compressed_file_size)/float(size)*100.0:.1f}%%]")
+                    f"[{float(compressed_file_size)/float(size)*100.0:.1f}%]")
             else:
-                print("Compressed contents: 0 [0.0%%]")
+                print("Compressed contents: 0 [0.0%]")
             if isinstance(d,ArchiveDirectory):
                 for item in d.archive_metadata:
                     print(f"-- {item}: {d.archive_metadata[item]}")
@@ -316,6 +319,15 @@ def main(argv=None):
                     has_unknown_uids = True
                 if not has_unknown_uids:
                     print("-- no files with unknown UIDs")
+                print("Case-sensitive filenames:")
+                has_case_sensitive_filenames = False
+                for file_group in d.case_sensitive_filenames:
+                    print(f"-- {file_group[0]}")
+                    for f in file_group[1:]:
+                        print(f"   {f}")
+                    has_case_sensitive_filenames = True
+                if not has_case_sensitive_filenames:
+                    print("-- no files with case-sensitive filenames")
             else:
                 print(f"Unreadable files     : "
                       f"{format_bool(not d.is_readable)}")
@@ -331,6 +343,8 @@ def main(argv=None):
                       f"{format_bool(d.has_hard_linked_files)}")
                 print(f"Unknown UIDs         : "
                       f"{format_bool(d.has_unknown_uids)}")
+                print(f"Case-sensitive files : "
+                      f"{format_bool(d.has_case_sensitive_filenames)}")
             if len(args.dir) > 1:
                 print("")
         return CLIStatus.OK
@@ -573,6 +587,8 @@ def main(argv=None):
         print(f"-- unknown UIDs         : {format_bool(has_unknown_uids)}")
         has_hard_linked_files = d.has_hard_linked_files
         print(f"-- hard linked files    : {format_bool(has_hard_linked_files)}")
+        has_case_sensitive_filenames = d.has_case_sensitive_filenames
+        print(f"-- case-sensitive files : {format_bool(has_case_sensitive_filenames)}")
         # Messaging for warnings and errors
         info_msgs = []
         error_msgs = []
@@ -667,6 +683,23 @@ def main(argv=None):
                                  "appear as multiple copies)")
             else:
                 error_msgs.append(msg)
+                check_status = 1
+        if has_case_sensitive_filenames:
+            # Test if the target distinguishes filenames
+            # which only differ by case
+            parent_dest_dir = os.path.dirname(dest_dir)
+            try:
+                if not check_case_sensitive_filenames(parent_dest_dir):
+                    unrecoverable_errors.append("Destination directory "
+                                                "is case-insensitive "
+                                                "file system; cannot "
+                                                "handle file names which "
+                                                "only differ by case")
+                    check_status = 1
+            except Exception as ex:
+                unrecoverable_errors.append("Unable to check if destination "
+                                            "directory is on case-insensitive "
+                                            f"file system ({ex})")
                 check_status = 1
         if os.path.exists(dest_dir):
             unrecoverable_errors.append(

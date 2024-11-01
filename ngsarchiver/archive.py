@@ -408,6 +408,40 @@ class Directory:
         return False
 
     @property
+    def case_sensitive_filenames(self):
+        """
+        Return files with case sensitive names
+
+        File or directory names are case sensitive when two
+        files or directories in the same parent directory
+        have the same name except for case differences
+        (e.g. "MyFile.txt" and "myFile.txt").
+
+        This can be problematic if the files are then copied
+        to a file system which is case insensitive with
+        respect to file names.
+
+        Yields tuples of paths where all paths in the
+        tuple are equivalent for case insensitive file
+        systems.
+        """
+        for f in group_case_sensitive_names(Path(self.path).iterdir()):
+            yield f
+        for o in self.walk():
+            if not Path(o).is_symlink() and Path(o).is_dir():
+                for f in group_case_sensitive_names(Path(o).iterdir()):
+                    yield f
+
+    @property
+    def has_case_sensitive_filenames(self):
+        """
+        Check if directory contains potential name collisions
+        """
+        for o in self.case_sensitive_filenames:
+            return True
+        return False
+
+    @property
     def compressed_files(self):
         """
         Return files that are compressed
@@ -1922,6 +1956,28 @@ def check_make_symlink(d):
         print(f"check_make_symlink failed: {ex}")
     return False
 
+def check_case_sensitive_filenames(d):
+    """
+    Check if the filesystem supports case-sensitive file names
+    """
+    if not Path(d).is_dir():
+        raise OSError(f"{d}: is not a directory")
+    try:
+        test_files = ("test.1", "TEST.1")
+        with tempfile.TemporaryDirectory(dir=d) as tmpdir:
+            for f in test_files:
+                test_file = os.path.join(tmpdir, f)
+                with open(test_file, "wt") as fp:
+                    fp.write(f)
+            file_list = os.listdir(tmpdir)
+            for f in test_files:
+                if f not in file_list:
+                    return False
+            return True
+    except Exception as ex:
+        print(f"check_case_sensitive_filenames failed: {ex}")
+    return False
+
 def getsize(p,blocksize=512):
     """
     Return the size of a filesystem object
@@ -2015,3 +2071,26 @@ def format_bool(b,true="yes",false="no"):
         return false
     else:
         raise ValueError("%r: not a boolean" % b)
+
+def group_case_sensitive_names(file_list):
+    """
+    Group file names where case sensitivity is important
+
+    Given a list of file names or paths, groups together
+    all the names which only differ by case in the path
+    basename.
+
+    Yields tuples with groups of files matched according
+    to this criterion.
+    """
+    group_names = {}
+    for x in file_list:
+        name = os.path.join(os.path.dirname(x),
+                            os.path.basename(x).lower())
+        if name not in group_names:
+            group_names[name] = [str(x)]
+        else:
+            group_names[name].append(str(x))
+    for name in group_names:
+        if len(group_names[name]) > 1:
+            yield tuple(sorted(group_names[name]))

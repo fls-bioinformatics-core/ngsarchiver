@@ -29,10 +29,12 @@ from ngsarchiver.archive import unpack_archive_multitgz
 from ngsarchiver.archive import make_copy
 from ngsarchiver.archive import make_manifest_file
 from ngsarchiver.archive import check_make_symlink
+from ngsarchiver.archive import check_case_sensitive_filenames
 from ngsarchiver.archive import getsize
 from ngsarchiver.archive import convert_size_to_bytes
 from ngsarchiver.archive import format_size
 from ngsarchiver.archive import format_bool
+from ngsarchiver.archive import group_case_sensitive_names
 from ngsarchiver.exceptions import NgsArchiverException
 
 # Set to False to keep test output dirs
@@ -637,6 +639,42 @@ class TestDirectory(unittest.TestCase):
         # Symlink should be detected
         self.assertEqual(list(d.symlinks), [symlink_dst])
         self.assertTrue(d.has_symlinks)
+
+    def test_directory_case_sensitive_filenames(self):
+        """
+        Directory: detect case-sensitive file names
+        """
+        # Build example dir without collisions
+        example_dir = UnittestDir(os.path.join(self.wd,"example1"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex1.txt",type="file")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/ex1.txt",type="file")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir2/ex1.txt",type="file")
+        example_dir.add("subdir2/ex2.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        d = Directory(p)
+        self.assertEqual(sorted(list(d.case_sensitive_filenames)), [])
+        self.assertFalse(d.has_case_sensitive_filenames)
+        # Build example dir with collisions
+        example_dir = UnittestDir(os.path.join(self.wd,"example2"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex1.txt",type="file")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/Ex2.txt",type="file")
+        example_dir.add("SubDir1/ex1.txt",type="file")
+        example_dir.add("SubDir1/ex2.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        d = Directory(p)
+        self.assertEqual(sorted(list(d.case_sensitive_filenames)),
+                         sorted([(os.path.join(p, "SubDir1"),
+                                  os.path.join(p, "subdir1")),
+                                 (os.path.join(p, "subdir1", "Ex2.txt"),
+                                  os.path.join(p, "subdir1", "ex2.txt"))]))
+        self.assertTrue(d.has_case_sensitive_filenames)
 
     def test_directory_check_group(self):
         """
@@ -4880,6 +4918,21 @@ class TestCheckMakeSymlink(unittest.TestCase):
         """
         self.assertTrue(check_make_symlink(self.wd))
 
+class TestCheckCaseSensitiveFileNames(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestCheckCaseSensitiveFileNames')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_check_case_sensitive_filenames(self):
+        """
+        check_case_sensitive_filenames: are allowed
+        """
+        self.assertTrue(check_case_sensitive_filenames(self.wd))
+
 class TestGetSize(unittest.TestCase):
 
     def setUp(self):
@@ -4987,3 +5040,46 @@ class TestFormatBool(unittest.TestCase):
         self.assertRaises(ValueError,
                           format_bool,
                           None)
+
+class TestGroupCaseSensitiveNames(unittest.TestCase):
+
+    def test_group_case_sensitive_names(self):
+        """
+        group_case_sensitive_names: file names without paths
+        """
+        self.assertEqual(list(group_case_sensitive_names(
+            ["Ex1.txt", "ex1.txt", "ex2.txt", "Ex2.txt", "ex3.txt"])),
+                         [("Ex1.txt", "ex1.txt"),
+                          ("Ex2.txt", "ex2.txt")])
+
+    def test_group_case_sensitive_names_with_paths(self):
+        """
+        group_case_sensitive_names: file names with paths
+        """
+        self.assertEqual(list(group_case_sensitive_names(
+            ["/subdir1/Ex1.txt",
+             "/subdir1/ex1.txt",
+             "/subdir2/ex2.txt",
+             "/subdir2/Ex2.txt",
+             "/subdir3/ex3.txt"])),
+                         [("/subdir1/Ex1.txt", "/subdir1/ex1.txt"),
+                          ("/subdir2/Ex2.txt", "/subdir2/ex2.txt")])
+
+    def test_group_case_sensitive_names_with_different_dirs(self):
+        """
+        group_case_sensitive_names: file names with different dirs
+        """
+        self.assertEqual(list(group_case_sensitive_names(
+            ["/subdir1/Ex1.txt",
+             "/subdir1/ex1.txt",
+             "/subdir2/ex2.txt",
+             "/subdir2/Ex2.txt",
+             "/subdir3/ex1.txt"])),
+                         [("/subdir1/Ex1.txt", "/subdir1/ex1.txt"),
+                          ("/subdir2/Ex2.txt", "/subdir2/ex2.txt")])
+
+    def test_group_case_sensitive_names_empty_list(self):
+        """
+        group_case_sensitive_names: empty list as input
+        """
+        self.assertEqual(list(group_case_sensitive_names([])), [])
