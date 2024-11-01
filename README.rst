@@ -2,6 +2,9 @@
 ngsarchiver: utility for archiving BCF NGS data
 ===============================================
 
+.. image:: https://zenodo.org/badge/653725091.svg
+   :target: https://doi.org/10.5281/zenodo.14024309
+
 .. image:: https://github.com/fls-bioinformatics-core/ngsarchiver/workflows/Python%20CI/badge.svg
    :target: https://github.com/fls-bioinformatics-core/ngsarchiver/actions?query=workflow%3A%22Python+CI%22
 
