@@ -2,6 +2,16 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.2.1 (2024-11-01)
+---------------------------
+
+* Implement detection of file and directory names where case
+  sensitive is significant, and check that destination file
+  system can handle these names when performing ``copy`` (PR #30)
+* Add caching of some properties in the ``Directory`` class
+  to improve efficiency when running some commands (PR #29)
+
+---------------------------
 Version 1.2.1 (2024-10-24)
 ---------------------------
 
