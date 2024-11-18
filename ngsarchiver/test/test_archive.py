@@ -1335,6 +1335,1170 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex1.txt
 d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex2.txt
 d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
 """)
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
+                            type="file",
+                            content="f210d02b4a294ec38c6ed82b92a73c44  example.tar.gz\n")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "subarchives": [
+    "example.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "multi_volume": false,
+  "volume_size": null,
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.create()
+        p = example_archive.path
+        # Expected contents
+        expected = ('example/ex1.txt',
+                    'example/subdir1',
+                    'example/subdir1/ex1.txt',
+                    'example/subdir1/ex2.txt',
+                    'example/subdir2',
+                    'example/subdir2/ex1.txt',
+                    'example/subdir2/ex2.txt',
+                    'example/subdir3',
+                    'example/subdir3/ex1.txt',
+                    'example/subdir3/ex2.txt',)
+        # Check example loads as ArchiveDirectory
+        a = ArchiveDirectory(p)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check subset of metadata
+        metadata = a.archive_metadata
+        self.assertEqual(metadata['name'],"example")
+        self.assertEqual(metadata['subarchives'],["example.tar.gz"])
+        self.assertEqual(metadata['files'],[])
+        self.assertEqual(metadata['multi_volume'],False)
+        self.assertEqual(metadata['volume_size'],None)
+        # List contents
+        for item in a.list():
+            self.assertTrue(item.path in expected,
+                            "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        # Verify archive
+        self.assertTrue(a.verify_archive())
+        # Unpack
+        a.unpack(extract_dir=self.wd)
+        self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(os.path.join(self.wd,"example")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","ex1.txt")))
+
+    def test_archivedirectory_multiple_subarchives(self):
+        """
+        ArchiveDirectory: multiple subarchives
+        """
+        # Build example archive dir
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "example.archive"))
+        example_archive.add("subdir1.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sIAAAAAAAAA+3T3QqCMBjG8R13FV5BbnO62+gWNAcVRqILdvkpEYRhnfiB9P+dvAd7YS88PC7k17pycXsvynOjYjED2bE27aeyqXyfL0IZY5JuTZlMSKWVtSJK5zhm6N76vIkiUV+Kr3u/3jfKDfJ3Qe998JP+0QecZWY8f60G+SdGd/nLSa8Y8ef5H6r86E63qnRN5F3wu7UPwqI++69W7r959t/Q/yXQfwAAAAAAAAAAAAAAtu8BVJJOSAAoAAA='))
+        example_archive.add("subdir1.md5",
+                            type="file",
+                            content="""d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex1.txt
+""")
+        example_archive.add("subdir2.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sIAAAAAAAAA+3T0QqCMBTG8V33FHuCdHO61+gVNAcVRqITfPzmRRCGdaOW9P/dHNg5sAMfx/X5ta5c1HZFeW50JBYQB9amQ1U2jZ/rg1DGmCSMKRvelQ59IdMllhnrWp83Uor6Uryd+9TfKDfK3/V673s/6x9DwFlmpvPXapR/YnTIP551iwl/nv+hyo/udKtK10jver/79kJY1ev9q9+4f8P9r4H7BwAAAAAAAAAAAABg++79kqV0ACgAAA=='))
+        example_archive.add("subdir2.md5",
+                            type="file",
+                            content="""d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex1.txt
+""")
+        example_archive.add("miscellaneous.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sIAAAAAAAAA+3W0QrCIBQGYK97Cp+gHZ3O1+gVtiZULBqbAx8/V0GxqCjmovZ/N4oOdkD+o9bn+7qyifVi6bxjMVCQZaofhdF0O55JwYRSKiUygjQjISlsc4pSzUDXurzhnNW74ul3r/Z/1KrK13ZzqErbcGe9W3y7IJiUveS/7Ypy26RJjH/0ETdGP84/0TX/Rvb5l2GJ6xjFDM08/8Pzt16Ofg+81f9P55+GOfr/FND/5+0+/+O/Az/JvzTI/xSQfwAAAAAAAAAAAAAAAID/cQRHXCooACgAAA=='))
+        example_archive.add("miscellaneous.md5",
+                            type="file",
+                            content="""d1ee10b76e42d7e06921e41fbb9b75f7  example/ex1.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
+                            type="file",
+                            content="""ea40b4706e9d97459173ddba2cc8f673  subdir1.tar.gz
+21ab03a93bb341292ca281bf7f9d7176  subdir2.tar.gz
+a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "subarchives": [
+    "subdir1.tar.gz",
+    "subdir2.tar.gz",
+    "miscellaneous.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "multi_volume": false,
+  "volume_size": null,
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.create()
+        p = example_archive.path
+        # Expected contents
+        expected = ('example/ex1.txt',
+                    'example/subdir1',
+                    'example/subdir1/ex1.txt',
+                    'example/subdir1/ex2.txt',
+                    'example/subdir2',
+                    'example/subdir2/ex1.txt',
+                    'example/subdir2/ex2.txt',
+                    'example/subdir3',
+                    'example/subdir3/ex1.txt',
+                    'example/subdir3/ex2.txt',)
+        # Check example loads as ArchiveDirectory
+        a = ArchiveDirectory(p)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check subset of metadata
+        metadata = a.archive_metadata
+        self.assertEqual(metadata['name'],"example")
+        self.assertEqual(metadata['subarchives'],["subdir1.tar.gz",
+                                                  "subdir2.tar.gz",
+                                                  "miscellaneous.tar.gz"])
+        self.assertEqual(metadata['files'],[])
+        self.assertEqual(metadata['multi_volume'],False)
+        self.assertEqual(metadata['volume_size'],None)
+        # List contents
+        for item in a.list():
+            self.assertTrue(item.path in expected,
+                            "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        # Verify archive
+        self.assertTrue(a.verify_archive())
+        # Unpack
+        a.unpack(extract_dir=self.wd)
+        self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(os.path.join(self.wd,"example")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","ex1.txt")))
+
+    def test_archivedirectory_multiple_subarchives_and_file(self):
+        """
+        ArchiveDirectory: multiple subarchives and extra file
+        """
+        # Build example archive dir
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "example.archive"))
+        example_archive.add("extra_file.txt",
+                            type="file",
+                            content="Extra stuff\n")
+        example_archive.add("subdir1.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sIAAAAAAAAA+3T3QqCMBjG8R13FV5BbnO62+gWNAcVRqILdvkpEYRhnfiB9P+dvAd7YS88PC7k17pycXsvynOjYjED2bE27aeyqXyfL0IZY5JuTZlMSKWVtSJK5zhm6N76vIkiUV+Kr3u/3jfKDfJ3Qe998JP+0QecZWY8f60G+SdGd/nLSa8Y8ef5H6r86E63qnRN5F3wu7UPwqI++69W7r959t/Q/yXQfwAAAAAAAAAAAAAAtu8BVJJOSAAoAAA='))
+        example_archive.add("subdir1.md5",
+                            type="file",
+                            content="""d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex1.txt
+""")
+        example_archive.add("subdir2.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sIAAAAAAAAA+3T0QqCMBTG8V33FHuCdHO61+gVNAcVRqITfPzmRRCGdaOW9P/dHNg5sAMfx/X5ta5c1HZFeW50JBYQB9amQ1U2jZ/rg1DGmCSMKRvelQ59IdMllhnrWp83Uor6Uryd+9TfKDfK3/V673s/6x9DwFlmpvPXapR/YnTIP551iwl/nv+hyo/udKtK10jver/79kJY1ev9q9+4f8P9r4H7BwAAAAAAAAAAAABg++79kqV0ACgAAA=='))
+        example_archive.add("subdir2.md5",
+                            type="file",
+                            content="""d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex1.txt
+""")
+        example_archive.add("miscellaneous.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sIAAAAAAAAA+3W0QrCIBQGYK97Cp+gHZ3O1+gVtiZULBqbAx8/V0GxqCjmovZ/N4oOdkD+o9bn+7qyifVi6bxjMVCQZaofhdF0O55JwYRSKiUygjQjISlsc4pSzUDXurzhnNW74ul3r/Z/1KrK13ZzqErbcGe9W3y7IJiUveS/7Ypy26RJjH/0ETdGP84/0TX/Rvb5l2GJ6xjFDM08/8Pzt16Ofg+81f9P55+GOfr/FND/5+0+/+O/Az/JvzTI/xSQfwAAAAAAAAAAAAAAAID/cQRHXCooACgAAA=='))
+        example_archive.add("miscellaneous.md5",
+                            type="file",
+                            content="""d1ee10b76e42d7e06921e41fbb9b75f7  example/ex1.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
+                            type="file",
+                            content="""f299d91fe1d73319e4daa11dc3a12a33  extra_file.txt
+ea40b4706e9d97459173ddba2cc8f673  subdir1.tar.gz
+21ab03a93bb341292ca281bf7f9d7176  subdir2.tar.gz
+a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "subarchives": [
+    "subdir1.tar.gz",
+    "subdir2.tar.gz",
+    "miscellaneous.tar.gz"
+  ],
+  "files": [
+    "extra_file.txt"
+  ],
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "multi_volume": false,
+  "volume_size": null,
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.create()
+        p = example_archive.path
+        # Expected contents
+        expected = ('example/extra_file.txt',
+                    'example/ex1.txt',
+                    'example/subdir1',
+                    'example/subdir1/ex1.txt',
+                    'example/subdir1/ex2.txt',
+                    'example/subdir2',
+                    'example/subdir2/ex1.txt',
+                    'example/subdir2/ex2.txt',
+                    'example/subdir3',
+                    'example/subdir3/ex1.txt',
+                    'example/subdir3/ex2.txt',)
+        # Check example loads as ArchiveDirectory
+        a = ArchiveDirectory(p)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check subset of metadata
+        metadata = a.archive_metadata
+        self.assertEqual(metadata['name'],"example")
+        self.assertEqual(metadata['subarchives'],["subdir1.tar.gz",
+                                                  "subdir2.tar.gz",
+                                                  "miscellaneous.tar.gz"])
+        self.assertEqual(metadata['files'],["extra_file.txt"])
+        self.assertEqual(metadata['multi_volume'],False)
+        self.assertEqual(metadata['volume_size'],None)
+        # List contents
+        for item in a.list():
+            self.assertTrue(item.path in expected,
+                            "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(name="extra*.txt")]),
+                         ["example/extra_file.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        # Verify archive
+        self.assertTrue(a.verify_archive())
+        # Unpack
+        a.unpack(extract_dir=self.wd)
+        self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(os.path.join(self.wd,"example")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="*/extra_file.txt",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"extra_file.txt")))
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","ex1.txt")))
+
+    def test_archivedirectory_multi_volume_single_subarchive(self):
+        """
+        ArchiveDirectory: single multi-volume subarchive
+        """
+        # Define archive dir contents
+        MULTI_VOLUME_SINGLE_SUBARCHIVE = {
+            "example.00": {
+                "b64": b'H4sIAAAAAAAAA+3OTQrCMBCG4aw9RU5gJ+3YXsMrpDagErGkKeT4Vty48WdREOF9Nu9iZvGF4i9jDNU098MpuSoUt80lmzXJom31Xtft5LkPtTNOVRuRbqkR12itxsqqK16Yp+yTtWY892//Pt3/1D76Qzhe4xCSzaHkza8HAQAAAAAAAAAAAAAAAAC+cgOMxjgDACgAAA==',
+                "contents": [
+                    ("example/subdir1/ex1.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "1008e36e3235a2bd82ddbb7bf68e7767"
+            },
+            "example.01": {
+                "b64": b'H4sIAAAAAAAAA+3OSwrCMBSF4YxdRVZgkzQ223ALqb2gErGkKWT5Vpw48TEoiPB/kwP33MGRGi9jkmaa++GUXSPVbkstak1m0XX+njbszHM+OKus9741Jtiw3G3rnVfarLrihXkqMWutxnP/9u9T/6f2KR7keE2DZF2kls2vBwEAAAAAAAAAAAAAAAAAvnIDTYFecAAoAAA=',
+                "contents": [
+                    ("example/subdir2/ex1.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "aa1e47917b73e55ce84fbf5abbadac9c"
+            }
+        }
+        # Build example archive dir
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "example.archive"))
+        md5s = []
+        for name in MULTI_VOLUME_SINGLE_SUBARCHIVE:
+            data = MULTI_VOLUME_SINGLE_SUBARCHIVE[name]
+            # Tar.gz file for subarchive
+            example_archive.add("%s.tar.gz" % name,
+                                type="binary",
+                                content=base64.b64decode(data['b64']))
+            # MD5 file for contents
+            example_archive.add("%s.md5" % name,
+                                type="file",
+                                content='\n'.join(["%s  %s" %
+                                                   (d[1],d[0])
+                                                   for d in data['contents']]))
+            # Store archive MD5
+            md5s.append(("%s.tar.gz" % name,data['md5']))
+        # MD5 for archive dir
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
+                            type="file",
+                            content='\n'.join(["%s  %s" % (m[1],m[0])
+                                               for m in md5s]))
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "subarchives": [
+    "example.00.tar.gz",
+    "example.01.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "multi_volume": true,
+  "volume_size": "250M",
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.create()
+        p = example_archive.path
+        # Expected contents
+        expected = ('example/subdir1',
+                    'example/subdir1/ex1.txt',
+                    'example/subdir2',
+                    'example/subdir2/ex1.txt',)
+        # Check example loads as ArchiveDirectory
+        a = ArchiveDirectory(p)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check subset of metadata
+        metadata = a.archive_metadata
+        self.assertEqual(metadata['name'],"example")
+        self.assertEqual(metadata['subarchives'],["example.00.tar.gz",
+                                                  "example.01.tar.gz"])
+        self.assertEqual(metadata['files'],[])
+        self.assertEqual(metadata['multi_volume'],True)
+        self.assertEqual(metadata['volume_size'],"250M")
+        # List contents
+        for item in a.list():
+            self.assertTrue(item.path in expected,
+                            "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt"])
+        # Verify archive
+        self.assertTrue(a.verify_archive())
+        # Unpack
+        a.unpack(extract_dir=self.wd)
+        self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(os.path.join(self.wd,"example")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/subdir1/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="example/subdir1/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","subdir1","ex1.txt")))
+
+    def test_archivedirectory_multi_volume_multiple_subarchives(self):
+        """
+        ArchiveDirectory: multiple multi-volume subarchives
+        """
+        # Define archive dir contents
+        MULTI_VOLUME_MULTIPLE_SUBARCHIVES = {
+            "subdir1.00": {
+                "b64": b'H4sIAAAAAAAAA+3OTQrCMBCG4aw9RU5gJ+3YXsMrpDagErGkKeT4Vty48WdREOF9Nu9iZvGF4i9jDNU098MpuSoUt80lmzXJom31Xtft5LkPtTNOVRuRbqkR12itxsqqK16Yp+yTtWY892//Pt3/1D76Qzhe4xCSzaHkza8HAQAAAAAAAAAAAAAAAAC+cgOMxjgDACgAAA==',
+                "contents": [
+                    ("example/subdir1/ex1.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "1008e36e3235a2bd82ddbb7bf68e7767"
+            },
+            "subdir1.01": {
+                "b64": b'H4sIAAAAAAAAA+3OTQrCMBiE4aw9RU5gk/QzuYZXaG1AJWJJU8jxq7hx48+iIML7bGYxs5hYu8uYYjPN/XDKtonVbUstak3mxnu5pw0785wPziorIq0xwYpXxrbigtJm1RcvzFPpstZqPPdvd5/6P7VP3SEer2mIWZdYy+bXhwAAAAAAAAAAAAAAAAAAX1kA/Ab9xAAoAAA=',
+                "contents": [
+                    ("example/subdir1/ex2.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "df145dac88a341d59709395361ddcb0c"
+            },
+            "subdir2.00": {
+                "b64": b'H4sIAAAAAAAAA+3OSwrCMBSF4YxdRVZgkzQ223ALqb2gErGkKWT5Vpw48TEoiPB/kwP33MGRGi9jkmaa++GUXSPVbkstak1m0XX+njbszHM+OKus9741Jtiw3G3rnVfarLrihXkqMWutxnP/9u9T/6f2KR7keE2DZF2kls2vBwEAAAAAAAAAAAAAAAAAvnIDTYFecAAoAAA=',
+                "contents": [
+                    ("example/subdir2/ex1.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "aa1e47917b73e55ce84fbf5abbadac9c"
+            },
+            "subdir2.01": {
+                "b64": b'H4sIAAAAAAAAA+3OSwrCMBSF4YxdRVZgkzRttuEWWntBJWJJU8jyW3HixMegIML/TQ7ccwdHSncdo1TT3A/n5Copbp9LVlsyq7b197ShMc/54Kyy3vvamGDDere1d43SZtMVL8xT7pLWarz0b/8+9X/qELujnG5xkKSzlLz79SAAAAAAAAAAAAAAAAAAwFcWnpOniAAoAAA=',
+                "contents": [
+                    ("example/subdir2/ex2.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "35f2b1326ed67ab2661d7a0aa1a1c277"
+            },
+            "miscellaneous.00": {
+                "b64": b'H4sIAAAAAAAAA+3OMQrCQBSE4a09xZ5A34ub5BpeYdUHIiuG+IQ9vhEbsVCbIML/NVPMFGM1n4ZiK6u69OphDjLpunRP7Vt5zodGg6aU1iK9ShtEG5nqKLO8eXG9eB5jDMNx+3b3qf9Tm5J3djiXvY3Rrfri14cAAAAAAAAAAAAAAAAAAF+5AWYSJbwAKAAA',
+                "contents": [
+                    ("example/ex1.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "3c28749fd786eb199e6c2d20e224f7c9"
+            },
+            "miscellaneous.01": {
+                "b64": b'H4sIAAAAAAAAA+3TOw6CQBSF4aldxaxA5iWzDbcAchM1GAkMySwfjY2JURuCkvxfc4p7i9McydWla6UYxro59b6QbLcpJzUnc1OW4Z427sxzPjirbAjBGxNtdMpYH1xU2sza4o1xSFWvterO9ce/b/eV2rfVQY7XtpFeJ8lp8+tCWJS87N/9xf69Yf9LYP8AAAAAAAAAAAAAAADrNgFkm3NNACgAAA==',
+                "contents": [
+                    ("example/subdir3/ex1.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7"),
+                    ("example/subdir3/ex2.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "6bb7bf22c1dd5b938c431c6696eb6af9"
+            }
+        }
+        # Build example archive dir
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "example.archive"))
+        md5s = []
+        for name in MULTI_VOLUME_MULTIPLE_SUBARCHIVES:
+            data = MULTI_VOLUME_MULTIPLE_SUBARCHIVES[name]
+            # Tar.gz file for subarchive
+            example_archive.add("%s.tar.gz" % name,
+                                type="binary",
+                                content=base64.b64decode(data['b64']))
+            # MD5 file for contents
+            example_archive.add("%s.md5" % name,
+                                type="file",
+                                content='\n'.join(["%s  %s" %
+                                                   (d[1],d[0])
+                                                   for d in data['contents']]))
+            # Store archive MD5
+            md5s.append(("%s.tar.gz" % name,data['md5']))
+        # MD5 for archive dir
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
+                            type="file",
+                            content='\n'.join(["%s  %s" % (m[1],m[0])
+                                               for m in md5s]))
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "subarchives": [
+    "subdir1.00.tar.gz",
+    "subdir1.01.tar.gz",
+    "subdir2.00.tar.gz",
+    "subdir2.01.tar.gz",
+    "miscellaneous.00.tar.gz",
+    "miscellaneous.01.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "multi_volume": true,
+  "volume_size": "250M",
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.create()
+        p = example_archive.path
+        # Expected contents
+        expected = ('example/ex1.txt',
+                    'example/subdir1',
+                    'example/subdir1/ex1.txt',
+                    'example/subdir1/ex2.txt',
+                    'example/subdir2',
+                    'example/subdir2/ex1.txt',
+                    'example/subdir2/ex2.txt',
+                    'example/subdir3',
+                    'example/subdir3/ex1.txt',
+                    'example/subdir3/ex2.txt',)
+        # Check example loads as ArchiveDirectory
+        a = ArchiveDirectory(p)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check subset of metadata
+        metadata = a.archive_metadata
+        self.assertEqual(metadata['name'],"example")
+        self.assertEqual(metadata['subarchives'],["subdir1.00.tar.gz",
+                                                  "subdir1.01.tar.gz",
+                                                  "subdir2.00.tar.gz",
+                                                  "subdir2.01.tar.gz",
+                                                  "miscellaneous.00.tar.gz",
+                                                  "miscellaneous.01.tar.gz"])
+        self.assertEqual(metadata['files'],[])
+        self.assertEqual(metadata['multi_volume'],True)
+        self.assertEqual(metadata['volume_size'],"250M")
+        # List contents
+        for item in a.list():
+            self.assertTrue(item.path in expected,
+                            "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        # Verify archive
+        self.assertTrue(a.verify_archive())
+        # Unpack
+        a.unpack(extract_dir=self.wd)
+        self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(os.path.join(self.wd,"example")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","ex1.txt")))
+
+    def test_archivedirectory_multi_volume_multiple_subarchives_and_file(self):
+        """
+        ArchiveDirectory: multiple multi-volume subarchives and extra file
+        """
+        # Define archive dir contents
+        MULTI_VOLUME_MULTIPLE_SUBARCHIVES_AND_FILE = {
+            "subdir1.00": {
+                "b64": b'H4sIAAAAAAAAA+3OTQrCMBCG4aw9RU5gJ+3YXsMrpDagErGkKeT4Vty48WdREOF9Nu9iZvGF4i9jDNU098MpuSoUt80lmzXJom31Xtft5LkPtTNOVRuRbqkR12itxsqqK16Yp+yTtWY892//Pt3/1D76Qzhe4xCSzaHkza8HAQAAAAAAAAAAAAAAAAC+cgOMxjgDACgAAA==',
+                "contents": [
+                    ("example/subdir1/ex1.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "1008e36e3235a2bd82ddbb7bf68e7767"
+            },
+            "subdir1.01": {
+                "b64": b'H4sIAAAAAAAAA+3OTQrCMBiE4aw9RU5gk/QzuYZXaG1AJWJJU8jxq7hx48+iIML7bGYxs5hYu8uYYjPN/XDKtonVbUstak3mxnu5pw0785wPziorIq0xwYpXxrbigtJm1RcvzFPpstZqPPdvd5/6P7VP3SEer2mIWZdYy+bXhwAAAAAAAAAAAAAAAAAAX1kA/Ab9xAAoAAA=',
+                "contents": [
+                    ("example/subdir1/ex2.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "df145dac88a341d59709395361ddcb0c"
+            },
+            "subdir2.00": {
+                "b64": b'H4sIAAAAAAAAA+3OSwrCMBSF4YxdRVZgkzQ223ALqb2gErGkKWT5Vpw48TEoiPB/kwP33MGRGi9jkmaa++GUXSPVbkstak1m0XX+njbszHM+OKus9741Jtiw3G3rnVfarLrihXkqMWutxnP/9u9T/6f2KR7keE2DZF2kls2vBwEAAAAAAAAAAAAAAAAAvnIDTYFecAAoAAA=',
+                "contents": [
+                    ("example/subdir2/ex1.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "aa1e47917b73e55ce84fbf5abbadac9c"
+            },
+            "subdir2.01": {
+                "b64": b'H4sIAAAAAAAAA+3OSwrCMBSF4YxdRVZgkzRttuEWWntBJWJJU8jyW3HixMegIML/TQ7ccwdHSncdo1TT3A/n5Copbp9LVlsyq7b197ShMc/54Kyy3vvamGDDere1d43SZtMVL8xT7pLWarz0b/8+9X/qELujnG5xkKSzlLz79SAAAAAAAAAAAAAAAAAAwFcWnpOniAAoAAA=',
+                "contents": [
+                    ("example/subdir2/ex2.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "35f2b1326ed67ab2661d7a0aa1a1c277"
+            },
+            "miscellaneous.00": {
+                "b64": b'H4sIAAAAAAAAA+3OMQrCQBSE4a09xZ5A34ub5BpeYdUHIiuG+IQ9vhEbsVCbIML/NVPMFGM1n4ZiK6u69OphDjLpunRP7Vt5zodGg6aU1iK9ShtEG5nqKLO8eXG9eB5jDMNx+3b3qf9Tm5J3djiXvY3Rrfri14cAAAAAAAAAAAAAAAAAAF+5AWYSJbwAKAAA',
+                "contents": [
+                    ("example/ex1.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "3c28749fd786eb199e6c2d20e224f7c9"
+            },
+            "miscellaneous.01": {
+                "b64": b'H4sIAAAAAAAAA+3TOw6CQBSF4aldxaxA5iWzDbcAchM1GAkMySwfjY2JURuCkvxfc4p7i9McydWla6UYxro59b6QbLcpJzUnc1OW4Z427sxzPjirbAjBGxNtdMpYH1xU2sza4o1xSFWvterO9ce/b/eV2rfVQY7XtpFeJ8lp8+tCWJS87N/9xf69Yf9LYP8AAAAAAAAAAAAAAADrNgFkm3NNACgAAA==',
+                "contents": [
+                    ("example/subdir3/ex1.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7"),
+                    ("example/subdir3/ex2.txt",
+                     "d1ee10b76e42d7e06921e41fbb9b75f7")
+                ],
+                "md5": "6bb7bf22c1dd5b938c431c6696eb6af9"
+            },
+            "extra_file.txt": {
+                "type": "file",
+                "contents": "Extra stuff\n",
+                "md5": "f299d91fe1d73319e4daa11dc3a12a33"
+            }
+        }
+        # Build example archive dir
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "example.archive"))
+        md5s = []
+        for name in MULTI_VOLUME_MULTIPLE_SUBARCHIVES_AND_FILE:
+            data = MULTI_VOLUME_MULTIPLE_SUBARCHIVES_AND_FILE[name]
+            # Check if it's actually a file
+            if "type" in data:
+                example_archive.add(name,
+                                    type=data["type"],
+                                    content=data["contents"])
+                md5s.append((name,data['md5']))
+                continue
+            # Tar.gz file for subarchive
+            example_archive.add("%s.tar.gz" % name,
+                                type="binary",
+                                content=base64.b64decode(data['b64']))
+            # MD5 file for contents
+            example_archive.add("%s.md5" % name,
+                                type="file",
+                                content='\n'.join(["%s  %s" %
+                                                   (d[1],d[0])
+                                                   for d in data['contents']]))
+            # Store archive MD5
+            md5s.append(("%s.tar.gz" % name,data['md5']))
+        # MD5 for archive dir
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
+                            type="file",
+                            content='\n'.join(["%s  %s" % (m[1],m[0])
+                                               for m in md5s]))
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "subarchives": [
+    "subdir1.00.tar.gz",
+    "subdir1.01.tar.gz",
+    "subdir2.00.tar.gz",
+    "subdir2.01.tar.gz",
+    "miscellaneous.00.tar.gz",
+    "miscellaneous.01.tar.gz"
+  ],
+  "files": [
+    "extra_file.txt"
+  ],
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "multi_volume": true,
+  "volume_size": "250M",
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.create()
+        p = example_archive.path
+        # Expected contents
+        expected = ('example/extra_file.txt',
+                    'example/ex1.txt',
+                    'example/subdir1',
+                    'example/subdir1/ex1.txt',
+                    'example/subdir1/ex2.txt',
+                    'example/subdir2',
+                    'example/subdir2/ex1.txt',
+                    'example/subdir2/ex2.txt',
+                    'example/subdir3',
+                    'example/subdir3/ex1.txt',
+                    'example/subdir3/ex2.txt',)
+        # Check example loads as ArchiveDirectory
+        a = ArchiveDirectory(p)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check subset of metadata
+        metadata = a.archive_metadata
+        self.assertEqual(metadata['name'],"example")
+        self.assertEqual(metadata['subarchives'],["subdir1.00.tar.gz",
+                                                  "subdir1.01.tar.gz",
+                                                  "subdir2.00.tar.gz",
+                                                  "subdir2.01.tar.gz",
+                                                  "miscellaneous.00.tar.gz",
+                                                  "miscellaneous.01.tar.gz"])
+        self.assertEqual(metadata['files'],["extra_file.txt"])
+        self.assertEqual(metadata['multi_volume'],True)
+        self.assertEqual(metadata['volume_size'],"250M")
+        # List contents
+        for item in a.list():
+            self.assertTrue(item.path in expected,
+                            "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(name="extra*.txt")]),
+                         ["example/extra_file.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        # Verify archive
+        self.assertTrue(a.verify_archive())
+        # Unpack
+        a.unpack(extract_dir=self.wd)
+        self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(os.path.join(self.wd,"example")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="*/extra_file.txt",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"extra_file.txt")))
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","ex1.txt")))
+
+    def test_archivedirectory_with_external_symlink(self):
+        """
+        ArchiveDirectory: archive with external symlink
+        """
+        # Build example archive dir
+        example_archive = UnittestDir(
+            os.path.join(self.wd,
+                         "example_external_symlinks.archive"))
+        example_archive.add("example_external_symlinks.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sICPGH5GQA/2V4YW1wbGVfZXh0ZXJuYWxfc3ltbGlua3MudGFyAO3bzW7aQBiFYda9Cq5gmPnmz7Oo1GWXuYPIaVyV1qQREMm9+9qJUn4qaijEDpr32YAwwmYx58DMWM3U7NNN2XyuyvtqOXkT+sWhR62t2zzvXjfGeZlMm7e5nF1Pq3W5bE9/7ufsf7krIcV0sZ4vqo8mJAmp8Ckp64pYePdh7GvD26uacvFYV7dVs66WD2V9u/q1qOcPP1azqjFq3awvcI5uPITwPMZN9Hr78YXZH//RtIengwyi1/H/+P3un+/rO36l4/+mLr9U337Wbfgz3jOk6H/6f6v/rXglRQjaWPIgA4f7f/V0dz9fyuz8c3TjIUZ/uP+13u9/iWYy9eeful/m/U/+k//b+S8mKO2sDdqT/xnoy38zVv5r8n8I5D/5v53/2otKSVwU5v9y0Jf/dqz8F/J/CO8j/+3f+W/I/yFI3Mt/V6jkxSV+/mehf/7n/HWgbjyctP4j7a8QYf1nCKz/5I3+p//p/3wd0/8yRv9b+n8I9H/e3kf/M/87FvZ/5O2Y/t89cvpsQDceYozHz/9KezRMpqLadFKbC/g6r6sLbUndyLz/yX/yf2f/hy6UDdEZF8n/DPTv//jv2P/j9Py3Jjzn/wVvQjiE/Cf/yf/X/I8pdfnvYkzkfw7683+k9T/D/N8QmP/LG/1P/++s/4lRRorgTSAPMnBM/4+y/sf+n0HQ/3mj/+l/7v/IV//9HyP9/2f/zyDo/7zR//Q//Z+vY/p/lP//jv4fAv0PAAAAAAAAAAAAAAAAXK/f57i5aQB4AAA='))
+        example_archive.add("example_external_symlinks.md5",
+                            type="file",
+                            content="""a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir2/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir2/ex2.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir1/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir1/ex2.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex2.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
+                            type="file",
+                            content="cdf7fcdf08b0afa29f1458b10e317861  example_external_symlinks.tar.gz\n")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example_external_symlinks",
+  "source": "/original/path/to/example_external_symlinks",
+  "subarchives": [
+    "example_external_symlinks.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "multi_volume": false,
+  "volume_size": null,
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/symlinks",type="file",
+                            content="""example_external_symlinks/subdir2/external_symlink1.txt	example_external_symlinks.tar.gz
+example_external_symlinks/subdir1/symlink1.txt	example_external_symlinks.tar.gz
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Add an external file
+        external_file = os.path.join(self.wd,"external_file")
+        with open(external_file,'wt') as fp:
+            fp.write("external content")
+        # Expected contents
+        expected = ('example_external_symlinks/ex1.txt',
+                    'example_external_symlinks/subdir1',
+                    'example_external_symlinks/subdir1/ex1.txt',
+                    'example_external_symlinks/subdir1/ex2.txt',
+                    'example_external_symlinks/subdir1/symlink1.txt',
+                    'example_external_symlinks/subdir2',
+                    'example_external_symlinks/subdir2/ex1.txt',
+                    'example_external_symlinks/subdir2/ex2.txt',
+                    'example_external_symlinks/subdir2/external_symlink1.txt',
+                    'example_external_symlinks/subdir3',
+                    'example_external_symlinks/subdir3/ex1.txt',
+                    'example_external_symlinks/subdir3/ex2.txt',)
+        # Check example loads as ArchiveDirectory
+        a = ArchiveDirectory(p)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check subset of metadata
+        metadata = a.archive_metadata
+        self.assertEqual(metadata['name'],"example_external_symlinks")
+        self.assertEqual(metadata['subarchives'],
+                         ["example_external_symlinks.tar.gz"])
+        self.assertEqual(metadata['files'],[])
+        self.assertEqual(metadata['multi_volume'],False)
+        self.assertEqual(metadata['volume_size'],None)
+        # List contents
+        for item in a.list():
+            self.assertTrue(item.path in expected,
+                            "%s: unexpected item" % item.path)
+        # Search for symlinks
+        self.assertEqual(sorted([x.path for x in a.search(name="*symlink1.txt")]),
+                         ["example_external_symlinks/subdir1/symlink1.txt",
+                          "example_external_symlinks/subdir2/external_symlink1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example_external_symlinks/subdir*/*symlink1.txt")]),
+                         ["example_external_symlinks/subdir1/symlink1.txt",
+                          "example_external_symlinks/subdir2/external_symlink1.txt"])
+        # Verify archive
+        self.assertTrue(a.verify_archive())
+        # Unpack
+        a.unpack(extract_dir=self.wd)
+        self.assertTrue(os.path.exists(
+            os.path.join(self.wd,"example_external_symlinks")))
+        self.assertEqual(
+            os.path.getmtime(os.path.join(self.wd,"example_external_symlinks")),
+            os.path.getmtime(a.path))
+        for item in expected:
+            self.assertTrue(
+                os.path.lexists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(
+                os.path.join(self.wd,"example_external_symlinks")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+        # Extract internal symlink
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example_external_symlinks/subdir1/symlink1.*",
+                        extract_dir=extract_dir)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,"symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,"symlink1.txt")),
+                         "./ex1.txt")
+        a.extract_files(name="example_external_symlinks/subdir1/symlink1.*",
+                        extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,
+                         "example_external_symlinks",
+                         "subdir1",
+                         "symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,
+                         "example_external_symlinks",
+                         "subdir1",
+                         "symlink1.txt")),
+                         "./ex1.txt")
+        # Extract external symlink
+        a.extract_files(
+            name="example_external_symlinks/subdir2/external_symlink1.*",
+            extract_dir=extract_dir)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,"external_symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,"external_symlink1.txt")),
+                         "../../external_file.txt")
+        a.extract_files(
+            name="example_external_symlinks/subdir2/external_symlink1.*",
+            extract_dir=extract_dir,
+            include_path=True)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,
+                         "example_external_symlinks",
+                         "subdir2",
+                         "external_symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,
+                         "example_external_symlinks",
+                         "subdir2",
+                         "external_symlink1.txt")),
+                         "../../external_file.txt")
+
+    def test_archivedirectory_with_broken_symlink(self):
+        """
+        ArchiveDirectory: archive with broken symlink
+        """
+        # Build example archive dir
+        example_archive = UnittestDir(os.path.join(
+            self.wd,
+            "example_broken_symlinks.archive"))
+        example_archive.add("example_broken_symlinks.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sICCqa5GQA/2V4YW1wbGVfYnJva2VuX3N5bWxpbmtzLnRhcgDt281u2kAYhWHWvQpfwTDzzZ9nUanLLnMHkWkslQaSCIhE7z44CSrQgJvG2EHzPhsiEsWw+M6BmbEaq/G3q2r9va5u6sXoLPSLY49aW/fn5+Z5Y5yXUbE+z8vZ97hcVYvN5T/6fw7f3IWQspivpvP6qwlJQip9Ssq6MpbefRn6teH86nU1f5jV15PF/W19d738PZ9N726X43pt1Gq96uQazTyE8DzjJnq9+/jCHM5/CDqMil6GaDv/D78mJ/+u7fcXOv9Xs+pH/fN+tgl/5j1Div6n/7f9H7UVWyrjy3IT2ORBBo71//JxcjNdyLiLazTzEKM/3v9aH/Z/lDgqfBcXb5N5/5P/5P/u9z8xQWlnbdCe/M/A6fw3w+V/IP/7QP6T/7v5r72olMRFYf0vB6fz3w6W/1aT/334HPlv/85/Q/73QeJB/rtSJS8u8fE/C23rP13sAzXz8K79H9k0gGb/pw/s/+SN/qf/6f98tfe/DNP/hv7vA/2ft8/R/6z/DoXzH3lr6//95/9vLaCZhxjjv6//ijMhjgpRm48ftrNjqG/LvP/Jf/J/7/yHLpUN0RkXyf8MtJ3/+FDwv3p//ksQ95r/3d2G8Dbyn/wn/7f5H1Nq8t/FmMj/HLTl/1D7fz6y/tcH1v/yRv/T/3v7f2KUkTJ4w/pfDtr7f6D9P87/9IL+zxv9T/9z/0e+2u7/GOz8L+d/ekH/543+p//p/3y19/9A3/+F/u8D/Q8AAAAAAAAAAAAAAABcridJPIFaAHgAAA=='))
+        example_archive.add("example_broken_symlinks.md5",
+                            type="file",
+                            content="""a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir2/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir2/ex2.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir1/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir1/ex2.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex1.txt
+a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex2.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
+                            type="file",
+                            content="a36ee4df21f4f6f35e1ea92282e92b22  example_broken_symlinks.tar.gz\n")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",type="file",
+                            content="""{
+  "name": "example_broken_symlinks",
+  "source": "/original/path/to/example_broken_symlinks",
+  "subarchives": [
+    "example_broken_symlinks.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "multi_volume": false,
+  "volume_size": null,
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/symlinks",type="file",
+                            content="""example_broken_symlinks/subdir2/broken_symlink1.txt	example_broken_symlinks.tar.gz
+example_broken_symlinks/subdir1/symlink1.txt	example_broken_symlinks.tar.gz
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Expected contents
+        expected = ('example_broken_symlinks/ex1.txt',
+                    'example_broken_symlinks/subdir1',
+                    'example_broken_symlinks/subdir1/ex1.txt',
+                    'example_broken_symlinks/subdir1/ex2.txt',
+                    'example_broken_symlinks/subdir1/symlink1.txt',
+                    'example_broken_symlinks/subdir2',
+                    'example_broken_symlinks/subdir2/ex1.txt',
+                    'example_broken_symlinks/subdir2/ex2.txt',
+                    'example_broken_symlinks/subdir2/broken_symlink1.txt',
+                    'example_broken_symlinks/subdir3',
+                    'example_broken_symlinks/subdir3/ex1.txt',
+                    'example_broken_symlinks/subdir3/ex2.txt',)
+        # Check example loads as ArchiveDirectory
+        a = ArchiveDirectory(p)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check subset of metadata
+        metadata = a.archive_metadata
+        self.assertEqual(metadata['name'],"example_broken_symlinks")
+        self.assertEqual(metadata['subarchives'],
+                         ["example_broken_symlinks.tar.gz"])
+        self.assertEqual(metadata['files'],[])
+        self.assertEqual(metadata['multi_volume'],False)
+        self.assertEqual(metadata['volume_size'],None)
+        # List contents
+        for item in a.list():
+            self.assertTrue(item.path in expected,
+                            "%s: unexpected item" % item.path)
+        # Search for symlinks
+        self.assertEqual(sorted([x.path for x in a.search(name="*symlink1.txt")]),
+                         ["example_broken_symlinks/subdir1/symlink1.txt",
+                          "example_broken_symlinks/subdir2/broken_symlink1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example_broken_symlinks/subdir*/*symlink1.txt")]),
+                         ["example_broken_symlinks/subdir1/symlink1.txt",
+                          "example_broken_symlinks/subdir2/broken_symlink1.txt"])
+        # Verify archive
+        self.assertTrue(a.verify_archive())
+        # Unpack
+        a.unpack(extract_dir=self.wd)
+        self.assertTrue(os.path.exists(os.path.join(
+            self.wd,"example_broken_symlinks")))
+        self.assertEqual(os.path.getmtime(os.path.join(
+            self.wd,"example_broken_symlinks")),
+                         os.path.getmtime(a.path))
+        for item in expected:
+            self.assertTrue(
+                os.path.lexists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(
+                os.path.join(self.wd,"example_broken_symlinks")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+        # Extract "working" symlink (will be broken)
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example_broken_symlinks/subdir1/symlink1.*",
+                        extract_dir=extract_dir)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,"symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,"symlink1.txt")),
+                         "./ex1.txt")
+        a.extract_files(name="example_broken_symlinks/subdir1/symlink1.*",
+                        extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,
+                         "example_broken_symlinks",
+                         "subdir1",
+                         "symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,
+                         "example_broken_symlinks",
+                         "subdir1",
+                         "symlink1.txt")),
+                         "./ex1.txt")
+        # Extract broken symlink
+        a.extract_files(
+            name="example_broken_symlinks/subdir2/broken_symlink1.*",
+            extract_dir=extract_dir)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,"broken_symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,"broken_symlink1.txt")),
+                         "./ex3.txt")
+        a.extract_files(
+            name="example_broken_symlinks/subdir2/broken_symlink1.*",
+            extract_dir=extract_dir,
+            include_path=True)
+        self.assertTrue(os.path.islink(
+            os.path.join(extract_dir,
+                         "example_broken_symlinks",
+                         "subdir2",
+                         "broken_symlink1.txt")))
+        self.assertEqual(os.readlink(
+            os.path.join(extract_dir,
+                         "example_broken_symlinks",
+                         "subdir2",
+                         "broken_symlink1.txt")),
+                         "./ex3.txt")
+
+class TestLegacyArchiveDirectory(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestLegacyArchiveDirectory')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_legacy_archivedirectory_single_subarchive(self):
+        """
+        ArchiveDirectory (legacy): single subarchive
+        """
+        # Build example archive dir
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "example.archive"))
+        example_archive.add("example.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sIAAAAAAAAA+2ZYWqDQBCF/Z1TeIJkdxzda/QKpllog6HBbMDjd7QVopKWQJxt2ff9MehCFl6+8Wl8V5/Ojd9lK2IE58r+aF1pbo8jmWXmQpZZI+usqchmebnmpkaul1C3eZ6dj/sf1/12/Z/iv/O/XPeH95ZW+R08lL+T85bkOvLXYJ6/72gbuvDU7+gDriq+n7/IPs2/YJL8zVN3cYfE839p6lf/9tEcfJsH34VN7A0BVZb+27/hP8N/DeB/2kz9t/H7H1df/c+h/2kwzz96/xvyl/nvMP81wPxPm6X/kfsfM/qfIvA/bab+F/H7n6O+/5GcQv9TYJ5/9P435F/IZ8x/DTD/02bpf+z3f4TnP0Xgf9qM/q/h/chD/g///5Mpcf9XAf4DAECafAIvyELwACgAAA=='))
+        example_archive.add("example.md5",
+                            type="file",
+                            content="""d1ee10b76e42d7e06921e41fbb9b75f7  example/ex1.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex1.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex1.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
+""")
         example_archive.add(".ngsarchiver/archive.md5",
                             type="file",
                             content="f210d02b4a294ec38c6ed82b92a73c44  example.tar.gz\n")
@@ -1419,9 +2583,9 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
         self.assertTrue(os.path.exists(
             os.path.join(extract_dir,"example","ex1.txt")))
 
-    def test_archivedirectory_multiple_subarchives(self):
+    def test_legacy_archivedirectory_multiple_subarchives(self):
         """
-        ArchiveDirectory: multiple subarchives
+        ArchiveDirectory (legacy): multiple subarchives
         """
         # Build example archive dir
         example_archive = UnittestDir(os.path.join(self.wd,
@@ -1542,9 +2706,9 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         self.assertTrue(os.path.exists(
             os.path.join(extract_dir,"example","ex1.txt")))
 
-    def test_archivedirectory_multiple_subarchives_and_file(self):
+    def test_legacy_archivedirectory_multiple_subarchives_and_file(self):
         """
-        ArchiveDirectory: multiple subarchives and extra file
+        ArchiveDirectory (legacy): multiple subarchives and extra file
         """
         # Build example archive dir
         example_archive = UnittestDir(os.path.join(self.wd,
@@ -1677,9 +2841,9 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         self.assertTrue(os.path.exists(
             os.path.join(extract_dir,"example","ex1.txt")))
 
-    def test_archivedirectory_multi_volume_single_subarchive(self):
+    def test_legacy_archivedirectory_multi_volume_single_subarchive(self):
         """
-        ArchiveDirectory: single multi-volume subarchive
+        ArchiveDirectory (legacy): single multi-volume subarchive
         """
         # Define archive dir contents
         MULTI_VOLUME_SINGLE_SUBARCHIVE = {
@@ -1797,9 +2961,9 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         self.assertTrue(os.path.exists(
             os.path.join(extract_dir,"example","subdir1","ex1.txt")))
 
-    def test_archivedirectory_multi_volume_multiple_subarchives(self):
+    def test_legacy_archivedirectory_multi_volume_multiple_subarchives(self):
         """
-        ArchiveDirectory: multiple multi-volume subarchives
+        ArchiveDirectory (legacy): multiple multi-volume subarchives
         """
         # Define archive dir contents
         MULTI_VOLUME_MULTIPLE_SUBARCHIVES = {
@@ -1968,9 +3132,9 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         self.assertTrue(os.path.exists(
             os.path.join(extract_dir,"example","ex1.txt")))
 
-    def test_archivedirectory_multi_volume_multiple_subarchives_and_file(self):
+    def test_legacy_archivedirectory_multi_volume_multiple_subarchives_and_file(self):
         """
-        ArchiveDirectory: multiple multi-volume subarchives and extra file
+        ArchiveDirectory (legacy): multiple multi-volume subarchives and extra file
         """
         # Define archive dir contents
         MULTI_VOLUME_MULTIPLE_SUBARCHIVES_AND_FILE = {
@@ -2159,9 +3323,9 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         self.assertTrue(os.path.exists(
             os.path.join(extract_dir,"example","ex1.txt")))
 
-    def test_archivedirectory_with_external_symlink(self):
+    def test_legacy_archivedirectory_with_external_symlink(self):
         """
-        ArchiveDirectory: archive with external symlink
+        ArchiveDirectory (legacy): archive with external symlink
         """
         # Build example archive dir
         example_archive = UnittestDir(
@@ -2313,9 +3477,9 @@ example_external_symlinks/subdir1/symlink1.txt	example_external_symlinks.tar.gz
                          "external_symlink1.txt")),
                          "../../external_file.txt")
 
-    def test_archivedirectory_with_broken_symlink(self):
+    def test_legacy_archivedirectory_with_broken_symlink(self):
         """
-        ArchiveDirectory: archive with broken symlink
+        ArchiveDirectory (legacy): archive with broken symlink
         """
         # Build example archive dir
         example_archive = UnittestDir(os.path.join(
@@ -2538,9 +3702,42 @@ class TestGetRundirInstance(unittest.TestCase):
         """
         # Build example dir
         example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
+        example_dir.add("ARCHIVE_METADATA/archive_checksums.md5",type="file")
+        example_dir.add("ARCHIVE_METADATA/archiver_metadata.json",type="file",
+                        content="""{
+  "name": "example",
+  "compression_level": 6
+}
+""")
+        example_dir.add("ARCHIVE_METADATA/manifest.txt",type="file")
+        example_dir.add("Project1.tar.gz",type="file")
+        example_dir.add("Project2.tar.gz",type="file")
+        example_dir.add("undetermined.tar.gz",type="file")
+        example_dir.add("processing.tar.gz",type="file")
+        example_dir.add("Project1.md5",type="file")
+        example_dir.add("Project2.md5",type="file")
+        example_dir.add("undetermined.md5",type="file")
+        example_dir.add("processing.md5",type="file")
+        example_dir.create()
+        p = example_dir.path
+        p = example_dir.path
+        # Check correct class is returned
+        d = get_rundir_instance(p)
+        self.assertTrue(isinstance(d,ArchiveDirectory))
+
+    def test_get_rundir_instance_legacy_archive_directory(self):
+        """
+        get_rundir_instance: returns 'ArchiveDirectory' instance (legacy archive)
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
         example_dir.add(".ngsarchiver/archive.md5",type="file")
         example_dir.add(".ngsarchiver/archive_metadata.json",type="file",
-                        content="{}")
+                        content="""{
+  "name": "example",
+  "compression_level": 6
+}
+""")
         example_dir.add(".ngsarchiver/manifest.txt",type="file")
         example_dir.add("Project1.tar.gz",type="file")
         example_dir.add("Project2.tar.gz",type="file")
@@ -2586,10 +3783,10 @@ class TestMakeArchiveDir(unittest.TestCase):
         self.assertTrue(os.path.exists(archive_dir))
         for item in ("example.tar.gz",
                      "example.md5",
-                     ".ngsarchiver",
-                     ".ngsarchiver/archive.md5",
-                     ".ngsarchiver/archive_metadata.json",
-                     ".ngsarchiver/manifest.txt",):
+                     "ARCHIVE_METADATA",
+                     "ARCHIVE_METADATA/archive_checksums.md5",
+                     "ARCHIVE_METADATA/archiver_metadata.json",
+                     "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
@@ -2617,10 +3814,10 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "subdir1.md5",
                      "subdir2.tar.gz",
                      "subdir2.md5",
-                     ".ngsarchiver",
-                     ".ngsarchiver/archive.md5",
-                     ".ngsarchiver/archive_metadata.json",
-                     ".ngsarchiver/manifest.txt",):
+                     "ARCHIVE_METADATA",
+                     "ARCHIVE_METADATA/archive_checksums.md5",
+                     "ARCHIVE_METADATA/archiver_metadata.json",
+                     "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
@@ -2653,10 +3850,10 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "subdir2.md5",
                      "miscellaneous.tar.gz",
                      "miscellaneous.md5",
-                     ".ngsarchiver",
-                     ".ngsarchiver/archive.md5",
-                     ".ngsarchiver/archive_metadata.json",
-                     ".ngsarchiver/manifest.txt",):
+                     "ARCHIVE_METADATA",
+                     "ARCHIVE_METADATA/archive_checksums.md5",
+                     "ARCHIVE_METADATA/archiver_metadata.json",
+                     "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
@@ -2694,10 +3891,10 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "miscellaneous.md5",
                      "ex5.txt",
                      "ex6.txt",
-                     ".ngsarchiver",
-                     ".ngsarchiver/archive.md5",
-                     ".ngsarchiver/archive_metadata.json",
-                     ".ngsarchiver/manifest.txt",):
+                     "ARCHIVE_METADATA",
+                     "ARCHIVE_METADATA/archive_checksums.md5",
+                     "ARCHIVE_METADATA/archiver_metadata.json",
+                     "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
@@ -2729,10 +3926,10 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "example.01.tar.gz",
                     "example.00.md5",
                     "example.01.md5",
-                    ".ngsarchiver",
-                    ".ngsarchiver/archive.md5",
-                    ".ngsarchiver/archive_metadata.json",
-                    ".ngsarchiver/manifest.txt",)
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/archive_checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json",
+                    "ARCHIVE_METADATA/manifest",)
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
@@ -2774,10 +3971,10 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "subdir1.01.md5",
                     "subdir2.00.md5",
                     "subdir2.01.md5",
-                    ".ngsarchiver",
-                    ".ngsarchiver/archive.md5",
-                    ".ngsarchiver/archive_metadata.json",
-                    ".ngsarchiver/manifest.txt",)
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/archive_checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json",
+                    "ARCHIVE_METADATA/manifest",)
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
@@ -2829,10 +4026,10 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "miscellaneous.01.tar.gz",
                     "miscellaneous.00.md5",
                     "miscellaneous.01.md5",
-                    ".ngsarchiver",
-                    ".ngsarchiver/archive.md5",
-                    ".ngsarchiver/archive_metadata.json",
-                    ".ngsarchiver/manifest.txt",)
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/archive_checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json",
+                    "ARCHIVE_METADATA/manifest",)
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
@@ -2889,10 +4086,10 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "miscellaneous.01.md5",
                     "ex5.txt",
                     "ex6.txt",
-                    ".ngsarchiver",
-                    ".ngsarchiver/archive.md5",
-                    ".ngsarchiver/archive_metadata.json",
-                    ".ngsarchiver/manifest.txt",)
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/archive_checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json",
+                    "ARCHIVE_METADATA/manifest",)
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
@@ -2923,11 +4120,11 @@ class TestMakeArchiveDir(unittest.TestCase):
         self.assertTrue(os.path.exists(archive_dir))
         expected = ("example.tar.gz",
                     "example.md5",
-                    ".ngsarchiver",
-                    ".ngsarchiver/archive.md5",
-                    ".ngsarchiver/archive_metadata.json",
-                    ".ngsarchiver/manifest.txt",
-                    ".ngsarchiver/symlinks.txt")
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/archive_checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json",
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/symlinks")
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
@@ -2936,10 +4133,10 @@ class TestMakeArchiveDir(unittest.TestCase):
         for item in a.walk():
             self.assertTrue(os.path.relpath(item,archive_dir) in expected,
                             "'%s' not expected" % item)
-        # Check contents of 'symlinks.txt' metadata file
+        # Check contents of 'symlinks' metadata file
         with open(os.path.join(archive_dir,
-                               ".ngsarchiver",
-                               "symlinks.txt"),'rt') as fp:
+                               "ARCHIVE_METADATA",
+                               "symlinks"),'rt') as fp:
             self.assertEqual(fp.read(),
                              "example/subdir/symlink1.txt\texample.tar.gz\n")
 

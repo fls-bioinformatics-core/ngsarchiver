@@ -908,19 +908,54 @@ class ArchiveDirectory(Directory):
     """
     def __init__(self,d):
         Directory.__init__(self,d)
-        self._ngsarchiver_dir = os.path.join(self.path,'.ngsarchiver')
-        if not os.path.isdir(self._ngsarchiver_dir):
+        self._metadata_dir = None
+        self._json_file = None
+        self._archive_metadata = None
+        self._archive_checksum_file = None
+        # Loop over formats to see if one matches
+        for fmt in (("ARCHIVE_METADATA",
+                     "archiver_metadata.json",
+                     "archive_checksums.md5"),
+                    (".ngsarchiver",
+                     "archive_metadata.json",
+                     "archive.md5")):
+            # Check metadata directory
+            metadata_dir = os.path.join(self.path, fmt[0])
+            if not os.path.isdir(metadata_dir):
+                continue
+            self._metadata_dir = metadata_dir
+            # Check JSON data
+            json_file = os.path.join(self._metadata_dir, fmt[1])
+            if not os.path.exists(json_file):
+                continue
+            self._json_file = json_file
+            try:
+                with open(self._json_file, "rt") as fp:
+                    self._archive_metadata = json.loads(fp.read())
+            except Exception:
+                continue
+            # Check MD5 checksum file for archive volumes
+            archive_checksum_file = os.path.join(self._metadata_dir,
+                                                 fmt[2])
+            if not os.path.exists(archive_checksum_file):
+                continue
+            self._archive_checksum_file = archive_checksum_file
+            # Break out of loop if we got this far
+            break
+        # Check what was found
+        if self._metadata_dir is None:
             raise NgsArchiverException("%s: not an archive directory" %
                                        self.path)
-        self._json_file = os.path.join(self._ngsarchiver_dir,
-                                       "archive_metadata.json")
-        try:
-            with open(self._json_file,'rt') as fp:
-                self._archive_metadata = json.loads(fp.read())
-        except Exception as ex:
+        elif self._json_file is None or self._archive_metadata is None:
             raise NgsArchiverException("%s: failed to load archive "
-                                       "metadata from '%s': %s" %
-                                       (self.path,self._json_file,ex))
+                                       "metadata from JSON file" %
+                                       self.path)
+        elif self._archive_checksum_file is None:
+            raise NgsArchiverException("%s: missing archive checksum "
+                                       "file" % self.path)
+        elif "compression_level" not in self._archive_metadata:
+            raise NgsArchiverException("%s: not a compressed archive "
+                                       "directory" % self.path)
 
     @property
     def archive_metadata(self):
@@ -929,6 +964,24 @@ class ArchiveDirectory(Directory):
         """
         return { k : self._archive_metadata[k]
                  for k in self._archive_metadata }
+
+    @property
+    def symlinks_file(self):
+        """
+        Return associated 'symlinks' metadata file (or None)
+        """
+        for name in ("symlinks", "symlinks.txt"):
+            symlinks_file = os.path.join(self._metadata_dir, name)
+            if os.path.exists(symlinks_file):
+                return symlinks_file
+        return None
+
+    @property
+    def archive_checksum_file(self):
+        """
+        Return associated checksum file for the archive volumes
+        """
+        return self._archive_checksum_file
 
     def list(self):
         """
@@ -939,7 +992,7 @@ class ArchiveDirectory(Directory):
         """
         # Members outside archive files
         md5s = {}
-        archive_md5sums = os.path.join(self._ngsarchiver_dir,"archive.md5")
+        archive_md5sums = self.archive_checksum_file
         with open(archive_md5sums,'rt') as fp:
             for line in fp:
                 f = '  '.join(line.rstrip('\n').split('  ')[1:])
@@ -962,8 +1015,8 @@ class ArchiveDirectory(Directory):
                                                 subarchive_name+'.tar.gz'),
                         md5=line.split('  ')[0])
         # Symlinks
-        symlinks_file = os.path.join(self._ngsarchiver_dir,"symlinks.txt")
-        if os.path.exists(symlinks_file):
+        symlinks_file = self.symlinks_file
+        if symlinks_file is not None:
             with open(symlinks_file,'rt') as fp:
                 for line in fp:
                     f = '\t'.join(line.split('\t')[:-1])
@@ -1143,17 +1196,18 @@ class ArchiveDirectory(Directory):
         # Do checksum verification on unpacked archive
         if verify:
             print("-- verifying checksums")
+            archive_checksum_file = os.path.basename(self.archive_checksum_file)
             for md5file in [os.path.join(self._path,f)
                             for f in list(
                                     filter(lambda x: x.endswith('.md5')
-                                           and x != 'archive.md5',
+                                           and x != archive_checksum_file,
                                            list(os.listdir(self._path))))]:
                 if not verify_checksums(md5file,root_dir=extract_dir):
                    raise NgsArchiverException("%s: checksum verification "
                                               "failed" % md5file)
             # Check symlinks
-            symlinks_file = os.path.join(self._ngsarchiver_dir,"symlinks.txt")
-            if os.path.exists(symlinks_file):
+            symlinks_file = self.symlinks_file
+            if symlinks_file is not None:
                 print("-- checking symlinks")
                 with open(symlinks_file,'rt') as fp:
                     for line in fp:
@@ -1184,7 +1238,7 @@ class ArchiveDirectory(Directory):
         recorded in the checksum file when the archive
         was created.
         """
-        md5file = os.path.join(self._ngsarchiver_dir,"archive.md5")
+        md5file = self.archive_checksum_file
         if not os.path.isfile(md5file):
             raise NgsArchiverException("%s: no MD5 checksum file" % self)
         checksummed_items = []
@@ -1296,18 +1350,19 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     """
     # Multi-volume archive?
     multi_volume = (volume_size is not None)
-    # Make top level archive dir
+    # Make (temporary) top level archive dir
     if not out_dir:
         out_dir = os.getcwd()
     archive_dir = os.path.join(os.path.abspath(out_dir),
                                d.basename+".archive")
-    os.mkdir(archive_dir)
-    # Create .ngsarchiver subdir
-    ngsarchiver_dir = os.path.join(archive_dir,".ngsarchiver")
+    temp_archive_dir = archive_dir + ".part"
+    os.mkdir(temp_archive_dir)
+    # Create archive metadata subdir
+    ngsarchiver_dir = os.path.join(temp_archive_dir, "ARCHIVE_METADATA")
     os.mkdir(ngsarchiver_dir)
     # Create manifest file
     manifest = make_manifest_file(
-        d, os.path.join(ngsarchiver_dir,"manifest.txt"))
+        d, os.path.join(ngsarchiver_dir, "manifest"))
     # Record contents
     archive_metadata = {
         'name': d.basename,
@@ -1336,7 +1391,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     # Make archive
     if not sub_dirs:
         # Put all content into a single archive
-        archive_basename = os.path.join(archive_dir,d.basename)
+        archive_basename = os.path.join(temp_archive_dir,d.basename)
         if not multi_volume:
             a = make_archive_tgz(archive_basename,
                                  d.path,
@@ -1358,7 +1413,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         # Make archives for each subdir
         for s in sub_dirs:
             dd = Directory(os.path.join(d.path,s))
-            archive_basename = os.path.join(archive_dir,dd.basename)
+            archive_basename = os.path.join(temp_archive_dir,dd.basename)
             prefix = os.path.join(os.path.basename(dd.parent_dir),
                                   dd.basename)
             if not multi_volume:
@@ -1393,7 +1448,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                     for o_ in Directory(o).walk():
                         misc_file_list.append(o_)
             # Make archive(s)
-            archive_basename = os.path.join(archive_dir,misc_archive_name)
+            archive_basename = os.path.join(temp_archive_dir,misc_archive_name)
             prefix = d.basename
             if not multi_volume:
                 a = make_archive_tgz(archive_basename,
@@ -1418,13 +1473,13 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
             for f in extra_files:
                 if not os.path.isabs(f):
                     f = os.path.join(d.path,f)
-                shutil.copy2(f,archive_dir)
+                shutil.copy2(f,temp_archive_dir)
                 archive_metadata['files'].append(os.path.basename(f))
     # Generate checksums for each subarchive
     symlinks = {}
     for a in archive_metadata['subarchives']:
-        subarchive = os.path.join(archive_dir,a)
-        md5file = os.path.join(archive_dir,
+        subarchive = os.path.join(temp_archive_dir,a)
+        md5file = os.path.join(temp_archive_dir,
                                "%s.md5" % a[:-len('.tar.gz')])
         with open(md5file,'wt') as fp:
             with tarfile.open(subarchive,'r:gz') as tgz:
@@ -1436,23 +1491,25 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                         fp.write("%s  %s\n" % (md5sum(ff),f))
     # Record symlinks
     if symlinks:
-        symlinks_file = os.path.join(ngsarchiver_dir,"symlinks.txt")
+        symlinks_file = os.path.join(ngsarchiver_dir, "symlinks")
         with open(symlinks_file,'wt') as fp:
             for s in symlinks:
                 fp.write("%s\t%s\n" % (s,symlinks[s]))
     # Checksums for archive contents
     file_list = archive_metadata['subarchives'] + archive_metadata['files']
-    with open(os.path.join(ngsarchiver_dir,"archive.md5"),'wt') as fp:
+    with open(os.path.join(ngsarchiver_dir,
+                           "archive_checksums.md5"),'wt') as fp:
         for f in file_list:
-            fp.write("%s  %s\n" % (md5sum(os.path.join(archive_dir,f)),
+            fp.write("%s  %s\n" % (md5sum(os.path.join(temp_archive_dir,f)),
                                    f))
     # Update the creation date
     archive_metadata['creation_date'] = time.strftime("%Y-%m-%d %H:%M:%S")
     # Write archive contents to JSON file
-    json_file = os.path.join(ngsarchiver_dir,"archive_metadata.json")
+    json_file = os.path.join(ngsarchiver_dir, "archiver_metadata.json")
     with open(json_file,'wt') as fp:
         json.dump(archive_metadata,fp,indent=2)
-    # Update the attributes on the archive directory
+    # Move to final location and update the attributes
+    shutil.move(temp_archive_dir, archive_dir)
     shutil.copystat(d.path,archive_dir)
     return ArchiveDirectory(archive_dir)
 
