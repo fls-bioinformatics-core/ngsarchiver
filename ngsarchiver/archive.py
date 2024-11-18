@@ -1986,6 +1986,7 @@ def make_manifest_file(d, manifest_file, follow_dirlinks=False):
     if Path(manifest_file).exists():
         raise NgsArchiverException(f"{manifest_file}: already exists")
     with open(manifest_file, 'wt') as fp:
+        fp.write("#Owner\tGroup\tPath\n")
         for o in d.walk(followlinks=follow_dirlinks):
             o = Path(o)
             owner = Path(o).owner()
