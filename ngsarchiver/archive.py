@@ -911,9 +911,14 @@ class ArchiveDirectory(Directory):
         self._metadata_dir = None
         self._json_file = None
         self._archive_metadata = None
+        self._archive_checksum_file = None
         # Loop over formats to see if one matches
-        for fmt in (("ARCHIVE_METADATA", "archiver_metadata.json"),
-                    (".ngsarchiver", "archive_metadata.json")):
+        for fmt in (("ARCHIVE_METADATA",
+                     "archiver_metadata.json",
+                     "archive_checksums.md5"),
+                    (".ngsarchiver",
+                     "archive_metadata.json",
+                     "archive.md5")):
             # Check metadata directory
             metadata_dir = os.path.join(self.path, fmt[0])
             if not os.path.isdir(metadata_dir):
@@ -929,6 +934,12 @@ class ArchiveDirectory(Directory):
                     self._archive_metadata = json.loads(fp.read())
             except Exception:
                 continue
+            # Check MD5 checksum file for archive volumes
+            archive_checksum_file = os.path.join(self._metadata_dir,
+                                                 fmt[2])
+            if not os.path.exists(archive_checksum_file):
+                continue
+            self._archive_checksum_file = archive_checksum_file
             # Break out of loop if we got this far
             break
         # Check what was found
@@ -939,6 +950,9 @@ class ArchiveDirectory(Directory):
             raise NgsArchiverException("%s: failed to load archive "
                                        "metadata from JSON file" %
                                        self.path)
+        elif self._archive_checksum_file is None:
+            raise NgsArchiverException("%s: missing archive checksum "
+                                       "file" % self.path)
         elif "compression_level" not in self._archive_metadata:
             raise NgsArchiverException("%s: not a compressed archive "
                                        "directory" % self.path)
@@ -962,6 +976,13 @@ class ArchiveDirectory(Directory):
                 return symlinks_file
         return None
 
+    @property
+    def archive_checksum_file(self):
+        """
+        Return associated checksum file for the archive volumes
+        """
+        return self._archive_checksum_file
+
     def list(self):
         """
         List contents of the archive
@@ -971,7 +992,7 @@ class ArchiveDirectory(Directory):
         """
         # Members outside archive files
         md5s = {}
-        archive_md5sums = os.path.join(self._metadata_dir,"archive.md5")
+        archive_md5sums = self.archive_checksum_file
         with open(archive_md5sums,'rt') as fp:
             for line in fp:
                 f = '  '.join(line.rstrip('\n').split('  ')[1:])
@@ -1175,10 +1196,11 @@ class ArchiveDirectory(Directory):
         # Do checksum verification on unpacked archive
         if verify:
             print("-- verifying checksums")
+            archive_checksum_file = os.path.basename(self.archive_checksum_file)
             for md5file in [os.path.join(self._path,f)
                             for f in list(
                                     filter(lambda x: x.endswith('.md5')
-                                           and x != 'archive.md5',
+                                           and x != archive_checksum_file,
                                            list(os.listdir(self._path))))]:
                 if not verify_checksums(md5file,root_dir=extract_dir):
                    raise NgsArchiverException("%s: checksum verification "
@@ -1216,7 +1238,7 @@ class ArchiveDirectory(Directory):
         recorded in the checksum file when the archive
         was created.
         """
-        md5file = os.path.join(self._metadata_dir, "archive.md5")
+        md5file = self.archive_checksum_file
         if not os.path.isfile(md5file):
             raise NgsArchiverException("%s: no MD5 checksum file" % self)
         checksummed_items = []
@@ -1475,7 +1497,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 fp.write("%s\t%s\n" % (s,symlinks[s]))
     # Checksums for archive contents
     file_list = archive_metadata['subarchives'] + archive_metadata['files']
-    with open(os.path.join(ngsarchiver_dir,"archive.md5"),'wt') as fp:
+    with open(os.path.join(ngsarchiver_dir,
+                           "archive_checksums.md5"),'wt') as fp:
         for f in file_list:
             fp.write("%s  %s\n" % (md5sum(os.path.join(temp_archive_dir,f)),
                                    f))

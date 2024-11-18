@@ -1335,7 +1335,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex1.txt
 d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex2.txt
 d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
 """)
-        example_archive.add("ARCHIVE_METADATA/archive.md5",
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
                             type="file",
                             content="f210d02b4a294ec38c6ed82b92a73c44  example.tar.gz\n")
         example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
@@ -1452,7 +1452,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex1.txt
 d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex2.txt
 d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
 """)
-        example_archive.add("ARCHIVE_METADATA/archive.md5",
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
                             type="file",
                             content="""ea40b4706e9d97459173ddba2cc8f673  subdir1.tar.gz
 21ab03a93bb341292ca281bf7f9d7176  subdir2.tar.gz
@@ -1579,7 +1579,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex1.txt
 d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex2.txt
 d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
 """)
-        example_archive.add("ARCHIVE_METADATA/archive.md5",
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
                             type="file",
                             content="""f299d91fe1d73319e4daa11dc3a12a33  extra_file.txt
 ea40b4706e9d97459173ddba2cc8f673  subdir1.tar.gz
@@ -1722,7 +1722,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
             # Store archive MD5
             md5s.append(("%s.tar.gz" % name,data['md5']))
         # MD5 for archive dir
-        example_archive.add("ARCHIVE_METADATA/archive.md5",
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
                             type="file",
                             content='\n'.join(["%s  %s" % (m[1],m[0])
                                                for m in md5s]))
@@ -1877,7 +1877,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
             # Store archive MD5
             md5s.append(("%s.tar.gz" % name,data['md5']))
         # MD5 for archive dir
-        example_archive.add("ARCHIVE_METADATA/archive.md5",
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
                             type="file",
                             content='\n'.join(["%s  %s" % (m[1],m[0])
                                                for m in md5s]))
@@ -2061,7 +2061,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
             # Store archive MD5
             md5s.append(("%s.tar.gz" % name,data['md5']))
         # MD5 for archive dir
-        example_archive.add("ARCHIVE_METADATA/archive.md5",
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
                             type="file",
                             content='\n'.join(["%s  %s" % (m[1],m[0])
                                                for m in md5s]))
@@ -2186,7 +2186,7 @@ a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir1/ex2.txt
 a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex1.txt
 a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex2.txt
 """)
-        example_archive.add("ARCHIVE_METADATA/archive.md5",
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
                             type="file",
                             content="cdf7fcdf08b0afa29f1458b10e317861  example_external_symlinks.tar.gz\n")
         example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
@@ -2341,7 +2341,7 @@ a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir1/ex2.txt
 a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex1.txt
 a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex2.txt
 """)
-        example_archive.add("ARCHIVE_METADATA/archive.md5",
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
                             type="file",
                             content="a36ee4df21f4f6f35e1ea92282e92b22  example_broken_symlinks.tar.gz\n")
         example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",type="file",
@@ -3702,7 +3702,7 @@ class TestGetRundirInstance(unittest.TestCase):
         """
         # Build example dir
         example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
-        example_dir.add("ARCHIVE_METADATA/archive.md5",type="file")
+        example_dir.add("ARCHIVE_METADATA/archive_checksums.md5",type="file")
         example_dir.add("ARCHIVE_METADATA/archiver_metadata.json",type="file",
                         content="""{
   "name": "example",
@@ -3784,7 +3784,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         for item in ("example.tar.gz",
                      "example.md5",
                      "ARCHIVE_METADATA",
-                     "ARCHIVE_METADATA/archive.md5",
+                     "ARCHIVE_METADATA/archive_checksums.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
                      "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
@@ -3815,7 +3815,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "subdir2.tar.gz",
                      "subdir2.md5",
                      "ARCHIVE_METADATA",
-                     "ARCHIVE_METADATA/archive.md5",
+                     "ARCHIVE_METADATA/archive_checksums.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
                      "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
@@ -3851,7 +3851,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "miscellaneous.tar.gz",
                      "miscellaneous.md5",
                      "ARCHIVE_METADATA",
-                     "ARCHIVE_METADATA/archive.md5",
+                     "ARCHIVE_METADATA/archive_checksums.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
                      "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
@@ -3892,7 +3892,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "ex5.txt",
                      "ex6.txt",
                      "ARCHIVE_METADATA",
-                     "ARCHIVE_METADATA/archive.md5",
+                     "ARCHIVE_METADATA/archive_checksums.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
                      "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
@@ -3927,7 +3927,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "example.00.md5",
                     "example.01.md5",
                     "ARCHIVE_METADATA",
-                    "ARCHIVE_METADATA/archive.md5",
+                    "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
                     "ARCHIVE_METADATA/manifest",)
         for item in expected:
@@ -3972,7 +3972,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "subdir2.00.md5",
                     "subdir2.01.md5",
                     "ARCHIVE_METADATA",
-                    "ARCHIVE_METADATA/archive.md5",
+                    "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
                     "ARCHIVE_METADATA/manifest",)
         for item in expected:
@@ -4027,7 +4027,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "miscellaneous.00.md5",
                     "miscellaneous.01.md5",
                     "ARCHIVE_METADATA",
-                    "ARCHIVE_METADATA/archive.md5",
+                    "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
                     "ARCHIVE_METADATA/manifest",)
         for item in expected:
@@ -4087,7 +4087,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "ex5.txt",
                     "ex6.txt",
                     "ARCHIVE_METADATA",
-                    "ARCHIVE_METADATA/archive.md5",
+                    "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
                     "ARCHIVE_METADATA/manifest",)
         for item in expected:
@@ -4121,7 +4121,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         expected = ("example.tar.gz",
                     "example.md5",
                     "ARCHIVE_METADATA",
-                    "ARCHIVE_METADATA/archive.md5",
+                    "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks")
