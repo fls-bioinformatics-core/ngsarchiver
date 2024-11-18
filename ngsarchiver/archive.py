@@ -908,19 +908,37 @@ class ArchiveDirectory(Directory):
     """
     def __init__(self,d):
         Directory.__init__(self,d)
-        self._ngsarchiver_dir = os.path.join(self.path,'.ngsarchiver')
-        if not os.path.isdir(self._ngsarchiver_dir):
+        self._metadata_dir = None
+        self._json_file = None
+        self._archive_metadata = None
+        # Loop over formats to see if one matches
+        for fmt in (("ARCHIVE_METADATA", "archiver_metadata.json"),
+                    (".ngsarchiver", "archive_metadata.json")):
+            # Check metadata directory
+            metadata_dir = os.path.join(self.path, fmt[0])
+            if not os.path.isdir(metadata_dir):
+                continue
+            self._metadata_dir = metadata_dir
+            # Check JSON data
+            json_file = os.path.join(self._metadata_dir, fmt[1])
+            if not os.path.exists(json_file):
+                continue
+            self._json_file = json_file
+            try:
+                with open(self._json_file, "rt") as fp:
+                    self._archive_metadata = json.loads(fp.read())
+            except Exception:
+                continue
+            # Break out of loop if we got this far
+            break
+        # Check what was found
+        if self._metadata_dir is None:
             raise NgsArchiverException("%s: not an archive directory" %
                                        self.path)
-        self._json_file = os.path.join(self._ngsarchiver_dir,
-                                       "archive_metadata.json")
-        try:
-            with open(self._json_file,'rt') as fp:
-                self._archive_metadata = json.loads(fp.read())
-        except Exception as ex:
+        elif self._json_file is None or self._archive_metadata is None:
             raise NgsArchiverException("%s: failed to load archive "
-                                       "metadata from '%s': %s" %
-                                       (self.path,self._json_file,ex))
+                                       "metadata from JSON file" %
+                                       self.path)
 
     @property
     def archive_metadata(self):
@@ -939,7 +957,7 @@ class ArchiveDirectory(Directory):
         """
         # Members outside archive files
         md5s = {}
-        archive_md5sums = os.path.join(self._ngsarchiver_dir,"archive.md5")
+        archive_md5sums = os.path.join(self._metadata_dir,"archive.md5")
         with open(archive_md5sums,'rt') as fp:
             for line in fp:
                 f = '  '.join(line.rstrip('\n').split('  ')[1:])
@@ -962,7 +980,7 @@ class ArchiveDirectory(Directory):
                                                 subarchive_name+'.tar.gz'),
                         md5=line.split('  ')[0])
         # Symlinks
-        symlinks_file = os.path.join(self._ngsarchiver_dir,"symlinks.txt")
+        symlinks_file = os.path.join(self._metadata_dir,"symlinks.txt")
         if os.path.exists(symlinks_file):
             with open(symlinks_file,'rt') as fp:
                 for line in fp:
@@ -1152,7 +1170,7 @@ class ArchiveDirectory(Directory):
                    raise NgsArchiverException("%s: checksum verification "
                                               "failed" % md5file)
             # Check symlinks
-            symlinks_file = os.path.join(self._ngsarchiver_dir,"symlinks.txt")
+            symlinks_file = os.path.join(self._metadata_dir, "symlinks.txt")
             if os.path.exists(symlinks_file):
                 print("-- checking symlinks")
                 with open(symlinks_file,'rt') as fp:
@@ -1184,7 +1202,7 @@ class ArchiveDirectory(Directory):
         recorded in the checksum file when the archive
         was created.
         """
-        md5file = os.path.join(self._ngsarchiver_dir,"archive.md5")
+        md5file = os.path.join(self._metadata_dir, "archive.md5")
         if not os.path.isfile(md5file):
             raise NgsArchiverException("%s: no MD5 checksum file" % self)
         checksummed_items = []
@@ -1304,7 +1322,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     temp_archive_dir = archive_dir + ".part"
     os.mkdir(temp_archive_dir)
     # Create archive metadata subdir
-    ngsarchiver_dir = os.path.join(temp_archive_dir,".ngsarchiver")
+    ngsarchiver_dir = os.path.join(temp_archive_dir, "ARCHIVE_METADATA")
     os.mkdir(ngsarchiver_dir)
     # Create manifest file
     manifest = make_manifest_file(
@@ -1450,7 +1468,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     # Update the creation date
     archive_metadata['creation_date'] = time.strftime("%Y-%m-%d %H:%M:%S")
     # Write archive contents to JSON file
-    json_file = os.path.join(ngsarchiver_dir,"archive_metadata.json")
+    json_file = os.path.join(ngsarchiver_dir, "archiver_metadata.json")
     with open(json_file,'wt') as fp:
         json.dump(archive_metadata,fp,indent=2)
     # Move to final location and update the attributes

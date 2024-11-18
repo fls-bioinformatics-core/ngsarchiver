@@ -522,12 +522,13 @@ Within a compressed archive directory there will be:
 - a set of MD5 checksum files with the file extension
   ``.md5``, with one checksum file for each ``.tar.gz``
   and regular file;
-- a hidden subdirectory called ``.ngsarchiver`` which
-  contains additional metadata files (for example a
-  JSON file with metadata items, an MD5 file with
-  checksums for each of the "visible" archive
-  components for integrity verification, and a
-  file which lists the original username and group
+- a subdirectory called ``ARCHIVE_METADATA`` (or a
+  hidden subdirectory ``.ngsarchiver``, for legacy
+  compressed archives) which contains additional
+  metadata files (for example a JSON file with metadata
+  items, an MD5 file with checksums for each of the
+  "visible" archive components for integrity verification,
+  and a file which lists the original username and group
   associated with each file). If files were excluded
   from the archive (e.g. because they were unreadable)
   then these will be listed in an additional file.
