@@ -521,7 +521,9 @@ Within a compressed archive directory there will be:
 - none or more regular files;
 - a set of MD5 checksum files with the file extension
   ``.md5``, with one checksum file for each ``.tar.gz``
-  and regular file;
+  file and each regular file (these checksum files
+  contain the MD5 sums for each of the files inside
+  the ``.tar.gz`` files);
 - a subdirectory called ``ARCHIVE_METADATA`` (or a
   hidden subdirectory ``.ngsarchiver``, for legacy
   compressed archives) which contains additional
