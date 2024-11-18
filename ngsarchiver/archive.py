@@ -939,6 +939,9 @@ class ArchiveDirectory(Directory):
             raise NgsArchiverException("%s: failed to load archive "
                                        "metadata from JSON file" %
                                        self.path)
+        elif "compression_level" not in self._archive_metadata:
+            raise NgsArchiverException("%s: not a compressed archive "
+                                       "directory" % self.path)
 
     @property
     def archive_metadata(self):

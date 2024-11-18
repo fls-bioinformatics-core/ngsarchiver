@@ -3704,7 +3704,11 @@ class TestGetRundirInstance(unittest.TestCase):
         example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
         example_dir.add("ARCHIVE_METADATA/archive.md5",type="file")
         example_dir.add("ARCHIVE_METADATA/archiver_metadata.json",type="file",
-                        content="{}")
+                        content="""{
+  "name": "example",
+  "compression_level": 6
+}
+""")
         example_dir.add("ARCHIVE_METADATA/manifest.txt",type="file")
         example_dir.add("Project1.tar.gz",type="file")
         example_dir.add("Project2.tar.gz",type="file")
@@ -3729,7 +3733,11 @@ class TestGetRundirInstance(unittest.TestCase):
         example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
         example_dir.add(".ngsarchiver/archive.md5",type="file")
         example_dir.add(".ngsarchiver/archive_metadata.json",type="file",
-                        content="{}")
+                        content="""{
+  "name": "example",
+  "compression_level": 6
+}
+""")
         example_dir.add(".ngsarchiver/manifest.txt",type="file")
         example_dir.add("Project1.tar.gz",type="file")
         example_dir.add("Project2.tar.gz",type="file")
