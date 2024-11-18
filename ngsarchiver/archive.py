@@ -951,6 +951,17 @@ class ArchiveDirectory(Directory):
         return { k : self._archive_metadata[k]
                  for k in self._archive_metadata }
 
+    @property
+    def symlinks_file(self):
+        """
+        Return associated 'symlinks' metadata file (or None)
+        """
+        for name in ("symlinks", "symlinks.txt"):
+            symlinks_file = os.path.join(self._metadata_dir, name)
+            if os.path.exists(symlinks_file):
+                return symlinks_file
+        return None
+
     def list(self):
         """
         List contents of the archive
@@ -983,8 +994,8 @@ class ArchiveDirectory(Directory):
                                                 subarchive_name+'.tar.gz'),
                         md5=line.split('  ')[0])
         # Symlinks
-        symlinks_file = os.path.join(self._metadata_dir,"symlinks.txt")
-        if os.path.exists(symlinks_file):
+        symlinks_file = self.symlinks_file
+        if symlinks_file is not None:
             with open(symlinks_file,'rt') as fp:
                 for line in fp:
                     f = '\t'.join(line.split('\t')[:-1])
@@ -1173,8 +1184,8 @@ class ArchiveDirectory(Directory):
                    raise NgsArchiverException("%s: checksum verification "
                                               "failed" % md5file)
             # Check symlinks
-            symlinks_file = os.path.join(self._metadata_dir, "symlinks.txt")
-            if os.path.exists(symlinks_file):
+            symlinks_file = self.symlinks_file
+            if symlinks_file is not None:
                 print("-- checking symlinks")
                 with open(symlinks_file,'rt') as fp:
                     for line in fp:
@@ -1329,7 +1340,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     os.mkdir(ngsarchiver_dir)
     # Create manifest file
     manifest = make_manifest_file(
-        d, os.path.join(ngsarchiver_dir,"manifest.txt"))
+        d, os.path.join(ngsarchiver_dir, "manifest"))
     # Record contents
     archive_metadata = {
         'name': d.basename,
@@ -1458,7 +1469,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                         fp.write("%s  %s\n" % (md5sum(ff),f))
     # Record symlinks
     if symlinks:
-        symlinks_file = os.path.join(ngsarchiver_dir,"symlinks.txt")
+        symlinks_file = os.path.join(ngsarchiver_dir, "symlinks")
         with open(symlinks_file,'wt') as fp:
             for s in symlinks:
                 fp.write("%s\t%s\n" % (s,symlinks[s]))

@@ -1355,7 +1355,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
   "ngsarchiver_version": "0.0.1"
 }
 """)
-        example_archive.add("ARCHIVE_METADATA/manifest.txt",type="file")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1477,7 +1477,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
   "ngsarchiver_version": "0.0.1"
 }
 """)
-        example_archive.add("ARCHIVE_METADATA/manifest.txt",type="file")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1607,7 +1607,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
   "ngsarchiver_version": "0.0.1"
 }
 """)
-        example_archive.add("ARCHIVE_METADATA/manifest.txt",type="file")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1744,7 +1744,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
   "ngsarchiver_version": "0.0.1"
 }
 """)
-        example_archive.add("ARCHIVE_METADATA/manifest.txt",type="file")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1903,7 +1903,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
   "ngsarchiver_version": "0.0.1"
 }
 """)
-        example_archive.add("ARCHIVE_METADATA/manifest.txt",type="file")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -2089,7 +2089,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
   "ngsarchiver_version": "0.0.1"
 }
 """)
-        example_archive.add("ARCHIVE_METADATA/manifest.txt",type="file")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -2206,8 +2206,8 @@ a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex2.txt
   "ngsarchiver_version": "0.0.1"
 }
 """)
-        example_archive.add("ARCHIVE_METADATA/manifest.txt",type="file")
-        example_archive.add("ARCHIVE_METADATA/symlinks.txt",type="file",
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/symlinks",type="file",
                             content="""example_external_symlinks/subdir2/external_symlink1.txt	example_external_symlinks.tar.gz
 example_external_symlinks/subdir1/symlink1.txt	example_external_symlinks.tar.gz
 """)
@@ -2360,8 +2360,8 @@ a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex2.txt
   "ngsarchiver_version": "0.0.1"
 }
 """)
-        example_archive.add("ARCHIVE_METADATA/manifest.txt",type="file")
-        example_archive.add("ARCHIVE_METADATA/symlinks.txt",type="file",
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/symlinks",type="file",
                             content="""example_broken_symlinks/subdir2/broken_symlink1.txt	example_broken_symlinks.tar.gz
 example_broken_symlinks/subdir1/symlink1.txt	example_broken_symlinks.tar.gz
 """)
@@ -3786,7 +3786,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "ARCHIVE_METADATA",
                      "ARCHIVE_METADATA/archive.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
-                     "ARCHIVE_METADATA/manifest.txt",):
+                     "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
@@ -3817,7 +3817,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "ARCHIVE_METADATA",
                      "ARCHIVE_METADATA/archive.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
-                     "ARCHIVE_METADATA/manifest.txt",):
+                     "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
@@ -3853,7 +3853,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "ARCHIVE_METADATA",
                      "ARCHIVE_METADATA/archive.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
-                     "ARCHIVE_METADATA/manifest.txt",):
+                     "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
@@ -3894,7 +3894,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "ARCHIVE_METADATA",
                      "ARCHIVE_METADATA/archive.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
-                     "ARCHIVE_METADATA/manifest.txt",):
+                     "ARCHIVE_METADATA/manifest",):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
@@ -3929,7 +3929,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
-                    "ARCHIVE_METADATA/manifest.txt",)
+                    "ARCHIVE_METADATA/manifest",)
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
@@ -3974,7 +3974,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
-                    "ARCHIVE_METADATA/manifest.txt",)
+                    "ARCHIVE_METADATA/manifest",)
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
@@ -4029,7 +4029,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
-                    "ARCHIVE_METADATA/manifest.txt",)
+                    "ARCHIVE_METADATA/manifest",)
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
@@ -4089,7 +4089,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
-                    "ARCHIVE_METADATA/manifest.txt",)
+                    "ARCHIVE_METADATA/manifest",)
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
@@ -4123,8 +4123,8 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
-                    "ARCHIVE_METADATA/manifest.txt",
-                    "ARCHIVE_METADATA/symlinks.txt")
+                    "ARCHIVE_METADATA/manifest",
+                    "ARCHIVE_METADATA/symlinks")
         for item in expected:
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
@@ -4133,10 +4133,10 @@ class TestMakeArchiveDir(unittest.TestCase):
         for item in a.walk():
             self.assertTrue(os.path.relpath(item,archive_dir) in expected,
                             "'%s' not expected" % item)
-        # Check contents of 'symlinks.txt' metadata file
+        # Check contents of 'symlinks' metadata file
         with open(os.path.join(archive_dir,
                                "ARCHIVE_METADATA",
-                               "symlinks.txt"),'rt') as fp:
+                               "symlinks"),'rt') as fp:
             self.assertEqual(fp.read(),
                              "example/subdir/symlink1.txt\texample.tar.gz\n")
 
