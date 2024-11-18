@@ -1296,14 +1296,15 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     """
     # Multi-volume archive?
     multi_volume = (volume_size is not None)
-    # Make top level archive dir
+    # Make (temporary) top level archive dir
     if not out_dir:
         out_dir = os.getcwd()
     archive_dir = os.path.join(os.path.abspath(out_dir),
                                d.basename+".archive")
-    os.mkdir(archive_dir)
-    # Create .ngsarchiver subdir
-    ngsarchiver_dir = os.path.join(archive_dir,".ngsarchiver")
+    temp_archive_dir = archive_dir + ".part"
+    os.mkdir(temp_archive_dir)
+    # Create archive metadata subdir
+    ngsarchiver_dir = os.path.join(temp_archive_dir,".ngsarchiver")
     os.mkdir(ngsarchiver_dir)
     # Create manifest file
     manifest = make_manifest_file(
@@ -1336,7 +1337,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     # Make archive
     if not sub_dirs:
         # Put all content into a single archive
-        archive_basename = os.path.join(archive_dir,d.basename)
+        archive_basename = os.path.join(temp_archive_dir,d.basename)
         if not multi_volume:
             a = make_archive_tgz(archive_basename,
                                  d.path,
@@ -1358,7 +1359,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         # Make archives for each subdir
         for s in sub_dirs:
             dd = Directory(os.path.join(d.path,s))
-            archive_basename = os.path.join(archive_dir,dd.basename)
+            archive_basename = os.path.join(temp_archive_dir,dd.basename)
             prefix = os.path.join(os.path.basename(dd.parent_dir),
                                   dd.basename)
             if not multi_volume:
@@ -1393,7 +1394,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                     for o_ in Directory(o).walk():
                         misc_file_list.append(o_)
             # Make archive(s)
-            archive_basename = os.path.join(archive_dir,misc_archive_name)
+            archive_basename = os.path.join(temp_archive_dir,misc_archive_name)
             prefix = d.basename
             if not multi_volume:
                 a = make_archive_tgz(archive_basename,
@@ -1418,13 +1419,13 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
             for f in extra_files:
                 if not os.path.isabs(f):
                     f = os.path.join(d.path,f)
-                shutil.copy2(f,archive_dir)
+                shutil.copy2(f,temp_archive_dir)
                 archive_metadata['files'].append(os.path.basename(f))
     # Generate checksums for each subarchive
     symlinks = {}
     for a in archive_metadata['subarchives']:
-        subarchive = os.path.join(archive_dir,a)
-        md5file = os.path.join(archive_dir,
+        subarchive = os.path.join(temp_archive_dir,a)
+        md5file = os.path.join(temp_archive_dir,
                                "%s.md5" % a[:-len('.tar.gz')])
         with open(md5file,'wt') as fp:
             with tarfile.open(subarchive,'r:gz') as tgz:
@@ -1444,7 +1445,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     file_list = archive_metadata['subarchives'] + archive_metadata['files']
     with open(os.path.join(ngsarchiver_dir,"archive.md5"),'wt') as fp:
         for f in file_list:
-            fp.write("%s  %s\n" % (md5sum(os.path.join(archive_dir,f)),
+            fp.write("%s  %s\n" % (md5sum(os.path.join(temp_archive_dir,f)),
                                    f))
     # Update the creation date
     archive_metadata['creation_date'] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -1452,7 +1453,8 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     json_file = os.path.join(ngsarchiver_dir,"archive_metadata.json")
     with open(json_file,'wt') as fp:
         json.dump(archive_metadata,fp,indent=2)
-    # Update the attributes on the archive directory
+    # Move to final location and update the attributes
+    shutil.move(temp_archive_dir, archive_dir)
     shutil.copystat(d.path,archive_dir)
     return ArchiveDirectory(archive_dir)
 
