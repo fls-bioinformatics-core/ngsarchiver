@@ -5934,7 +5934,8 @@ class TestMakeManifestFile(unittest.TestCase):
         self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
         self.assertTrue(os.path.exists(manifest_file))
         # Check contents
-        expected_lines = [f"{username}\t{group}\tex1.txt",
+        expected_lines = ["#Owner\tGroup\tPath",
+                          f"{username}\t{group}\tex1.txt",
                           f"{username}\t{group}\tsubdir",
                           f"{username}\t{group}\tsubdir/ex2.txt"]
         with open(manifest_file, 'rt') as fp:
@@ -5961,7 +5962,8 @@ class TestMakeManifestFile(unittest.TestCase):
         self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
         self.assertTrue(os.path.exists(manifest_file))
         # Check contents
-        expected_lines = [f"{username}\t{group}\tex1.txt",
+        expected_lines = ["#Owner\tGroup\tPath",
+                          f"{username}\t{group}\tex1.txt",
                           f"{username}\t{group}\tsubdir",
                           f"{username}\t{group}\tsubdir/ex2.txt",
                           f"{username}\t{group}\tsubdir/symlink1.txt"]
@@ -5989,7 +5991,8 @@ class TestMakeManifestFile(unittest.TestCase):
         self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
         self.assertTrue(os.path.exists(manifest_file))
         # Check contents
-        expected_lines = [f"{username}\t{group}\tex1.txt",
+        expected_lines = ["#Owner\tGroup\tPath",
+                          f"{username}\t{group}\tex1.txt",
                           f"{username}\t{group}\tsubdir",
                           f"{username}\t{group}\tsubdir/ex2.txt",
                           f"{username}\t{group}\tsubdir/symlink1.txt"]
@@ -6018,7 +6021,8 @@ class TestMakeManifestFile(unittest.TestCase):
         self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
         self.assertTrue(os.path.exists(manifest_file))
         # Check contents
-        expected_lines = [f"{username}\t{group}\tex1.txt",
+        expected_lines = ["#Owner\tGroup\tPath",
+                          f"{username}\t{group}\tex1.txt",
                           f"{username}\t{group}\tsubdir",
                           f"{username}\t{group}\tsubdir/ex2.txt",
                           f"{username}\t{group}\tsubdir/symlink1.txt"]
@@ -6046,7 +6050,8 @@ class TestMakeManifestFile(unittest.TestCase):
         self.assertEqual(manifest_file, os.path.join(self.wd, "manifest"))
         self.assertTrue(os.path.exists(manifest_file))
         # Check contents
-        expected_lines = [f"{username}\t{group}\tex1.txt",
+        expected_lines = ["#Owner\tGroup\tPath",
+                          f"{username}\t{group}\tex1.txt",
                           f"{username}\t{group}\tsubdir",
                           f"{username}\t{group}\tsubdir/ex2.txt",
                           f"{username}\t{group}\tsubdir2"]
@@ -6067,7 +6072,8 @@ class TestMakeManifestFile(unittest.TestCase):
         self.assertEqual(manifest_file, os.path.join(self.wd, "manifest2"))
         self.assertTrue(os.path.exists(manifest_file))
         # Check contents
-        expected_lines = [f"{username}\t{group}\tex1.txt",
+        expected_lines = ["#Owner\tGroup\tPath",
+                          f"{username}\t{group}\tex1.txt",
                           f"{username}\t{group}\tsubdir",
                           f"{username}\t{group}\tsubdir/ex2.txt",
                           f"{username}\t{group}\tsubdir2",
