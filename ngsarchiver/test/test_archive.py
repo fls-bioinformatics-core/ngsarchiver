@@ -5072,7 +5072,7 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d, dest_dir)
-        self.assertTrue(isinstance(dd, Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting copy
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5121,7 +5121,7 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5174,7 +5174,7 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5239,7 +5239,7 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5303,7 +5303,7 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5378,7 +5378,7 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5433,7 +5433,7 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d, dest_dir, replace_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5502,7 +5502,7 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir,replace_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5574,7 +5574,7 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d, dest_dir, transform_broken_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5676,7 +5676,7 @@ class TestMakeCopy(unittest.TestCase):
         dd = make_copy(d,
                        dest_dir,
                        transform_broken_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5756,7 +5756,7 @@ class TestMakeCopy(unittest.TestCase):
         dest_dir = os.path.join(self.wd, "copies", "example1")
         dd = make_copy(d, dest_dir, replace_symlinks=True,
                        transform_broken_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5812,7 +5812,7 @@ class TestMakeCopy(unittest.TestCase):
         dest_dir = os.path.join(self.wd, "copies", "example2")
         dd = make_copy(d, dest_dir, replace_symlinks=True,
                        transform_broken_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5898,7 +5898,7 @@ class TestMakeCopy(unittest.TestCase):
         d = Directory(p)
         dd = make_copy(d, dest_dir, replace_symlinks=True,
                        transform_broken_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5982,7 +5982,7 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d, dest_dir, follow_dirlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -6079,7 +6079,7 @@ class TestMakeCopy(unittest.TestCase):
         d = Directory(p)
         dd = make_copy(d, dest_dir, follow_dirlinks=True,
                        replace_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))

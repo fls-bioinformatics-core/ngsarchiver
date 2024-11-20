@@ -1920,6 +1920,10 @@ def make_copy(d, dest, replace_symlinks=False,
         "placeholder" files with the same name in the copy
       follow_dirlinks (bool): if True then transform symbolic
         links to directories into the referent directories
+
+    Returns:
+      CopyArchiveDirectory: object representing the generated
+        copy archive directory.
     """
     # Create temporary (.part) directory
     dest = str(Path(dest).absolute())
@@ -2108,7 +2112,7 @@ def make_copy(d, dest, replace_symlinks=False,
     shutil.move(temp_copy, dest)
     shutil.copystat(d.path, dest)
     print(f"- moved final copy to {dest}")
-    return Directory(dest)
+    return CopyArchiveDirectory(dest)
 
 def make_manifest_file(d, manifest_file, follow_dirlinks=False):
     """
