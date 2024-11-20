@@ -19,6 +19,7 @@ from ngsarchiver.archive import MultiSubdirRun
 from ngsarchiver.archive import MultiProjectRun
 from ngsarchiver.archive import ArchiveDirectory
 from ngsarchiver.archive import ArchiveDirMember
+from ngsarchiver.archive import CopyArchiveDirectory
 from ngsarchiver.archive import get_rundir_instance
 from ngsarchiver.archive import md5sum
 from ngsarchiver.archive import verify_checksums
@@ -3671,6 +3672,214 @@ class TestArchiveDirMember(unittest.TestCase):
         self.assertEqual(m.path,"path/to/member")
         self.assertEqual(m.subarchive,"subarchive.tar.gz")
         self.assertEqual(m.md5,"178fce553fbc42451c2fc43f9a965908")
+
+class TestCopyArchiveDirectory(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestCopyArchiveDirectory')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_copyarchivedirectory(self):
+        """
+        CopyArchiveDirectory: check properties and methods
+        """
+        # Build example source directory
+        example_src = UnittestDir(os.path.join(self.wd, "example"))
+        example_src.add("ex1.txt",type="file",content="example 1")
+        example_src.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_src.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_src.add("subdir2/ex4.txt",type="symlink",target="./ex3.txt")
+        example_src.create()
+        # Build example copy archive dir
+        os.mkdir(os.path.join(self.wd, "archive"))
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "archive",
+                                                   "example"))
+        example_archive.add("ex1.txt",type="file",content="example 1")
+        example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_archive.add("subdir2/ex4.txt",type="symlink",target="./ex3.txt")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
+                            content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
+a6b23ee7f9c084154997ea3bf5b4c1e3  subdir1/ex2.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "replace_symlinks": "no",
+  "transform_broken_symlinks": "no",
+  "follow_dirlinks": "no",
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Check example loads as CopyArchiveDirectory
+        c = CopyArchiveDirectory(p)
+        self.assertTrue(isinstance(c, CopyArchiveDirectory))
+        # Verify archive
+        self.assertTrue(c.verify_archive())
+        # Check against source directory
+        self.assertTrue(c.verify_copy(example_src.path))
+
+    def test_copyarchivedirectory_replaced_symlink(self):
+        """
+        CopyArchiveDirectory: check replaced symlink
+        """
+        # Build example source directory
+        example_src = UnittestDir(os.path.join(self.wd, "example"))
+        example_src.add("ex1.txt",type="file",content="example 1")
+        example_src.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_src.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_src.add("subdir2/ex4.txt",type="symlink",target="./ex3.txt")
+        example_src.create()
+        # Build example copy archive dir
+        os.mkdir(os.path.join(self.wd, "archive"))
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "archive",
+                                                   "example"))
+        example_archive.add("ex1.txt",type="file",content="example 1")
+        example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_archive.add("subdir2/ex4.txt",type="file",content="example 3")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
+                            content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
+a6b23ee7f9c084154997ea3bf5b4c1e3  subdir1/ex2.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex4.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "replace_symlinks": "yes",
+  "transform_broken_symlinks": "no",
+  "follow_dirlinks": "no",
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Check example loads as CopyArchiveDirectory
+        c = CopyArchiveDirectory(p)
+        self.assertTrue(isinstance(c, CopyArchiveDirectory))
+        # Verify archive
+        self.assertTrue(c.verify_archive())
+        # Check against source directory
+        self.assertTrue(c.verify_copy(example_src.path))
+
+    def test_copyarchivedirectory_followed_dirlink(self):
+        """
+        CopyArchiveDirectory: check followed dirlink
+        """
+        # Build example source directory
+        example_src = UnittestDir(os.path.join(self.wd, "example"))
+        example_src.add("ex1.txt",type="file",content="example 1")
+        example_src.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_src.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_src.add("subdir3",type="symlink",target="./subdir2")
+        example_src.create()
+        # Build example copy archive dir
+        os.mkdir(os.path.join(self.wd, "archive"))
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "archive",
+                                                   "example"))
+        example_archive.add("ex1.txt",type="file",content="example 1")
+        example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_archive.add("subdir3/ex3.txt",type="file",content="example 3")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
+                            content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
+a6b23ee7f9c084154997ea3bf5b4c1e3  subdir1/ex2.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir3/ex3.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "replace_symlinks": "no",
+  "transform_broken_symlinks": "no",
+  "follow_dirlinks": "yes",
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Check example loads as CopyArchiveDirectory
+        c = CopyArchiveDirectory(p)
+        self.assertTrue(isinstance(c, CopyArchiveDirectory))
+        # Verify archive
+        self.assertTrue(c.verify_archive())
+        # Check against source directory
+        self.assertTrue(c.verify_copy(example_src.path))
+
+    def test_copyarchivedirectory_transformed_broken_symlink(self):
+        """
+        CopyArchiveDirectory: check transformed broken symlink
+        """
+        # Build example source directory
+        example_src = UnittestDir(os.path.join(self.wd, "example"))
+        example_src.add("ex1.txt",type="file",content="example 1")
+        example_src.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_src.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_src.add("subdir2/ex4.txt",type="symlink",target="missing.txt")
+        example_src.create()
+        # Build example copy archive dir
+        os.mkdir(os.path.join(self.wd, "archive"))
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "archive",
+                                                   "example"))
+        example_archive.add("ex1.txt",type="file",content="example 1")
+        example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_archive.add("subdir2/ex4.txt",type="file",content="missing.txt")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
+                            content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
+a6b23ee7f9c084154997ea3bf5b4c1e3  subdir1/ex2.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
+afb5e9e75190eea73d05fa5b0c20bd51  subdir2/ex4.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "replace_symlinks": "no",
+  "transform_broken_symlinks": "yes",
+  "follow_dirlinks": "no",
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Check example loads as CopyArchiveDirectory
+        c = CopyArchiveDirectory(p)
+        self.assertTrue(isinstance(c, CopyArchiveDirectory))
+        # Verify archive
+        self.assertTrue(c.verify_archive())
+        # Check against source directory
+        self.assertTrue(c.verify_copy(example_src.path))
 
 class TestGetRundirInstance(unittest.TestCase):
 
