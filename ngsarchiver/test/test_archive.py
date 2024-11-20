@@ -3937,6 +3937,29 @@ class TestGetRundirInstance(unittest.TestCase):
         d = get_rundir_instance(p)
         self.assertTrue(isinstance(d,MultiProjectRun))
 
+    def test_get_rundir_instance_copy_archive_directory(self):
+        """
+        get_rundir_instance: returns 'CopyArchiveDirectory' instance
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
+        example_dir.add("ARCHIVE_METADATA/checksums.md5",type="file")
+        example_dir.add("ARCHIVE_METADATA/archiver_metadata.json",type="file",
+                        content="""{
+  "name": "example"
+}
+""")
+        example_dir.add("ARCHIVE_METADATA/manifest",type="file")
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir2/ex3.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        p = example_dir.path
+        # Check correct class is returned
+        d = get_rundir_instance(p)
+        self.assertTrue(isinstance(d,CopyArchiveDirectory))
+
     def test_get_rundir_instance_archive_directory(self):
         """
         get_rundir_instance: returns 'ArchiveDirectory' instance

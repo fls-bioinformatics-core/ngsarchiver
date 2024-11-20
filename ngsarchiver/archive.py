@@ -1446,6 +1446,10 @@ def get_rundir_instance(d):
     except NgsArchiverException:
         pass
     try:
+        return CopyArchiveDirectory(d)
+    except NgsArchiverException:
+        pass
+    try:
         return MultiProjectRun(d)
     except NgsArchiverException:
         pass
