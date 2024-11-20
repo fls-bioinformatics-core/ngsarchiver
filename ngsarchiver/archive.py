@@ -596,7 +596,8 @@ class Directory:
                                 root_dir=os.path.dirname(self._path))
 
     def verify_copy(self,d,follow_symlinks=False,
-                    broken_symlinks_placeholders=False):
+                    broken_symlinks_placeholders=False,
+                    ignore_paths=None):
         """
         Verify the directory contents against a copy
 
@@ -645,10 +646,25 @@ class Directory:
             checks for broken symlinks in the source
             directory will succeed as long as there is
             an equivalent "placeholder" file in the target
+          ignore_paths (list): a list of names that should
+            be ignored when comparing the source and
+            target directories
         """
         d = os.path.abspath(d)
+        if ignore_paths is None:
+            ignore_paths = []
         for o in self.walk():
-            o_ = os.path.join(d,os.path.relpath(o,self._path))
+            # Check for ignored paths
+            rel_path = os.path.relpath(o,self._path)
+            ignore = False
+            for pattern in ignore_paths:
+                if fnmatch.fnmatch(rel_path, pattern):
+                    ignore = True
+                    break
+            if ignore:
+                continue
+            # Compare with target
+            o_ = os.path.join(d, rel_path)
             if not os.path.lexists(o_):
                 print("%s: missing from copy" % o)
                 return False
@@ -699,7 +715,17 @@ class Directory:
                 print("%s: MD5 sum differs in copy" % o)
                 return False
         for o in Directory(d).walk():
-            o_ = os.path.join(self._path,os.path.relpath(o,d))
+            # Check for ignored paths
+            rel_path = os.path.relpath(o, d)
+            ignore = False
+            for pattern in ignore_paths:
+                if fnmatch.fnmatch(rel_path, pattern):
+                    ignore = True
+                    break
+            if ignore:
+                continue
+            # Check also exists in source
+            o_ = os.path.join(self._path, rel_path)
             if not os.path.lexists(o_):
                 print("%s: present in copy only" % o_)
                 return False

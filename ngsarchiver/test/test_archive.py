@@ -1075,6 +1075,38 @@ class TestDirectory(unittest.TestCase):
         self.assertFalse(d1.verify_copy(dir2))
         self.assertFalse(d2.verify_copy(dir1))
 
+    def test_directory_verify_copy_ignore_paths(self):
+        """
+        Directory: check 'verify_copy' method ignoring specified files
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Add extra stuff to second directory
+        with open(os.path.join(dir2,"extra1.txt"),'wt') as fp:
+            fp.write("extra stuff")
+        os.mkdir(os.path.join(dir2, "extra_dir"))
+        with open(os.path.join(dir2, "extra_dir", "extra2.txt"),'wt') as fp:
+            fp.write("more extra stuff")
+        # Default verification fails
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertFalse(d1.verify_copy(dir2))
+        self.assertFalse(d2.verify_copy(dir1))
+        # Verfication explicitly ignoring extra files
+        self.assertTrue(d1.verify_copy(dir2, ignore_paths=("extra1.txt",
+                                                           "extra_dir",
+                                                           "extra_dir/*")))
+        self.assertTrue(d2.verify_copy(dir1, ignore_paths=("extra1.txt",
+                                                           "extra_dir",
+                                                           "extra_dir/*")))
+
     def test_directory_chown(self):
         """
         Directory: check 'chown' method
