@@ -267,7 +267,8 @@ def main(argv=None):
                     f"[{float(compressed_file_size)/float(size)*100.0:.1f}%]")
             else:
                 print("Compressed contents: 0 [0.0%]")
-            if isinstance(d,ArchiveDirectory):
+            if isinstance(d,ArchiveDirectory) or \
+               isinstance(d,CopyArchiveDirectory):
                 for item in d.archive_metadata:
                     print(f"-- {item}: {d.archive_metadata[item]}")
                     continue
