@@ -2,6 +2,23 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.4.0 (2024-11-21)
+---------------------------
+
+* Add new ``CopyArchiveDirectory`` class for identifying and
+  handling copy archives, and update the ``info``, ``verify``
+  and ``compare`` archiver commands to work with copy archives
+  using this class (PR #38)
+* ``verify_copy`` method of the ``Directory`` class updated
+  to allow specific paths to be excluded from the comparison
+  (PR #37)
+* Update ``manifest`` files to include a header line (PR #36)
+* Update the compressed archive directory metadata structure
+  to be consistent with copy archive directories (legacy
+  compressed archives created with earlier versions can still
+  be recognised) (PR #35)
+
+---------------------------
 Version 1.3.1 (2024-11-01)
 ---------------------------
 
