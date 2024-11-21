@@ -16,6 +16,7 @@ import os
 import logging
 from argparse import ArgumentParser
 from .archive import ArchiveDirectory
+from .archive import CopyArchiveDirectory
 from .archive import check_make_symlink
 from .archive import check_case_sensitive_filenames
 from .archive import convert_size_to_bytes
@@ -498,7 +499,11 @@ def main(argv=None):
 
     # 'Verify' subcommand
     if args.subcommand == 'verify':
-        a = ArchiveDirectory(args.archive)
+        a = get_rundir_instance(args.archive)
+        if not isinstance(a, ArchiveDirectory) and \
+           not isinstance(a, CopyArchiveDirectory):
+            logger.critical(f"{a.path}: not an archive directory")
+            return CLIStatus.ERROR
         print("Verifying %s" % a)
         if a.verify_archive():
             print("-- ok")

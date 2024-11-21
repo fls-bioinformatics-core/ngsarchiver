@@ -214,9 +214,9 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(main(['archive',example_dir.path]),
                          CLIStatus.ERROR)
 
-    def test_verify(self):
+    def test_verify_compressed_archive(self):
         """
-        CLI: test the 'verify' command
+        CLI: test the 'verify' command on a compressed archive
         """
         # Make example archive dir to verify
         example_archive = UnittestDir(os.path.join(self.wd,
@@ -257,6 +257,53 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
         example_archive.create()
         self.assertEqual(main(['verify',example_archive.path]),
                          CLIStatus.OK)
+
+    def test_verify_copy_archive(self):
+        """
+        CLI: test the 'verify' command on a copy archive
+        """
+        # Make example copy archive dir to verify
+        example_archive = UnittestDir(os.path.join(self.wd, "example"))
+        example_archive.add("ex1.txt",type="file",content="example 1")
+        example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_archive.add("subdir2/ex4.txt",type="symlink",target="./ex3.txt")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
+                            content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
+a6b23ee7f9c084154997ea3bf5b4c1e3  subdir1/ex2.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "replace_symlinks": "no",
+  "transform_broken_symlinks": "no",
+  "follow_dirlinks": "no",
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.create()
+        self.assertEqual(main(['verify',example_archive.path]),
+                         CLIStatus.OK)
+
+    def test_verify_not_archive_directory(self):
+        """
+        CLI: test the 'verify' command on a non-archive directory
+        """
+        # Make example non-archive dir to verify
+        example_dir = UnittestDir(os.path.join(self.wd, "example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_dir.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_dir.add("subdir2/ex4.txt",type="symlink",target="./ex3.txt")
+        example_dir.create()
+        self.assertEqual(main(['verify',example_dir.path]),
+                         CLIStatus.ERROR)
 
     def test_unpack(self):
         """
