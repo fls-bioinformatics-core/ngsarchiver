@@ -214,6 +214,83 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(main(['archive',example_dir.path]),
                          CLIStatus.ERROR)
 
+    def test_archive_refuse_compressed_archive_directory(self):
+        """
+        CLI: test the 'archive' command refuses for a compressed archive
+        """
+        # Make example archive dir to archive
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "example.archive"))
+        example_archive.add("example.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sIAAAAAAAAA+2ZYWqDQBCF/Z1TeIJkdxzda/QKpllog6HBbMDjd7QVopKWQJxt2ff9MehCFl6+8Wl8V5/Ojd9lK2IE58r+aF1pbo8jmWXmQpZZI+usqchmebnmpkaul1C3eZ6dj/sf1/12/Z/iv/O/XPeH95ZW+R08lL+T85bkOvLXYJ6/72gbuvDU7+gDriq+n7/IPs2/YJL8zVN3cYfE839p6lf/9tEcfJsH34VN7A0BVZb+27/hP8N/DeB/2kz9t/H7H1df/c+h/2kwzz96/xvyl/nvMP81wPxPm6X/kfsfM/qfIvA/bab+F/H7n6O+/5GcQv9TYJ5/9P435F/IZ8x/DTD/02bpf+z3f4TnP0Xgf9qM/q/h/chD/g///5Mpcf9XAf4DAECafAIvyELwACgAAA=='))
+        example_archive.add("example.md5",
+                            type="file",
+                            content="""d1ee10b76e42d7e06921e41fbb9b75f7  example/ex1.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex1.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex1.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
+""")
+        example_archive.add(".ngsarchiver/archive.md5",
+                            type="file",
+                            content="f210d02b4a294ec38c6ed82b92a73c44  example.tar.gz\n")
+        example_archive.add(".ngsarchiver/archive_metadata.json",type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "subarchives": [
+    "example.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "023-06-16 09:58:39",
+  "multi_volume": false,
+  "volume_size": null,
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add(".ngsarchiver/manifest.txt",type="file")
+        example_archive.create()
+        self.assertEqual(main(['archive',example_archive.path]),
+                         CLIStatus.ERROR)
+
+    def test_archive_refuse_copy_archive_directory(self):
+        """
+        CLI: test the 'archive' command refuses for a copy archive
+        """
+        # Make example archive dir to archive
+        example_archive = UnittestDir(os.path.join(self.wd, "example"))
+        example_archive.add("ex1.txt",type="file",content="example 1")
+        example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_archive.add("subdir2/ex4.txt",type="symlink",target="./ex3.txt")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
+                            content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
+a6b23ee7f9c084154997ea3bf5b4c1e3  subdir1/ex2.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "replace_symlinks": "no",
+  "transform_broken_symlinks": "no",
+  "follow_dirlinks": "no",
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.create()
+        self.assertEqual(main(['archive',example_archive.path]),
+                         CLIStatus.ERROR)
+
     def test_verify_compressed_archive(self):
         """
         CLI: test the 'verify' command on a compressed archive

@@ -357,6 +357,11 @@ def main(argv=None):
         except Exception as ex:
             logger.error(ex)
             return CLIStatus.ERROR
+        if isinstance(d, ArchiveDirectory) or \
+           isinstance(d, CopyArchiveDirectory):
+            logger.critical(f"{d.path}: can't make archive from an "
+                            "existing archive directory")
+            return CLIStatus.ERROR
         size = d.size
         largest_file = d.largest_file
         check_status = 0
