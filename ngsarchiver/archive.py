@@ -1315,6 +1315,121 @@ class ArchiveDirMember:
     def md5(self):
         return self._md5
 
+class CopyArchiveDirectory(Directory):
+    """
+    Class to handle copy archive directories
+    """
+    def __init__(self,d):
+        Directory.__init__(self,d)
+        self._metadata_dir = None
+        self._json_file = None
+        self._archive_metadata = None
+        self._checksum_file = None
+        # Loop over formats to see if one matches
+        for fmt in (("ARCHIVE_METADATA",
+                     "archiver_metadata.json",
+                     "checksums.md5"),):
+            # Check metadata directory
+            metadata_dir = os.path.join(self.path, fmt[0])
+            if not os.path.isdir(metadata_dir):
+                continue
+            self._metadata_dir = metadata_dir
+            # Check JSON data
+            json_file = os.path.join(self._metadata_dir, fmt[1])
+            if not os.path.exists(json_file):
+                continue
+            self._json_file = json_file
+            try:
+                with open(self._json_file, "rt") as fp:
+                    self._archive_metadata = json.loads(fp.read())
+            except Exception as ex:
+                continue
+            # Check MD5 checksum file for archive volumes
+            checksum_file = os.path.join(self._metadata_dir, fmt[2])
+            if not os.path.exists(checksum_file):
+                continue
+            self._checksum_file = checksum_file
+            # Break out of loop if we got this far
+            break
+        # Check what was found
+        if self._metadata_dir is None:
+            raise NgsArchiverException("%s: not an archive directory" %
+                                       self.path)
+        elif self._json_file is None or self._archive_metadata is None:
+            raise NgsArchiverException("%s: failed to load archive "
+                                       "metadata from JSON file" %
+                                       self.path)
+        elif self._checksum_file is None:
+            raise NgsArchiverException("%s: missing checksum file " %
+                                       self.path)
+        elif "compression_level" in self._archive_metadata:
+            raise NgsArchiverException("%s: not a copy archive "
+                                       "directory" % self.path)
+
+    @property
+    def archive_metadata(self):
+        """
+        Return dictionary with archive metadata
+        """
+        return { k : self._archive_metadata[k]
+                 for k in self._archive_metadata }
+
+    @property
+    def replace_symlinks(self):
+        """
+        Return setting for 'replace_symlinks'
+        """
+        return (True if self.archive_metadata["replace_symlinks"] == "yes"
+                else False)
+
+    @property
+    def transform_broken_symlinks(self):
+        return (True
+                if self.archive_metadata["transform_broken_symlinks"] == "yes"
+                else False)
+
+    @property
+    def checksum_file(self):
+        """
+        Return associated checksum file for the archive
+        """
+        return self._checksum_file
+
+    def verify_archive(self):
+        """
+        Check the integrity of a copy archive directory
+
+        Verification is performed by checking that the
+        MD5 checksums of each component match those
+        recorded in the checksum file when the archive
+        was created.
+        """
+        return verify_checksums(self.checksum_file,
+                                root_dir=self._path, verbose=True)
+
+    def verify_copy(self, d):
+        """
+        Check that the archive replicates the source
+
+        Compares the contents of the copy archive directory
+        against the source directory, taking into account
+        any transformations (i.e. symlink replacements)
+        and ignoring the additional metadata subdirectories.
+
+        Arguments:
+          d (str): path to the source directory to check
+            against
+        """
+        return Directory(d).verify_copy(
+            self.path,
+            follow_symlinks=self.replace_symlinks,
+            broken_symlinks_placeholders=self.transform_broken_symlinks,
+            ignore_paths=(os.path.basename(self._metadata_dir),
+                          os.path.basename(self._metadata_dir) + os.sep + "*"))
+
+    def __repr__(self):
+        return self._path
+
 #######################################################################
 # Functions
 #######################################################################
@@ -1328,6 +1443,10 @@ def get_rundir_instance(d):
     """
     try:
         return ArchiveDirectory(d)
+    except NgsArchiverException:
+        pass
+    try:
+        return CopyArchiveDirectory(d)
     except NgsArchiverException:
         pass
     try:
@@ -1393,6 +1512,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     archive_metadata = {
         'name': d.basename,
         'source': d.path,
+        'type': ArchiveDirectory.__name__,
         'subarchives': [],
         'files': [],
         'user': getpass.getuser(),
@@ -1801,6 +1921,10 @@ def make_copy(d, dest, replace_symlinks=False,
         "placeholder" files with the same name in the copy
       follow_dirlinks (bool): if True then transform symbolic
         links to directories into the referent directories
+
+    Returns:
+      CopyArchiveDirectory: object representing the generated
+        copy archive directory.
     """
     # Create temporary (.part) directory
     dest = str(Path(dest).absolute())
@@ -1974,6 +2098,7 @@ def make_copy(d, dest, replace_symlinks=False,
     archive_metadata = {
         'name': d.basename,
         'source': d.path,
+        'type': CopyArchiveDirectory.__name__,
         'user': getpass.getuser(),
         'creation_date': time.strftime("%Y-%m-%d %H:%M:%S"),
         'replace_symlinks': format_bool(replace_symlinks),
@@ -1989,7 +2114,7 @@ def make_copy(d, dest, replace_symlinks=False,
     shutil.move(temp_copy, dest)
     shutil.copystat(d.path, dest)
     print(f"- moved final copy to {dest}")
-    return Directory(dest)
+    return CopyArchiveDirectory(dest)
 
 def make_manifest_file(d, manifest_file, follow_dirlinks=False):
     """

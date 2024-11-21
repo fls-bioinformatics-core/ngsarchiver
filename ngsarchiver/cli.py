@@ -16,6 +16,7 @@ import os
 import logging
 from argparse import ArgumentParser
 from .archive import ArchiveDirectory
+from .archive import CopyArchiveDirectory
 from .archive import check_make_symlink
 from .archive import check_case_sensitive_filenames
 from .archive import convert_size_to_bytes
@@ -266,7 +267,8 @@ def main(argv=None):
                     f"[{float(compressed_file_size)/float(size)*100.0:.1f}%]")
             else:
                 print("Compressed contents: 0 [0.0%]")
-            if isinstance(d,ArchiveDirectory):
+            if isinstance(d,ArchiveDirectory) or \
+               isinstance(d,CopyArchiveDirectory):
                 for item in d.archive_metadata:
                     print(f"-- {item}: {d.archive_metadata[item]}")
                     continue
@@ -355,6 +357,11 @@ def main(argv=None):
             d = get_rundir_instance(args.dir)
         except Exception as ex:
             logger.error(ex)
+            return CLIStatus.ERROR
+        if isinstance(d, ArchiveDirectory) or \
+           isinstance(d, CopyArchiveDirectory):
+            logger.critical(f"{d.path}: can't make archive from an "
+                            "existing archive directory")
             return CLIStatus.ERROR
         size = d.size
         largest_file = d.largest_file
@@ -498,7 +505,11 @@ def main(argv=None):
 
     # 'Verify' subcommand
     if args.subcommand == 'verify':
-        a = ArchiveDirectory(args.archive)
+        a = get_rundir_instance(args.archive)
+        if not isinstance(a, ArchiveDirectory) and \
+           not isinstance(a, CopyArchiveDirectory):
+            logger.critical(f"{a.path}: not an archive directory")
+            return CLIStatus.ERROR
         print("Verifying %s" % a)
         if a.verify_archive():
             print("-- ok")
@@ -561,6 +572,11 @@ def main(argv=None):
         except Exception as ex:
             logger.error(ex)
             return CLIStatus.ERROR
+        if isinstance(d, ArchiveDirectory) or \
+           isinstance(d, CopyArchiveDirectory):
+            logger.critical(f"{d.path}: can't make copy archive from an "
+                            "existing archive directory")
+            return CLIStatus.ERROR
         dest_dir = args.dest_dir
         if not dest_dir:
             dest_dir = os.getcwd()
@@ -593,11 +609,6 @@ def main(argv=None):
         info_msgs = []
         error_msgs = []
         unrecoverable_errors = []
-        if os.path.exists(os.path.join(d.path, "ARCHIVE_METADATA")):
-            unrecoverable_errors.append("Source directory contains "
-                                        "'ARCHIVE_METADATA' "
-                                        "subdirectory")
-            check_status = 1
         if not is_readable:
             unrecoverable_errors.append("Unreadable files and/or "
                                         "directories detected")

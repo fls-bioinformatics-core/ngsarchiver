@@ -19,6 +19,7 @@ from ngsarchiver.archive import MultiSubdirRun
 from ngsarchiver.archive import MultiProjectRun
 from ngsarchiver.archive import ArchiveDirectory
 from ngsarchiver.archive import ArchiveDirMember
+from ngsarchiver.archive import CopyArchiveDirectory
 from ngsarchiver.archive import get_rundir_instance
 from ngsarchiver.archive import md5sum
 from ngsarchiver.archive import verify_checksums
@@ -1375,6 +1376,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "type": "ArchiveDirectory",
   "subarchives": [
     "example.tar.gz"
   ],
@@ -1495,6 +1497,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "type": "ArchiveDirectory",
   "subarchives": [
     "subdir1.tar.gz",
     "subdir2.tar.gz",
@@ -1623,6 +1626,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "type": "ArchiveDirectory",
   "subarchives": [
     "subdir1.tar.gz",
     "subdir2.tar.gz",
@@ -1763,6 +1767,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "type": "ArchiveDirectory",
   "subarchives": [
     "example.00.tar.gz",
     "example.01.tar.gz"
@@ -1918,6 +1923,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "type": "ArchiveDirectory",
   "subarchives": [
     "subdir1.00.tar.gz",
     "subdir1.01.tar.gz",
@@ -2102,6 +2108,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "type": "ArchiveDirectory",
   "subarchives": [
     "subdir1.00.tar.gz",
     "subdir1.01.tar.gz",
@@ -2226,6 +2233,7 @@ a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex2.txt
                             content="""{
   "name": "example_external_symlinks",
   "source": "/original/path/to/example_external_symlinks",
+  "type": "ArchiveDirectory",
   "subarchives": [
     "example_external_symlinks.tar.gz"
   ],
@@ -2380,6 +2388,7 @@ a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex2.txt
                             content="""{
   "name": "example_broken_symlinks",
   "source": "/original/path/to/example_broken_symlinks",
+  "type": "ArchiveDirectory",
   "subarchives": [
     "example_broken_symlinks.tar.gz"
   ],
@@ -3672,6 +3681,218 @@ class TestArchiveDirMember(unittest.TestCase):
         self.assertEqual(m.subarchive,"subarchive.tar.gz")
         self.assertEqual(m.md5,"178fce553fbc42451c2fc43f9a965908")
 
+class TestCopyArchiveDirectory(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestCopyArchiveDirectory')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_copyarchivedirectory(self):
+        """
+        CopyArchiveDirectory: check properties and methods
+        """
+        # Build example source directory
+        example_src = UnittestDir(os.path.join(self.wd, "example"))
+        example_src.add("ex1.txt",type="file",content="example 1")
+        example_src.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_src.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_src.add("subdir2/ex4.txt",type="symlink",target="./ex3.txt")
+        example_src.create()
+        # Build example copy archive dir
+        os.mkdir(os.path.join(self.wd, "archive"))
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "archive",
+                                                   "example"))
+        example_archive.add("ex1.txt",type="file",content="example 1")
+        example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_archive.add("subdir2/ex4.txt",type="symlink",target="./ex3.txt")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
+                            content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
+a6b23ee7f9c084154997ea3bf5b4c1e3  subdir1/ex2.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "type": "CopyArchiveDirectory",
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "replace_symlinks": "no",
+  "transform_broken_symlinks": "no",
+  "follow_dirlinks": "no",
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Check example loads as CopyArchiveDirectory
+        c = CopyArchiveDirectory(p)
+        self.assertTrue(isinstance(c, CopyArchiveDirectory))
+        # Verify archive
+        self.assertTrue(c.verify_archive())
+        # Check against source directory
+        self.assertTrue(c.verify_copy(example_src.path))
+
+    def test_copyarchivedirectory_replaced_symlink(self):
+        """
+        CopyArchiveDirectory: check replaced symlink
+        """
+        # Build example source directory
+        example_src = UnittestDir(os.path.join(self.wd, "example"))
+        example_src.add("ex1.txt",type="file",content="example 1")
+        example_src.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_src.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_src.add("subdir2/ex4.txt",type="symlink",target="./ex3.txt")
+        example_src.create()
+        # Build example copy archive dir
+        os.mkdir(os.path.join(self.wd, "archive"))
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "archive",
+                                                   "example"))
+        example_archive.add("ex1.txt",type="file",content="example 1")
+        example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_archive.add("subdir2/ex4.txt",type="file",content="example 3")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
+                            content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
+a6b23ee7f9c084154997ea3bf5b4c1e3  subdir1/ex2.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex4.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "type": "CopyArchiveDirectory",
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "replace_symlinks": "yes",
+  "transform_broken_symlinks": "no",
+  "follow_dirlinks": "no",
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Check example loads as CopyArchiveDirectory
+        c = CopyArchiveDirectory(p)
+        self.assertTrue(isinstance(c, CopyArchiveDirectory))
+        # Verify archive
+        self.assertTrue(c.verify_archive())
+        # Check against source directory
+        self.assertTrue(c.verify_copy(example_src.path))
+
+    def test_copyarchivedirectory_followed_dirlink(self):
+        """
+        CopyArchiveDirectory: check followed dirlink
+        """
+        # Build example source directory
+        example_src = UnittestDir(os.path.join(self.wd, "example"))
+        example_src.add("ex1.txt",type="file",content="example 1")
+        example_src.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_src.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_src.add("subdir3",type="symlink",target="./subdir2")
+        example_src.create()
+        # Build example copy archive dir
+        os.mkdir(os.path.join(self.wd, "archive"))
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "archive",
+                                                   "example"))
+        example_archive.add("ex1.txt",type="file",content="example 1")
+        example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_archive.add("subdir3/ex3.txt",type="file",content="example 3")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
+                            content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
+a6b23ee7f9c084154997ea3bf5b4c1e3  subdir1/ex2.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir3/ex3.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "type": "CopyArchiveDirectory",
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "replace_symlinks": "no",
+  "transform_broken_symlinks": "no",
+  "follow_dirlinks": "yes",
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Check example loads as CopyArchiveDirectory
+        c = CopyArchiveDirectory(p)
+        self.assertTrue(isinstance(c, CopyArchiveDirectory))
+        # Verify archive
+        self.assertTrue(c.verify_archive())
+        # Check against source directory
+        self.assertTrue(c.verify_copy(example_src.path))
+
+    def test_copyarchivedirectory_transformed_broken_symlink(self):
+        """
+        CopyArchiveDirectory: check transformed broken symlink
+        """
+        # Build example source directory
+        example_src = UnittestDir(os.path.join(self.wd, "example"))
+        example_src.add("ex1.txt",type="file",content="example 1")
+        example_src.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_src.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_src.add("subdir2/ex4.txt",type="symlink",target="missing.txt")
+        example_src.create()
+        # Build example copy archive dir
+        os.mkdir(os.path.join(self.wd, "archive"))
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "archive",
+                                                   "example"))
+        example_archive.add("ex1.txt",type="file",content="example 1")
+        example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
+        example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
+        example_archive.add("subdir2/ex4.txt",type="file",content="missing.txt")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
+                            content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
+a6b23ee7f9c084154997ea3bf5b4c1e3  subdir1/ex2.txt
+d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
+afb5e9e75190eea73d05fa5b0c20bd51  subdir2/ex4.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "type": "CopyArchiveDirectory",
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "replace_symlinks": "no",
+  "transform_broken_symlinks": "yes",
+  "follow_dirlinks": "no",
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.create()
+        p = example_archive.path
+        # Check example loads as CopyArchiveDirectory
+        c = CopyArchiveDirectory(p)
+        self.assertTrue(isinstance(c, CopyArchiveDirectory))
+        # Verify archive
+        self.assertTrue(c.verify_archive())
+        # Check against source directory
+        self.assertTrue(c.verify_copy(example_src.path))
+
 class TestGetRundirInstance(unittest.TestCase):
 
     def setUp(self):
@@ -3727,6 +3948,29 @@ class TestGetRundirInstance(unittest.TestCase):
         # Check correct class is returned
         d = get_rundir_instance(p)
         self.assertTrue(isinstance(d,MultiProjectRun))
+
+    def test_get_rundir_instance_copy_archive_directory(self):
+        """
+        get_rundir_instance: returns 'CopyArchiveDirectory' instance
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
+        example_dir.add("ARCHIVE_METADATA/checksums.md5",type="file")
+        example_dir.add("ARCHIVE_METADATA/archiver_metadata.json",type="file",
+                        content="""{
+  "name": "example"
+}
+""")
+        example_dir.add("ARCHIVE_METADATA/manifest",type="file")
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir2/ex3.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        p = example_dir.path
+        # Check correct class is returned
+        d = get_rundir_instance(p)
+        self.assertTrue(isinstance(d,CopyArchiveDirectory))
 
     def test_get_rundir_instance_archive_directory(self):
         """
@@ -3809,6 +4053,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         d = Directory(p)
         a = make_archive_dir(d,out_dir=self.wd)
         self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
         self.assertEqual(a.path,archive_dir)
@@ -3838,6 +4083,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
                              out_dir=self.wd)
         self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
         self.assertEqual(a.path,archive_dir)
@@ -3872,6 +4118,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                              misc_objects=('ex4.txt','subdir3'),
                              out_dir=self.wd)
         self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
         self.assertEqual(a.path,archive_dir)
@@ -3911,6 +4158,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                              extra_files=('ex5.txt','ex6.txt'),
                              out_dir=self.wd)
         self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
         self.assertEqual(a.path,archive_dir)
@@ -3950,6 +4198,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         d = Directory(p)
         a = make_archive_dir(d,out_dir=self.wd,volume_size='12K')
         self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
         self.assertEqual(a.path,archive_dir)
@@ -3991,6 +4240,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
                              out_dir=self.wd,volume_size='12K')
         self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
         self.assertEqual(a.path,archive_dir)
@@ -4042,6 +4292,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                              out_dir=self.wd,
                              volume_size='12K')
         self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
         self.assertEqual(a.path,archive_dir)
@@ -4100,6 +4351,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                              out_dir=self.wd,
                              volume_size='12K')
         self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
         self.assertEqual(a.path,archive_dir)
@@ -4146,6 +4398,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         d = Directory(p)
         a = make_archive_dir(d,out_dir=self.wd)
         self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
         # Check resulting archive
         archive_dir = os.path.join(self.wd,"example.archive")
         self.assertEqual(a.path,archive_dir)
@@ -4840,7 +5093,9 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d, dest_dir)
-        self.assertTrue(isinstance(dd, Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting copy
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -4889,7 +5144,9 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -4942,7 +5199,9 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5007,7 +5266,9 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5071,7 +5332,9 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5146,7 +5409,9 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5201,7 +5466,9 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d, dest_dir, replace_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5270,7 +5537,9 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d,dest_dir,replace_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5342,7 +5611,9 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d, dest_dir, transform_broken_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5444,7 +5715,9 @@ class TestMakeCopy(unittest.TestCase):
         dd = make_copy(d,
                        dest_dir,
                        transform_broken_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5524,7 +5797,9 @@ class TestMakeCopy(unittest.TestCase):
         dest_dir = os.path.join(self.wd, "copies", "example1")
         dd = make_copy(d, dest_dir, replace_symlinks=True,
                        transform_broken_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5580,7 +5855,7 @@ class TestMakeCopy(unittest.TestCase):
         dest_dir = os.path.join(self.wd, "copies", "example2")
         dd = make_copy(d, dest_dir, replace_symlinks=True,
                        transform_broken_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5666,7 +5941,9 @@ class TestMakeCopy(unittest.TestCase):
         d = Directory(p)
         dd = make_copy(d, dest_dir, replace_symlinks=True,
                        transform_broken_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5750,7 +6027,9 @@ class TestMakeCopy(unittest.TestCase):
         # Make copy
         d = Directory(p)
         dd = make_copy(d, dest_dir, follow_dirlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
@@ -5847,7 +6126,9 @@ class TestMakeCopy(unittest.TestCase):
         d = Directory(p)
         dd = make_copy(d, dest_dir, follow_dirlinks=True,
                        replace_symlinks=True)
-        self.assertTrue(isinstance(dd,Directory))
+        self.assertTrue(isinstance(dd, CopyArchiveDirectory))
+        self.assertEqual(dd.archive_metadata["type"],
+                         "CopyArchiveDirectory")
         # Check resulting directory
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))

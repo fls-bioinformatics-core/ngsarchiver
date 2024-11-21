@@ -105,31 +105,27 @@ three types:
   non-project content grouped into an additional
   subarchive.
 
-``ngsarchiver`` recognises an additional type:
+``ngsarchiver`` recognises two additional types:
 
 - ``ArchiveDirectory`` is a compressed archive
   directory created by ``ngsarchiver``
+- ``ArchiveCopyDirectory`` is a copy archive
+  directory created by ``ngsarchiver``
 
-This last type cannot be further archived.
-
-Individual files and directories within the source
-directory are bundled together in one or more ``tar``
-files which are compressed using ``gzip``, and MD5
-checksums are generated both for the original files (so
-they can be checked when restored) and for the
-archive components (providing an integrity check
-on the archive itself). The general structure of the
-archive directories is described elsewhere in the
-section *Archive directory format*.
+These last two types cannot be further archived; their
+formats are described in the relevant sections below
+(*Compressed archive directory format* and
+*Copy archive directory format* respectively).
 
 The ``ngsarchiver`` package is intended to provide
 a set of simple zero-configuration tools with minimal
 dependencies, that can be used to create archive
 directories, and to check and restore data from
-them. However it should also be possible to verify
-and recover data manually with some additional effort
-using just the standard Linux command line tools
-``tar``, ``gzip`` and ``md5sum``.
+them. However (in the case of compressed archives) it
+should also be possible to verify and recover data
+manually with some additional effort using just the
+standard Linux command line tools ``tar``, ``gzip``
+and ``md5sum``.
 
 Finally, no functionality is provided for the
 management of the wider datastore beyond the creation
@@ -441,21 +437,21 @@ following cases:
 * The original directory contains files or directories
   which cannot be read by the user running the copy
   operation
-* The original directory contains an ``ARCHIVE_METADATA``
-  subdirectory
 * The original directory contains files or directories
   where case sensitivity is required to differentiate
   them (e.g. ``myfile.txt`` and ``myFile.txt``), but
   the target filesystem doesn't support case
   sensitive file names.
+* The original directory is already some form of
+  archive directory
 
 There is no way to override this behaviour; for
 unreadable files, the solution is to fix the permissions
-in the source directory. For the existing metadata,
-either move it or find an alternative way to do the
-copy. For case-sensitive filenames, either use a target
-filesystem which does support case sensitivity (or
-rename the files in the source directory).
+in the source directory. For case-sensitive filenames,
+either use a target filesystem which does support case
+sensitivity, rename the files in the source directory,
+or use compressed archives (via the ``archive`` command)
+instead.
 
 Other situations will also prevent the copy from being
 performed but can be overridden:
@@ -513,7 +509,16 @@ Compressed archive directory format
 
 Compressed archive directories are regular directories
 named after the source directory with the suffix
-``.archive`` appended.
+``.archive`` appended, which are created using the
+``archive`` command.
+
+Individual files and directories within the source
+directory are bundled together in one or more ``tar``
+files which are compressed using ``gzip``, and MD5
+checksums are generated both for the original files (so
+they can be checked when restored) and for the
+archive components (providing an integrity check
+on the archive itself).
 
 Within a compressed archive directory there will be:
 
@@ -562,9 +567,16 @@ extremely large ``.tar.gz`` archives.
 Copy archive directory format
 -----------------------------
 
-Copy archive directories are regular directories. A
-copy archive will have the same name as the source
-directory.
+Copy archive directories are created using the
+``copy`` command. A copy archive will have the same
+name as the source directory.
+
+Individual files and directories from the source
+directory are copied directly as-is to the archive
+directory; by default symbolic links are also copied
+as-is, alternatively they may be transformed in the
+copy depending on the options specified when the copy
+is made.
 
 A copy archive directory will contain an additional
 subdirctory created by the archiver called
