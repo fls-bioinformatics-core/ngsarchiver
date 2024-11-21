@@ -571,6 +571,11 @@ def main(argv=None):
         except Exception as ex:
             logger.error(ex)
             return CLIStatus.ERROR
+        if isinstance(d, ArchiveDirectory) or \
+           isinstance(d, CopyArchiveDirectory):
+            logger.critical(f"{d.path}: can't make copy archive from an "
+                            "existing archive directory")
+            return CLIStatus.ERROR
         dest_dir = args.dest_dir
         if not dest_dir:
             dest_dir = os.getcwd()
@@ -603,11 +608,6 @@ def main(argv=None):
         info_msgs = []
         error_msgs = []
         unrecoverable_errors = []
-        if os.path.exists(os.path.join(d.path, "ARCHIVE_METADATA")):
-            unrecoverable_errors.append("Source directory contains "
-                                        "'ARCHIVE_METADATA' "
-                                        "subdirectory")
-            check_status = 1
         if not is_readable:
             unrecoverable_errors.append("Unreadable files and/or "
                                         "directories detected")
