@@ -2,6 +2,13 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.5.0 (2024-11-22)
+---------------------------
+
+* Add trailing slash to directory paths in archive manifest
+  files (to distinguish from regular files and links) (PR #40)
+
+---------------------------
 Version 1.4.0 (2024-11-21)
 ---------------------------
 
