@@ -2142,10 +2142,14 @@ def make_manifest_file(d, manifest_file, follow_dirlinks=False):
             o = Path(o)
             owner = Path(o).owner()
             group = Path(o).group()
-            fp.write("{owner}\t{group}\t{obj}\n".format(
+            rel_path = str(o.relative_to(d.path))
+            if (follow_dirlinks or not o.is_symlink()) and o.is_dir():
+                # Append a slash to directory names
+                rel_path = rel_path + os.sep
+            fp.write("{owner}\t{group}\t{rel_path}\n".format(
                 owner=owner,
                 group=group,
-                obj=o.relative_to(d.path)))
+                rel_path=rel_path))
     return manifest_file
 
 def check_make_symlink(d):
