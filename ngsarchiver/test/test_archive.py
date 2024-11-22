@@ -6034,15 +6034,15 @@ class TestMakeCopy(unittest.TestCase):
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
         expected = ("ex1.txt",
-                    "subdir",
+                    "subdir/",
                     "subdir/ex2.txt",
                     "subdir/ex3.txt",
-                    "subdir/external_dir",
+                    "subdir/external_dir/",
                     "subdir/external_dir/ex4.txt",
                     "subdir/external_dir/ex5.txt",
-                    "subdir/external_dir/subdir2",
+                    "subdir/external_dir/subdir2/",
                     "subdir/external_dir/subdir2/ex6.txt",
-                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
                     "ARCHIVE_METADATA/checksums.md5",
@@ -6058,8 +6058,10 @@ class TestMakeCopy(unittest.TestCase):
                     "modification time differs for '%s'" % item)
         # Check extra items aren't present
         for item in dd.walk():
-            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
-                            "'%s' not expected" % item)
+            rel_path = os.path.relpath(item, dest_dir)
+            if os.path.isdir(item):
+                rel_path = rel_path + "/"
+            self.assertTrue(rel_path in expected, "'%s' not expected" % item)
         # Check that dirlink was transformed to an actual directory
         self.assertFalse(
             os.path.islink(os.path.join(dest_dir, "subdir", "external_dir")),
@@ -6086,7 +6088,7 @@ class TestMakeCopy(unittest.TestCase):
             for line in fp:
                 checksum_file_list.append(line.rstrip().split("  ")[-1])
             for item in [x for x in expected
-                         if not x.startswith("ARCHIVE_METADATA") and
+                         if not x.startswith("ARCHIVE_METADATA/") and
                          os.path.basename(x) not in ("ex3.txt", "ex5.txt")]:
                 if os.path.isfile(os.path.join(dest_dir, item)):
                     self.assertTrue(item in checksum_file_list,
@@ -6133,15 +6135,15 @@ class TestMakeCopy(unittest.TestCase):
         self.assertEqual(dd.path, dest_dir)
         self.assertTrue(os.path.exists(dest_dir))
         expected = ("ex1.txt",
-                    "subdir",
+                    "subdir/",
                     "subdir/ex2.txt",
                     "subdir/ex3.txt",
-                    "subdir/external_dir",
+                    "subdir/external_dir/",
                     "subdir/external_dir/ex4.txt",
                     "subdir/external_dir/ex5.txt",
-                    "subdir/external_dir/subdir2",
+                    "subdir/external_dir/subdir2/",
                     "subdir/external_dir/subdir2/ex6.txt",
-                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
                     "ARCHIVE_METADATA/checksums.md5",
@@ -6157,8 +6159,10 @@ class TestMakeCopy(unittest.TestCase):
                     "modification time differs for '%s'" % item)
         # Check extra items aren't present
         for item in dd.walk():
-            self.assertTrue(os.path.relpath(item, dest_dir) in expected,
-                            "'%s' not expected" % item)
+            rel_path = os.path.relpath(item, dest_dir)
+            if os.path.isdir(item):
+                rel_path = rel_path + "/"
+            self.assertTrue(rel_path in expected, "'%s' not expected" % item)
         # Check that dirlink was transformed to an actual directory
         self.assertFalse(
             os.path.islink(os.path.join(dest_dir, "subdir", "external_dir")),
@@ -6175,7 +6179,7 @@ class TestMakeCopy(unittest.TestCase):
             for line in fp:
                 manifest_file_list.append(line.rstrip().split("\t")[-1])
             for item in [x for x in expected
-                         if not x.startswith("ARCHIVE_METADATA")]:
+                         if not x.startswith("ARCHIVE_METADATA/")]:
                 self.assertTrue(item in manifest_file_list,
                                 f"{item}: not in manifest")
         # Check that checksum file contains all the files
@@ -6185,7 +6189,7 @@ class TestMakeCopy(unittest.TestCase):
             for line in fp:
                 checksum_file_list.append(line.rstrip().split("  ")[-1])
             for item in [x for x in expected
-                         if not x.startswith("ARCHIVE_METADATA")]:
+                         if not x.startswith("ARCHIVE_METADATA/")]:
                 if os.path.isfile(os.path.join(dest_dir, item)):
                     self.assertTrue(item in checksum_file_list,
                                     f"{item}: not in checksum file")
@@ -6249,7 +6253,7 @@ class TestMakeManifestFile(unittest.TestCase):
         # Check contents
         expected_lines = ["#Owner\tGroup\tPath",
                           f"{username}\t{group}\tex1.txt",
-                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/",
                           f"{username}\t{group}\tsubdir/ex2.txt"]
         with open(manifest_file, 'rt') as fp:
             for line in fp:
@@ -6277,7 +6281,7 @@ class TestMakeManifestFile(unittest.TestCase):
         # Check contents
         expected_lines = ["#Owner\tGroup\tPath",
                           f"{username}\t{group}\tex1.txt",
-                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/",
                           f"{username}\t{group}\tsubdir/ex2.txt",
                           f"{username}\t{group}\tsubdir/symlink1.txt"]
         with open(manifest_file, 'rt') as fp:
@@ -6306,7 +6310,7 @@ class TestMakeManifestFile(unittest.TestCase):
         # Check contents
         expected_lines = ["#Owner\tGroup\tPath",
                           f"{username}\t{group}\tex1.txt",
-                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/",
                           f"{username}\t{group}\tsubdir/ex2.txt",
                           f"{username}\t{group}\tsubdir/symlink1.txt"]
         with open(manifest_file, 'rt') as fp:
@@ -6336,7 +6340,7 @@ class TestMakeManifestFile(unittest.TestCase):
         # Check contents
         expected_lines = ["#Owner\tGroup\tPath",
                           f"{username}\t{group}\tex1.txt",
-                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/",
                           f"{username}\t{group}\tsubdir/ex2.txt",
                           f"{username}\t{group}\tsubdir/symlink1.txt"]
         with open(manifest_file, 'rt') as fp:
@@ -6365,7 +6369,7 @@ class TestMakeManifestFile(unittest.TestCase):
         # Check contents
         expected_lines = ["#Owner\tGroup\tPath",
                           f"{username}\t{group}\tex1.txt",
-                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/",
                           f"{username}\t{group}\tsubdir/ex2.txt",
                           f"{username}\t{group}\tsubdir2"]
         manifest_lines = []
@@ -6387,9 +6391,9 @@ class TestMakeManifestFile(unittest.TestCase):
         # Check contents
         expected_lines = ["#Owner\tGroup\tPath",
                           f"{username}\t{group}\tex1.txt",
-                          f"{username}\t{group}\tsubdir",
+                          f"{username}\t{group}\tsubdir/",
                           f"{username}\t{group}\tsubdir/ex2.txt",
-                          f"{username}\t{group}\tsubdir2",
+                          f"{username}\t{group}\tsubdir2/",
                           f"{username}\t{group}\tsubdir2/ex2.txt"]
         manifest_lines = []
         with open(manifest_file, 'rt') as fp:
