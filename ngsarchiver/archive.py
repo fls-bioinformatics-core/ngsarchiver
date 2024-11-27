@@ -1656,7 +1656,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
             fp.write("%s  %s\n" % (md5sum(os.path.join(temp_archive_dir,f)),
                                    f))
     # Update the creation date
-    archive_metadata['creation_date'] = time.strftime("%Y-%m-%d %H:%M:%S")
+    archive_metadata['creation_date'] = time.strftime(DATE_FORMAT)
     # Write archive contents to JSON file
     json_file = os.path.join(ngsarchiver_dir, "archiver_metadata.json")
     with open(json_file,'wt') as fp:
