@@ -20,6 +20,7 @@ from ngsarchiver.archive import MultiProjectRun
 from ngsarchiver.archive import ArchiveDirectory
 from ngsarchiver.archive import ArchiveDirMember
 from ngsarchiver.archive import CopyArchiveDirectory
+from ngsarchiver.archive import ReadmeFile
 from ngsarchiver.archive import get_rundir_instance
 from ngsarchiver.archive import md5sum
 from ngsarchiver.archive import verify_checksums
@@ -3892,6 +3893,61 @@ afb5e9e75190eea73d05fa5b0c20bd51  subdir2/ex4.txt
         self.assertTrue(c.verify_archive())
         # Check against source directory
         self.assertTrue(c.verify_copy(example_src.path))
+
+
+class TestReadmeFile(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestReadmeFile')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_readmefile(self):
+        """
+        ReadmeFile: test creating a README file
+        """
+        readme = ReadmeFile()
+        self.assertEqual(readme.text(), "")
+        readme.add("Some content")
+        self.assertEqual(readme.text(), "Some content")
+        readme.add("More content")
+        self.assertEqual(readme.text(), "Some content\n\nMore content")
+        readme_file = os.path.join(self.wd, "README")
+        readme.write(readme_file)
+        self.assertTrue(os.path.exists(readme_file))
+        with open(readme_file, "rt") as fp:
+            contents = fp.read()
+            self.assertEqual(contents, "Some content\n\nMore content\n")
+
+    def test_readmefile_wrap_lines(self):
+        """
+        ReadmeFile: test wrapping long lines
+        """
+        readme = ReadmeFile()
+        self.assertEqual(readme.text(), "")
+        readme.add("Some content which exceeds the 70 character width "
+                   "limit and so must be wrapped onto multiple lines")
+        self.assertEqual(readme.text(),
+                         "Some content which exceeds the 70 character "
+                         "width limit and so must be\nwrapped onto "
+                         "multiple lines")
+
+    def test_readmefile_indent_lines(self):
+        """
+        ReadmeFile: test indenting lines
+        """
+        readme = ReadmeFile()
+        self.assertEqual(readme.text(), "")
+        readme.add("Some content which exceeds the 70 character width "
+                   "limit and so must be wrapped onto multiple lines",
+                   indent="   ")
+        self.assertEqual(readme.text(),
+                         "   Some content which exceeds the 70 character "
+                         "width limit and so must\n   be wrapped onto "
+                         "multiple lines")
+
 
 class TestGetRundirInstance(unittest.TestCase):
 

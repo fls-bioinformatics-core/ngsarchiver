@@ -27,6 +27,7 @@ import getpass
 import tempfile
 import logging
 import pathlib
+import textwrap
 from .exceptions import NgsArchiverException
 from . import get_version
 
@@ -1429,6 +1430,52 @@ class CopyArchiveDirectory(Directory):
 
     def __repr__(self):
         return self._path
+
+
+class ReadmeFile:
+    """
+    Convenience class for creating README files
+    """
+    def __init__(self):
+        self._textwrapper = textwrap.TextWrapper(break_long_words=False,
+                                                 replace_whitespace=False)
+        self._contents = []
+
+    def add(self, text, indent=None):
+        """
+        Append text to the README
+
+        Arguments:
+          text (str): block of text to add; it will be wrapped
+            into multiple lines of 70 characters
+          indent (str): if supplied then each line will be
+            indented using this string (default: no indent)
+        """
+        if indent:
+            self._textwrapper.initial_indent = indent
+            self._textwrapper.subsequent_indent = indent
+        self._contents.append("\n".join(self._textwrapper.wrap(text)))
+        if indent:
+            self._textwrapper.initial_indent = ""
+            self._textwrapper.subsequent_indent = ""
+
+    def text(self):
+        """
+        Return the README contents as a string
+        """
+        return "\n\n".join(self._contents)
+
+    def write(self, filen):
+        """
+        Write the README to file
+
+        Arguments:
+          filen (str): path to the file to write the
+            README contents to
+        """
+        with open(filen, "wt") as fp:
+            fp.write(self.text() + "\n")
+
 
 #######################################################################
 # Functions
