@@ -2,6 +2,15 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.6.0 (2024-11-28)
+---------------------------
+
+* Add ``ARCHIVE_README`` files to compressed and copy archive
+  directories (PR #43)
+* Add ``source_date`` as metadata item in compressed and copy
+  archive directories (PR #42)
+
+---------------------------
 Version 1.5.0 (2024-11-22)
 ---------------------------
 
