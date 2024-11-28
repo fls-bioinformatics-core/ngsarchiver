@@ -20,6 +20,7 @@ from ngsarchiver.archive import MultiProjectRun
 from ngsarchiver.archive import ArchiveDirectory
 from ngsarchiver.archive import ArchiveDirMember
 from ngsarchiver.archive import CopyArchiveDirectory
+from ngsarchiver.archive import ReadmeFile
 from ngsarchiver.archive import get_rundir_instance
 from ngsarchiver.archive import md5sum
 from ngsarchiver.archive import verify_checksums
@@ -1391,6 +1392,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
 }
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_README",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1515,6 +1517,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 }
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_README",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1647,6 +1650,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 }
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_README",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1786,6 +1790,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 }
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_README",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1947,6 +1952,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 }
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_README",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -2135,6 +2141,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 }
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_README",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -2258,6 +2265,7 @@ a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex2.txt
                             content="""example_external_symlinks/subdir2/external_symlink1.txt	example_external_symlinks.tar.gz
 example_external_symlinks/subdir1/symlink1.txt	example_external_symlinks.tar.gz
 """)
+        example_archive.add("ARCHIVE_README",type="file")
         example_archive.create()
         p = example_archive.path
         # Add an external file
@@ -2414,6 +2422,7 @@ a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex2.txt
                             content="""example_broken_symlinks/subdir2/broken_symlink1.txt	example_broken_symlinks.tar.gz
 example_broken_symlinks/subdir1/symlink1.txt	example_broken_symlinks.tar.gz
 """)
+        example_archive.add("ARCHIVE_README",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -3906,6 +3915,61 @@ afb5e9e75190eea73d05fa5b0c20bd51  subdir2/ex4.txt
         # Check against source directory
         self.assertTrue(c.verify_copy(example_src.path))
 
+
+class TestReadmeFile(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestReadmeFile')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_readmefile(self):
+        """
+        ReadmeFile: test creating a README file
+        """
+        readme = ReadmeFile()
+        self.assertEqual(readme.text(), "")
+        readme.add("Some content")
+        self.assertEqual(readme.text(), "Some content")
+        readme.add("More content")
+        self.assertEqual(readme.text(), "Some content\n\nMore content")
+        readme_file = os.path.join(self.wd, "README")
+        readme.write(readme_file)
+        self.assertTrue(os.path.exists(readme_file))
+        with open(readme_file, "rt") as fp:
+            contents = fp.read()
+            self.assertEqual(contents, "Some content\n\nMore content\n")
+
+    def test_readmefile_wrap_lines(self):
+        """
+        ReadmeFile: test wrapping long lines
+        """
+        readme = ReadmeFile()
+        self.assertEqual(readme.text(), "")
+        readme.add("Some content which exceeds the 70 character width "
+                   "limit and so must be wrapped onto multiple lines")
+        self.assertEqual(readme.text(),
+                         "Some content which exceeds the 70 character "
+                         "width limit and so must be\nwrapped onto "
+                         "multiple lines")
+
+    def test_readmefile_indent_lines(self):
+        """
+        ReadmeFile: test indenting lines
+        """
+        readme = ReadmeFile()
+        self.assertEqual(readme.text(), "")
+        readme.add("Some content which exceeds the 70 character width "
+                   "limit and so must be wrapped onto multiple lines",
+                   indent="   ")
+        self.assertEqual(readme.text(),
+                         "   Some content which exceeds the 70 character "
+                         "width limit and so must\n   be wrapped onto "
+                         "multiple lines")
+
+
 class TestGetRundirInstance(unittest.TestCase):
 
     def setUp(self):
@@ -3988,6 +4052,36 @@ class TestGetRundirInstance(unittest.TestCase):
     def test_get_rundir_instance_archive_directory(self):
         """
         get_rundir_instance: returns 'ArchiveDirectory' instance
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
+        example_dir.add("ARCHIVE_METADATA/archive_checksums.md5",type="file")
+        example_dir.add("ARCHIVE_METADATA/archiver_metadata.json",type="file",
+                        content="""{
+  "name": "example",
+  "compression_level": 6
+}
+""")
+        example_dir.add("ARCHIVE_METADATA/manifest.txt",type="file")
+        example_dir.add("ARCHIVE_README",type="file")
+        example_dir.add("Project1.tar.gz",type="file")
+        example_dir.add("Project2.tar.gz",type="file")
+        example_dir.add("undetermined.tar.gz",type="file")
+        example_dir.add("processing.tar.gz",type="file")
+        example_dir.add("Project1.md5",type="file")
+        example_dir.add("Project2.md5",type="file")
+        example_dir.add("undetermined.md5",type="file")
+        example_dir.add("processing.md5",type="file")
+        example_dir.create()
+        p = example_dir.path
+        p = example_dir.path
+        # Check correct class is returned
+        d = get_rundir_instance(p)
+        self.assertTrue(isinstance(d,ArchiveDirectory))
+
+    def test_get_rundir_instance_archive_directory_no_readme(self):
+        """
+        get_rundir_instance: returns 'ArchiveDirectory' instance (no README)
         """
         # Build example dir
         example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
@@ -4220,6 +4314,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "example.01.tar.gz",
                     "example.00.md5",
                     "example.01.md5",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4266,6 +4361,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "subdir1.01.md5",
                     "subdir2.00.md5",
                     "subdir2.01.md5",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4322,6 +4418,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "miscellaneous.01.tar.gz",
                     "miscellaneous.00.md5",
                     "miscellaneous.01.md5",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4383,6 +4480,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "miscellaneous.01.md5",
                     "ex5.txt",
                     "ex6.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4418,6 +4516,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         self.assertTrue(os.path.exists(archive_dir))
         expected = ("example.tar.gz",
                     "example.md5",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -5115,6 +5214,7 @@ class TestMakeCopy(unittest.TestCase):
         expected = ("ex1.txt",
                     "subdir",
                     "subdir/ex2.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/checksums.md5",
@@ -5123,7 +5223,8 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
-            if not item.startswith("ARCHIVE_METADATA"):
+            if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README":
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
                     os.path.getmtime(os.path.join(dest_dir, item)),
@@ -5169,6 +5270,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir/.ex3.txt",
                     ".subdir",
                     ".subdir/ex4.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/checksums.md5",
@@ -5177,7 +5279,8 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
-            if not item.startswith("ARCHIVE_METADATA"):
+            if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README":
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
                     os.path.getmtime(os.path.join(dest_dir, item)),
@@ -5222,6 +5325,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir",
                     "subdir/ex2.txt",
                     "subdir/symlink1.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -5231,7 +5335,8 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
-            if not item.startswith("ARCHIVE_METADATA"):
+            if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README":
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
                     os.path.getmtime(os.path.join(dest_dir, item)),
@@ -5289,6 +5394,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir",
                     "subdir/ex2.txt",
                     "subdir/rel_ext_symlink.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -5299,6 +5405,7 @@ class TestMakeCopy(unittest.TestCase):
                 os.path.lexists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
             if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README" and \
                "symlink" not in item:
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
@@ -5355,6 +5462,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir",
                     "subdir/ex2.txt",
                     "subdir/broken_symlink.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -5366,6 +5474,7 @@ class TestMakeCopy(unittest.TestCase):
                 os.path.lexists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
             if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README" and \
                "symlink" not in item:
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
@@ -5432,6 +5541,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir",
                     "subdir/ex2.txt",
                     "subdir/link1.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/checksums.md5",
@@ -5440,7 +5550,8 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
-            if not item.startswith("ARCHIVE_METADATA"):
+            if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README":
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
                     os.path.getmtime(os.path.join(dest_dir, item)),
@@ -5489,6 +5600,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir",
                     "subdir/ex2.txt",
                     "subdir/ex3.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -5498,7 +5610,8 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
-            if not item.startswith("ARCHIVE_METADATA"):
+            if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README":
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
                     os.path.getmtime(os.path.join(dest_dir, item)),
@@ -5560,6 +5673,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir",
                     "subdir/ex2.txt",
                     "subdir/rel_ext_symlink.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -5570,6 +5684,7 @@ class TestMakeCopy(unittest.TestCase):
                 os.path.lexists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
             if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README" and \
                "symlink" not in item:
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
@@ -5634,6 +5749,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir",
                     "subdir/ex2.txt",
                     "subdir/symlink_to_self",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -5645,6 +5761,7 @@ class TestMakeCopy(unittest.TestCase):
                 os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
             if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README" and \
                not os.path.basename(item) == "symlink_to_self":
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
@@ -5738,6 +5855,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir",
                     "subdir/ex2.txt",
                     "subdir/broken_symlink.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -5749,6 +5867,7 @@ class TestMakeCopy(unittest.TestCase):
                 os.path.lexists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
             if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README" and \
                "symlink" not in item:
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
@@ -5822,6 +5941,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir/ex2.txt",
                     "subdir/rel_ext_symlink.txt",
                     "subdir/broken_symlink.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -5833,6 +5953,7 @@ class TestMakeCopy(unittest.TestCase):
                 os.path.lexists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
             if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README" and \
                "symlink" not in item:
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
@@ -5878,6 +5999,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir/ex2.txt",
                     "subdir/rel_ext_symlink.txt",
                     "subdir/broken_symlink.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -5889,6 +6011,7 @@ class TestMakeCopy(unittest.TestCase):
                 os.path.lexists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
             if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README" and \
                "symlink" not in item:
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
@@ -5965,6 +6088,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir/ex2.txt",
                     "subdir/broken_link",
                     "subdir/symlink_to_broken",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -5976,6 +6100,7 @@ class TestMakeCopy(unittest.TestCase):
                 os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
             if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README" and \
                os.path.basename(item) not in ("broken_link",
                                               "symlink_to_broken"):
                 self.assertEqual(
@@ -6055,6 +6180,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir/external_dir/ex5.txt",
                     "subdir/external_dir/subdir2/",
                     "subdir/external_dir/subdir2/ex6.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA/",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -6064,7 +6190,8 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
-            if not item.startswith("ARCHIVE_METADATA"):
+            if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README":
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
                     os.path.getmtime(os.path.join(dest_dir, item)),
@@ -6091,7 +6218,8 @@ class TestMakeCopy(unittest.TestCase):
             for line in fp:
                 manifest_file_list.append(line.rstrip().split("\t")[-1])
             for item in [x for x in expected
-                         if not x.startswith("ARCHIVE_METADATA")]:
+                         if not x.startswith("ARCHIVE_METADATA") and
+                         x != "ARCHIVE_README"]:
                 self.assertTrue(item in manifest_file_list,
                                 f"{item}: not in manifest")
         # Check that checksum file contains all the (non-symlink) files
@@ -6102,6 +6230,7 @@ class TestMakeCopy(unittest.TestCase):
                 checksum_file_list.append(line.rstrip().split("  ")[-1])
             for item in [x for x in expected
                          if not x.startswith("ARCHIVE_METADATA/") and
+                         x != "ARCHIVE_README" and
                          os.path.basename(x) not in ("ex3.txt", "ex5.txt")]:
                 if os.path.isfile(os.path.join(dest_dir, item)):
                     self.assertTrue(item in checksum_file_list,
@@ -6156,6 +6285,7 @@ class TestMakeCopy(unittest.TestCase):
                     "subdir/external_dir/ex5.txt",
                     "subdir/external_dir/subdir2/",
                     "subdir/external_dir/subdir2/ex6.txt",
+                    "ARCHIVE_README",
                     "ARCHIVE_METADATA/",
                     "ARCHIVE_METADATA/manifest",
                     "ARCHIVE_METADATA/symlinks",
@@ -6165,7 +6295,8 @@ class TestMakeCopy(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(dest_dir, item)),
                 "missing '%s'" % item)
-            if not item.startswith("ARCHIVE_METADATA"):
+            if not item.startswith("ARCHIVE_METADATA") and \
+               item != "ARCHIVE_README":
                 self.assertEqual(
                     os.path.getmtime(os.path.join(p, item)),
                     os.path.getmtime(os.path.join(dest_dir, item)),
@@ -6192,7 +6323,8 @@ class TestMakeCopy(unittest.TestCase):
             for line in fp:
                 manifest_file_list.append(line.rstrip().split("\t")[-1])
             for item in [x for x in expected
-                         if not x.startswith("ARCHIVE_METADATA/")]:
+                         if not x.startswith("ARCHIVE_METADATA/") and
+                         x != "ARCHIVE_README"]:
                 self.assertTrue(item in manifest_file_list,
                                 f"{item}: not in manifest")
         # Check that checksum file contains all the files
@@ -6202,7 +6334,8 @@ class TestMakeCopy(unittest.TestCase):
             for line in fp:
                 checksum_file_list.append(line.rstrip().split("  ")[-1])
             for item in [x for x in expected
-                         if not x.startswith("ARCHIVE_METADATA/")]:
+                         if not x.startswith("ARCHIVE_METADATA/") and
+                         x != "ARCHIVE_README"]:
                 if os.path.isfile(os.path.join(dest_dir, item)):
                     self.assertTrue(item in checksum_file_list,
                                     f"{item}: not in checksum file")

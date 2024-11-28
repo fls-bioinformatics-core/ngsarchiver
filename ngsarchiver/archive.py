@@ -28,6 +28,7 @@ import getpass
 import tempfile
 import logging
 import pathlib
+import textwrap
 from .exceptions import NgsArchiverException
 from . import get_version
 
@@ -42,6 +43,8 @@ logging.basicConfig(level="INFO",format='%(levelname)s: %(message)s')
 # Module constants
 #######################################################################
 
+GITHUB_URL = "https://github.com/fls-bioinformatics-core/ngsarchiver"
+ZENODO_URL = "https://doi.org/10.5281/zenodo.14024309"
 MD5_BLOCKSIZE = 1024*1024
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -1432,6 +1435,53 @@ class CopyArchiveDirectory(Directory):
     def __repr__(self):
         return self._path
 
+
+class ReadmeFile:
+    """
+    Convenience class for creating README files
+    """
+    def __init__(self):
+        self._textwrapper = textwrap.TextWrapper(break_long_words=False,
+                                                 break_on_hyphens=False,
+                                                 replace_whitespace=False)
+        self._contents = []
+
+    def add(self, text, indent=None):
+        """
+        Append text to the README
+
+        Arguments:
+          text (str): block of text to add; it will be wrapped
+            into multiple lines of 70 characters
+          indent (str): if supplied then each line will be
+            indented using this string (default: no indent)
+        """
+        if indent:
+            self._textwrapper.initial_indent = indent
+            self._textwrapper.subsequent_indent = indent
+        self._contents.append("\n".join(self._textwrapper.wrap(text)))
+        if indent:
+            self._textwrapper.initial_indent = ""
+            self._textwrapper.subsequent_indent = ""
+
+    def text(self):
+        """
+        Return the README contents as a string
+        """
+        return "\n\n".join(self._contents)
+
+    def write(self, filen):
+        """
+        Write the README to file
+
+        Arguments:
+          filen (str): path to the file to write the
+            README contents to
+        """
+        with open(filen, "wt") as fp:
+            fp.write(self.text() + "\n")
+
+
 #######################################################################
 # Functions
 #######################################################################
@@ -1661,6 +1711,84 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     json_file = os.path.join(ngsarchiver_dir, "archiver_metadata.json")
     with open(json_file,'wt') as fp:
         json.dump(archive_metadata,fp,indent=2)
+    # Add a README
+    readme = ReadmeFile()
+    readme.add(f"This is a compressed archive of the directory originally "
+               f"located at:")
+    readme.add(f"{d.path}")
+    readme.add(f"The archive was created using the 'ngsarchiver' utility "
+               f"(version {get_version()}), which is hosted on Github at "
+               f"{GITHUB_URL} and is also archived on Zenodo at "
+               f"{ZENODO_URL}.")
+    if not sub_dirs:
+        # All files in a single archive
+        if not multi_volume:
+            readme.add(f"All files and directories in the source directory "
+                       f"have been put into a single compressed TAR archive "
+                       f"'{d.basename}.tar.gz'.")
+        else:
+            readme.add(f"All files and directories in the source directory "
+                       f"have been put into a set of one or more compressed "
+                       f"TAR archives '{d.basename}.*.tar.gz' (where the size "
+                       f"of each archive file does not exceed {volume_size} "
+                       f"where possible).")
+    else:
+        # Subdirectories in separate archives
+        if not multi_volume:
+            readme.add(f"Each of the following subdirectories from the source "
+                       f"have been put into a separate compressed TAR archive:")
+            for subdir in sub_dirs:
+                readme.add(f"* {subdir} -> {subdir}.tar.gz", indent="  ")
+        else:
+            readme.add(f"Each of the following subdirectories from the source "
+                       f"have been put into a separate set of one or more "
+                       f"compressed TAR archives (where the size of each "
+                       f"archive file does not exceed {volume_size} where "
+                       f"possible):")
+            for subdir in sub_dirs:
+                readme.add(f"* {subdir} -> {subdir}.*.tar.gz", indent="  ")
+        if misc_objects:
+            # Additional TAR archive
+            if not multi_volume:
+                readme.add("An additional compressed TAR archive file "
+                           "contains file and subdirectories not in the "
+                           "above archive(s):")
+                readme.add(f"* {misc_archive_name}.tar.gz", indent="  ")
+            else:
+                readme.add("An additional set of compressed TAR archive "
+                           "files contains files and subdirectories not in "
+                           "the above archive(s):")
+                readme.add(f"* {misc_archive_name}.*.tar.gz", indent="  ")
+        if extra_files:
+            # Any files not in a TAR archive
+            readme.add("The following additional files have been copied "
+                       "directly from the source into the archive directory:")
+            for f in extra_files:
+                if os.path.isabs(f):
+                    f = os.path.relpath(f,d.path)
+                readme.add(f"* {f}", indent="  ")
+    readme.add("Each .tar.gz archive has a corresponding .md5 file with "
+               "the MD5 checksums for each of the regular files in the "
+               "archive, which can be used to verify the files when they "
+               "are unpacked.")
+    readme.add("The original data can be recovered and verified using the "
+               "'ngsarchiver' utility's 'unpack' command (or by using the "
+               "'tar' and 'md5sum' Linux command line utilities directly "
+               "with the .tar.gz and MD5 checksum files).")
+    readme.add("The ARCHIVE_METADATA subdirectory contains files with "
+               "additional metadata about the source files and directories:")
+    readme.add("* archive_checksums.md5: MD5 checksums for each of the "
+               ".tar.gz and other files in the top-level archive directory, "
+               "which can be used to verify the integrity of the archive "
+               "if copied or moved", indent="  ")
+    readme.add("* archiver_metadata.json: JSON file with information about "
+               "how the archive was created", indent="  ")
+    readme.add("* manifest: tab-delimited file listing the original owner "
+               "and group for each archived file and directory", indent="  ")
+    if symlinks:
+        readme.add("* symlinks: tab-delimited file listing the symbolic "
+                   "links from the source directory", indent="  ")
+    readme.write(os.path.join(temp_archive_dir, "ARCHIVE_README"))
     # Move to final location and update the attributes
     shutil.move(temp_archive_dir, archive_dir)
     shutil.copystat(d.path,archive_dir)
@@ -2120,6 +2248,56 @@ def make_copy(d, dest, replace_symlinks=False,
     json_file = os.path.join(metadata_dir, "archiver_metadata.json")
     with open(json_file, 'wt') as fp:
         json.dump(archive_metadata, fp, indent=2)
+    # Add a README
+    readme = ReadmeFile()
+    readme.add(f"This is an archive copy of the directory originally "
+               f"located at:")
+    readme.add(f"{d.path}")
+    readme.add(f"The archive was created using the 'ngsarchiver' utility "
+               f"(version {get_version()}), which is hosted on Github at "
+               f"{GITHUB_URL} and is also archived on Zenodo at "
+               f"{ZENODO_URL}.")
+    if not (replace_symlinks or transform_broken_symlinks or follow_dirlinks):
+        readme.add(f"All files and directories in the source directory "
+                   "have been copied to this directory as-is (preserving "
+                   "file types and contents).")
+    else:
+        readme.add(f"All files and directories in the source directory "
+                   f"have been copied to this directory as-is, except for "
+                   "the following modifications:")
+        if replace_symlinks:
+            readme.add("* Symbolic links to files in the source have been "
+                       "replaced in the copy with the referent files",
+                       indent="  ")
+        if follow_dirlinks:
+            readme.add("* Symbolic links to directories in the source have "
+                       "been replaced recursively in the copy with the "
+                       "referent directories and their contents", indent="  ")
+        if transform_broken_symlinks:
+            readme.add("* Broken or unresolvable symbolic links (i.e. links "
+                       "where the target doesn't exist or cannot otherwise "
+                       "be resolved) have been replaced with placeholder "
+                       "files", indent="  ")
+    readme.add("The ARCHIVE_METADATA subdirectory contains files with "
+               "additional metadata about the source files and directories:")
+    readme.add("* archiver_metadata.json: JSON file with information about "
+               "how the archive was created", indent="  ")
+    readme.add("* checksums.md5: MD5 checksums for each of the regular "
+               "files in the archive copy", indent="  ")
+    readme.add("* manifest: tab-delimited file listing the original owner "
+               "and group for each archived file and directory", indent="  ")
+    if d.has_symlinks:
+        readme.add("* symlinks: tab-delimited file listing the symbolic "
+                   "links from the source directory", indent="  ")
+    if d.has_broken_symlinks:
+        readme.add("* broken_symlinks: tab-delimited file listing the "
+                   "broken symbolic links from the source directory",
+                   indent="  ")
+    if d.has_unresolvable_symlinks:
+        readme.add("* unresolvable_symlinks: tab-delimited file listing the "
+                   "unresolvable symbolic links from the source directory",
+                   indent="  ")
+    readme.write(os.path.join(temp_copy, "ARCHIVE_README"))
     # Move to final location
     shutil.move(temp_copy, dest)
     shutil.copystat(d.path, dest)
