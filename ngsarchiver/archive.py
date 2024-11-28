@@ -2261,7 +2261,7 @@ def make_copy(d, dest, replace_symlinks=False,
             readme.add("* Broken or unresolvable symbolic links (i.e. links "
                        "where the target doesn't exist or cannot otherwise "
                        "be resolved) have been replaced with placeholder "
-                       "files")
+                       "files", indent="  ")
     readme.add("The ARCHIVE_METADATA contains files with additional metadata "
                "about the source files and directories:")
     readme.add("* archiver_metadata.json: JSON file with information about "
