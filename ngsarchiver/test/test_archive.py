@@ -1376,6 +1376,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
   "type": "ArchiveDirectory",
   "subarchives": [
     "example.tar.gz"
@@ -1497,6 +1498,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
   "type": "ArchiveDirectory",
   "subarchives": [
     "subdir1.tar.gz",
@@ -1626,6 +1628,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
   "type": "ArchiveDirectory",
   "subarchives": [
     "subdir1.tar.gz",
@@ -1767,6 +1770,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
   "type": "ArchiveDirectory",
   "subarchives": [
     "example.00.tar.gz",
@@ -1923,6 +1927,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
   "type": "ArchiveDirectory",
   "subarchives": [
     "subdir1.00.tar.gz",
@@ -2108,6 +2113,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
   "type": "ArchiveDirectory",
   "subarchives": [
     "subdir1.00.tar.gz",
@@ -2233,6 +2239,7 @@ a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex2.txt
                             content="""{
   "name": "example_external_symlinks",
   "source": "/original/path/to/example_external_symlinks",
+  "source_date": "2019-11-27 17:19:02",
   "type": "ArchiveDirectory",
   "subarchives": [
     "example_external_symlinks.tar.gz"
@@ -2388,6 +2395,7 @@ a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex2.txt
                             content="""{
   "name": "example_broken_symlinks",
   "source": "/original/path/to/example_broken_symlinks",
+  "source_date": "2019-11-27 17:19:02",
   "type": "ArchiveDirectory",
   "subarchives": [
     "example_broken_symlinks.tar.gz"
@@ -2547,6 +2555,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
   "subarchives": [
     "example.tar.gz"
   ],
@@ -3721,6 +3730,7 @@ d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
   "type": "CopyArchiveDirectory",
   "user": "anon",
   "creation_date": "2023-06-16 09:58:39",
@@ -3772,6 +3782,7 @@ d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex4.txt
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
   "type": "CopyArchiveDirectory",
   "user": "anon",
   "creation_date": "2023-06-16 09:58:39",
@@ -3823,6 +3834,7 @@ d376eaa7e7aecf81dcbdd6081fae63a9  subdir3/ex3.txt
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
   "type": "CopyArchiveDirectory",
   "user": "anon",
   "creation_date": "2023-06-16 09:58:39",
@@ -3874,6 +3886,7 @@ afb5e9e75190eea73d05fa5b0c20bd51  subdir2/ex4.txt
                             content="""{
   "name": "example",
   "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
   "type": "CopyArchiveDirectory",
   "user": "anon",
   "creation_date": "2023-06-16 09:58:39",

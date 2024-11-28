@@ -17,6 +17,7 @@ import math
 import stat
 import json
 import time
+import datetime
 import pwd
 import grp
 import time
@@ -42,6 +43,7 @@ logging.basicConfig(level="INFO",format='%(levelname)s: %(message)s')
 #######################################################################
 
 MD5_BLOCKSIZE = 1024*1024
+DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 #######################################################################
 # Classes
@@ -1512,6 +1514,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     archive_metadata = {
         'name': d.basename,
         'source': d.path,
+        'source_date': None,
         'type': ArchiveDirectory.__name__,
         'subarchives': [],
         'files': [],
@@ -1522,6 +1525,10 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         'compression_level': compresslevel,
         'ngsarchiver_version': get_version(),
     }
+    # Set the source date
+    source_timestamp = os.path.getmtime(d.path)
+    archive_metadata["source_date"] = datetime.datetime.fromtimestamp(
+        source_timestamp).strftime(DATE_FORMAT)
     # Get list of unreadable objects that can't be archived
     # These will be excluded from the archive dir
     unreadable = list(d.unreadable_files)
@@ -1649,7 +1656,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
             fp.write("%s  %s\n" % (md5sum(os.path.join(temp_archive_dir,f)),
                                    f))
     # Update the creation date
-    archive_metadata['creation_date'] = time.strftime("%Y-%m-%d %H:%M:%S")
+    archive_metadata['creation_date'] = time.strftime(DATE_FORMAT)
     # Write archive contents to JSON file
     json_file = os.path.join(ngsarchiver_dir, "archiver_metadata.json")
     with open(json_file,'wt') as fp:
@@ -2095,12 +2102,15 @@ def make_copy(d, dest, replace_symlinks=False,
             fp.write(f"{md5}  {o.relative_to(d.path)}\n")
     print(f"- created checksums file '{md5sums}'")
     # Add JSON file with archiver info
+    source_timestamp = os.path.getmtime(d.path)
     archive_metadata = {
         'name': d.basename,
         'source': d.path,
+        'source_date': datetime.datetime.fromtimestamp(
+            source_timestamp).strftime(DATE_FORMAT),
         'type': CopyArchiveDirectory.__name__,
         'user': getpass.getuser(),
-        'creation_date': time.strftime("%Y-%m-%d %H:%M:%S"),
+        'creation_date': time.strftime(DATE_FORMAT),
         'replace_symlinks': format_bool(replace_symlinks),
         'transform_broken_symlinks': format_bool(transform_broken_symlinks),
         'follow_dirlinks': format_bool(follow_dirlinks),
