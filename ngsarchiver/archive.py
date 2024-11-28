@@ -1440,6 +1440,7 @@ class ReadmeFile:
     """
     def __init__(self):
         self._textwrapper = textwrap.TextWrapper(break_long_words=False,
+                                                 break_on_hyphens=False,
                                                  replace_whitespace=False)
         self._contents = []
 
