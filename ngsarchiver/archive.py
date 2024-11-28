@@ -42,6 +42,8 @@ logging.basicConfig(level="INFO",format='%(levelname)s: %(message)s')
 # Module constants
 #######################################################################
 
+GITHUB_URL = "https://github.com/fls-bioinformatics-core/ngsarchiver"
+ZENODO_URL = "https://doi.org/10.5281/zenodo.14024309"
 MD5_BLOCKSIZE = 1024*1024
 
 #######################################################################
@@ -1707,9 +1709,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                f"located at {d.path}")
     readme.add(f"The archive was created using the 'ngsarchiver' utility "
                f"version {get_version()} (which is hosted on Github at "
-               f"https://github.com/fls-bioinformatics-core/ngsarchiver and "
-               f"is archived on Zenodo at "
-               f"https://doi.org/10.5281/zenodo.14024309).")
+               f"{GITHUB_URL} and is archived on Zenodo at {ZENODO_URL}).")
     if not sub_dirs:
         # All files in a single archive
         if not multi_volume:
@@ -2239,9 +2239,7 @@ def make_copy(d, dest, replace_symlinks=False,
                f"located at {d.path}")
     readme.add(f"The archive was created using the 'ngsarchiver' utility "
                f"version {get_version()} (which is hosted on Github at "
-               f"https://github.com/fls-bioinformatics-core/ngsarchiver and "
-               f"is archived on Zenodo at "
-               f"https://doi.org/10.5281/zenodo.14024309).")
+               f"{GITHUB_URL} and is archived on Zenodo at {ZENODO_URL}).")
     if not (replace_symlinks or transform_broken_symlinks or follow_dirlinks):
         readme.add(f"All files and directories in the source directory "
                    "have been copied to this directory as-is (preserving "
