@@ -81,7 +81,8 @@ def main(argv=None):
 
     # 'archive' command
     parser_archive = s.add_parser('archive',
-                                  help="make archive copy of a directory")
+                                  help="make compressed archive of a "
+                                  "directory")
     parser_archive.add_argument('dir',
                                 help="path to directory")
     parser_archive.add_argument('-o','--out-dir',metavar='OUT_DIR',
@@ -111,70 +112,9 @@ def main(argv=None):
                                 "archiving anyway (may result in "
                                 "incomplete or problematic archive)")
 
-    # 'verify' command
-    parser_verify = s.add_parser('verify',
-                                  help="verify integrity of an archive "
-                                 "directory")
-    parser_verify.add_argument('archive',
-                               help="path to archive directory")
-
-    # 'unpack' command
-    parser_unpack = s.add_parser('unpack',
-                                  help="unpack (extract) all files from an "
-                                 "archive")
-    parser_unpack.add_argument('archive',
-                               help="path to archive directory")
-    parser_unpack.add_argument('-o','--out-dir',metavar='OUT_DIR',
-                               action='store',dest='out_dir',
-                               help="unpack archive under OUT_DIR "
-                               "(default: current directory)")
-
-    # 'compare' command
-    parser_compare = s.add_parser('compare',
-                                  help="check one directory against "
-                                  "another")
-    parser_compare.add_argument('dir1',
-                                help="path to first directory")
-    parser_compare.add_argument('dir2',
-                                help="path to second directory")
-
-    # 'search' command
-    parser_search = s.add_parser('search',
-                                 help="search within one or more archives")
-    parser_search.add_argument('archives',
-                               nargs="+",metavar="archive",
-                               help="path to archive directory")
-    parser_search.add_argument('-name',metavar='pattern',action='store',
-                               help="pattern to match base of file names")
-    parser_search.add_argument('-path',metavar='pattern',action='store',
-                               help="pattern to match full paths")
-    parser_search.add_argument('-i',dest='case_insensitive',
-                               action='store_true',
-                               help="use case-insensitive pattern matching "
-                               "(default is to respect case)")
-
-    # 'extract' command
-    parser_extract = s.add_parser('extract',
-                                  help="extract specific files from an "
-                                  "archive")
-    parser_extract.add_argument('archive',
-                                help="path to archive directory")
-    parser_extract.add_argument('-name',action='store',
-                                help="name or pattern to match base "
-                                "of file names to be extracted")
-    parser_extract.add_argument('-o','--out-dir',metavar='OUT_DIR',
-                                action='store',dest='out_dir',
-                                help="extract files into OUT_DIR "
-                                "(default: current directory)")
-    parser_extract.add_argument('-k','--keep-path',
-                                action='store_true',
-                                help="preserve the leading directory "
-                                "paths when extracting files (default "
-                                "is to drop leading paths)")
-
     # 'copy' command
     parser_copy = s.add_parser('copy',
-                               help="make direct copy of a directory")
+                               help="make copy archive of a directory")
     parser_copy.add_argument('dir',
                              help="path to directory")
     parser_copy.add_argument('dest_dir', nargs="?",
@@ -203,6 +143,68 @@ def main(argv=None):
                              help="ignore issues and perform "
                              "copy anyway (may result in incomplete "
                              "or problematic copy)")
+
+    # 'verify' command
+    parser_verify = s.add_parser('verify',
+                                  help="verify integrity of an archive "
+                                 "directory")
+    parser_verify.add_argument('archive',
+                               help="path to compressed or copy archive "
+                               "directory")
+
+    # 'unpack' command
+    parser_unpack = s.add_parser('unpack',
+                                  help="extract all files from a "
+                                 "compressed archive")
+    parser_unpack.add_argument('archive',
+                               help="path to compressed archive directory")
+    parser_unpack.add_argument('-o','--out-dir',metavar='OUT_DIR',
+                               action='store',dest='out_dir',
+                               help="unpack archive under OUT_DIR "
+                               "(default: current directory)")
+
+    # 'search' command
+    parser_search = s.add_parser('search',
+                                 help="search within compressed archives")
+    parser_search.add_argument('archives',
+                               nargs="+",metavar="archive",
+                               help="path to archive directory")
+    parser_search.add_argument('-name',metavar='pattern',action='store',
+                               help="pattern to match base of file names")
+    parser_search.add_argument('-path',metavar='pattern',action='store',
+                               help="pattern to match full paths")
+    parser_search.add_argument('-i',dest='case_insensitive',
+                               action='store_true',
+                               help="use case-insensitive pattern matching "
+                               "(default is to respect case)")
+
+    # 'extract' command
+    parser_extract = s.add_parser('extract',
+                                  help="extract specific files from "
+                                  "compressed archive")
+    parser_extract.add_argument('archive',
+                                help="path to compressed archive directory")
+    parser_extract.add_argument('-name',action='store',
+                                help="name or pattern to match base "
+                                "of file names to be extracted")
+    parser_extract.add_argument('-o','--out-dir',metavar='OUT_DIR',
+                                action='store',dest='out_dir',
+                                help="extract files into OUT_DIR "
+                                "(default: current directory)")
+    parser_extract.add_argument('-k','--keep-path',
+                                action='store_true',
+                                help="preserve the leading directory "
+                                "paths when extracting files (default "
+                                "is to drop leading paths)")
+
+    # 'compare' command
+    parser_compare = s.add_parser('compare',
+                                  help="check if two directories have the "
+                                  "same contents")
+    parser_compare.add_argument('dir1',
+                                help="path to first directory")
+    parser_compare.add_argument('dir2',
+                                help="path to second directory")
 
     # Parse the arguments
     args = p.parse_args(argv)

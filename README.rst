@@ -221,9 +221,9 @@ basic information in a single tab-delimited line
 for each directory. (Note that this option is not
 compatible with the ``--list`` option).
 
-------------------------------
-``archive``: create an archive
-------------------------------
+----------------------------------------
+``archive``: create a compressed archive
+----------------------------------------
 
 Makes a compressed archive directory from the specified
 directory, for example in its simplest form:
@@ -275,135 +275,14 @@ compression level to be explicitly set on the
 command line if a higher or lower level of
 compression is required.
 
----------------------------------------
-``verify``: verifying archive integrity
----------------------------------------
+-----------------------------------------
+``copy``: create a copy archive directory
+-----------------------------------------
 
-Checks the integrity of an archive directory created
-by the ``archive`` command, for example:
-
-::
-
-   archiver verify /PATH/TO/ARCHIVE_DIR
-
---------------------------------
-``unpack``: unpacking an archive
---------------------------------
-
-Restores a complete copy of the original directory
-from an archive directory, for example in its
-simplest form:
-
-::
-
-   archiver unpack /PATH/TO/ARCHIVE_DIR
-
-By default the restored copy will be created in the
-current working directory. Note that an existing
-directory with the same name will not be overwritten.
-
-The restored archive contents are also verified using
-their original checksums as part of the unpacking.
-
-The timestamps and permissions of the contents are
-also restored (with the caveat that all restored
-content will have read-write permission added for the
-user unpacking the archive, regardless of the
-permissions of the original files).
-
-Ownership information is not restored (unless the
-archiving and unpacking operations are both performed
-by superuser).
-
-If only a subset of files need to be restored from
-the archive then the ``extract`` command is recommended
-instead of the full ``unpack``.
-
------------------------------------------------------
-``compare``: verify unpacked archive against original
------------------------------------------------------
-
-Compares the contents of two directories against
-each other, and is provided to enable a restored
-archive to be checked against the original directory
-(for example before it is removed from the system):
-
-::
-
-   archiver compare /PATH/TO/DIR1 /PATH/TO/DIR2
-
-The comparison checks for missing and extra files, and
-that files have the same checksums.
-
-(Note however that it doesn't check timestamps,
-permissions or ownership.)
-
--------------------------------------
-``search``: searching within archives
--------------------------------------
-
-Locates files within one or more achive directories
-using shell-style pattern matching based loosely on
-that available in the Linux ``find`` command.
-
-For example to search for all gzipped Fastq files:
-
-::
-
-   archiver search -name "*.fastq.gz" /PATH/TO/ARCHIVE_DIR
-
-Using ``-name`` only considers the filename part of
-the archived files; alternatively ``-path`` can be
-used to include whole paths, for example:
-
-::
-
-   archiver search -path "*/*.fastq.gz" /PATH/TO/ARCHIVE_DIR
-
-Multiple archive directories can also be specified in
-a single ``search`` command invocation, in which case
-the search will be performed across all the specified
-archives.
-
-------------------------------------------------------
-``extract``: extracting specific files and directories
-------------------------------------------------------
-
-Restores a subset of files from an archive directory
-using shell-style pattern matching.
-
-For example to extract all gzipped Fastq files:
-
-::
-
-   archiver extract -name "*.fastq.gz" /PATH/TO/ARCHIVE_DIR
-
-By default the matching files will be extracted to
-the current working directory with their leading
-paths removed; to keep the full paths for the
-extracted files use the ``-k`` option.
-
-Note that existing files with the same name will not
-be overwritten.
-
-Note also that the ``-name`` option operates slightly
-differently to the ``search`` command, as in this
-case it will match both filenames and paths.
-
-Extracted files will have the same timestamps and
-permissions as the originals (with the caveat that all
-restored content will have read-write permission added
-for the user extracting the files, regardless of the
-permissions of the originals).
-
--------------------------------------------------
-``copy``: copy a directory to an archive location
--------------------------------------------------
-
-Copies any directory and its contents to another
-location for archiving purposes, but without
-performing compression (a "copy archive
-directory").
+Makes a copy archive directory from the specified
+directory, essentially copying the directory and
+its contents to another location without performing
+compression.
 
 At its most basic this is a straight copy of the
 source directory, with some metadata files added.
@@ -502,6 +381,131 @@ Note that if using ``--follow-dirlinks``, that the
 copied directories are not checked before starting the
 copy operation, and so may contain "problem" entities
 which can cause the operation to fail.
+
+---------------------------------------
+``verify``: verifying archive integrity
+---------------------------------------
+
+Checks the integrity of an archive directory created
+by the ``archive`` command, for example:
+
+::
+
+   archiver verify /PATH/TO/ARCHIVE_DIR
+
+------------------------------------------
+``unpack``: unpacking a compressed archive
+------------------------------------------
+
+Restores a complete copy of the original directory
+from an archive directory, for example in its
+simplest form:
+
+::
+
+   archiver unpack /PATH/TO/ARCHIVE_DIR
+
+By default the restored copy will be created in the
+current working directory. Note that an existing
+directory with the same name will not be overwritten.
+
+The restored archive contents are also verified using
+their original checksums as part of the unpacking.
+
+The timestamps and permissions of the contents are
+also restored (with the caveat that all restored
+content will have read-write permission added for the
+user unpacking the archive, regardless of the
+permissions of the original files).
+
+Ownership information is not restored (unless the
+archiving and unpacking operations are both performed
+by superuser).
+
+If only a subset of files need to be restored from
+the archive then the ``extract`` command is recommended
+instead of the full ``unpack``.
+
+------------------------------------------------
+``search``: searching within compressed archives
+------------------------------------------------
+
+Locates files within one or more compressed achive
+directories using shell-style pattern matching based
+loosely on that available in the Linux ``find``
+command.
+
+For example to search for all gzipped Fastq files:
+
+::
+
+   archiver search -name "*.fastq.gz" /PATH/TO/ARCHIVE_DIR
+
+Using ``-name`` only considers the filename part of
+the archived files; alternatively ``-path`` can be
+used to include whole paths, for example:
+
+::
+
+   archiver search -path "*/*.fastq.gz" /PATH/TO/ARCHIVE_DIR
+
+Multiple archive directories can also be specified in
+a single ``search`` command invocation, in which case
+the search will be performed across all the specified
+archives.
+
+------------------------------------------------------
+``extract``: extracting specific files and directories
+------------------------------------------------------
+
+Restores a subset of files from a compressed archive
+directory using shell-style pattern matching.
+
+For example to extract all gzipped Fastq files:
+
+::
+
+   archiver extract -name "*.fastq.gz" /PATH/TO/ARCHIVE_DIR
+
+By default the matching files will be extracted to
+the current working directory with their leading
+paths removed; to keep the full paths for the
+extracted files use the ``-k`` option.
+
+Note that existing files with the same name will not
+be overwritten.
+
+Note also that the ``-name`` option operates slightly
+differently to the ``search`` command, as in this
+case it will match both filenames and paths.
+
+Extracted files will have the same timestamps and
+permissions as the originals (with the caveat that all
+restored content will have read-write permission added
+for the user extracting the files, regardless of the
+permissions of the originals).
+
+--------------------------------------------------
+``compare``: check if two directories are the same
+--------------------------------------------------
+
+Compares the contents of two directories against
+each other, and raises an error if the contents
+differ.
+
+``compare`` is provided primarily to enable a restored
+archive to be checked against the original directory
+(for example before it is removed from the system):
+
+::
+
+   archiver compare /PATH/TO/DIR1 /PATH/TO/DIR2
+
+The comparison checks for missing and extra files, and
+that files have the same checksums.
+
+(Note however that it doesn't check timestamps,
+permissions or ownership.)
 
 -----------------------------------
 Compressed archive directory format
