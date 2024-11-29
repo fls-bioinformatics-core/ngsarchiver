@@ -1381,6 +1381,13 @@ class CopyArchiveDirectory(Directory):
         elif "compression_level" in self._archive_metadata:
             raise NgsArchiverException("%s: not a copy archive "
                                        "directory" % self.path)
+        # Identify README file
+        self._readme_file = None
+        for f in ("ARCHIVE_README.txt",
+                  "ARCHIVE_README"):
+            if os.path.exists(os.path.join(self.path, f)):
+                self._readme_file = f
+                break
 
     @property
     def archive_metadata(self):
@@ -1430,19 +1437,22 @@ class CopyArchiveDirectory(Directory):
         Compares the contents of the copy archive directory
         against the source directory, taking into account
         any transformations (i.e. symlink replacements)
-        and ignoring the additional metadata subdirectories.
+        and ignoring the additional metadata subdirectories
+        and other archiver-only files (e.g. READMEs).
 
         Arguments:
           d (str): path to the source directory to check
             against
         """
+        ignore_paths = [os.path.basename(self._metadata_dir),
+                        os.path.basename(self._metadata_dir) + os.sep + "*"]
+        if self._readme_file:
+            ignore_paths.append(self._readme_file)
         return Directory(d).verify_copy(
             self.path,
             follow_symlinks=self.replace_symlinks,
             broken_symlinks_placeholders=self.transform_broken_symlinks,
-            ignore_paths=("ARCHIVE_README",
-                          os.path.basename(self._metadata_dir),
-                          os.path.basename(self._metadata_dir) + os.sep + "*"))
+            ignore_paths=tuple(ignore_paths))
 
     def __repr__(self):
         return self._path
@@ -1862,7 +1872,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     if symlinks:
         readme.add("* symlinks: tab-delimited file listing the symbolic "
                    "links from the source directory", indent="  ")
-    readme.write(os.path.join(temp_archive_dir, "ARCHIVE_README"))
+    readme.write(os.path.join(temp_archive_dir, "ARCHIVE_README.txt"))
     # Move to final location and update the attributes
     shutil.move(temp_archive_dir, archive_dir)
     shutil.copystat(d.path,archive_dir)
@@ -2371,7 +2381,7 @@ def make_copy(d, dest, replace_symlinks=False,
         readme.add("* unresolvable_symlinks: tab-delimited file listing the "
                    "unresolvable symbolic links from the source directory",
                    indent="  ")
-    readme.write(os.path.join(temp_copy, "ARCHIVE_README"))
+    readme.write(os.path.join(temp_copy, "ARCHIVE_README.txt"))
     # Move to final location
     shutil.move(temp_copy, dest)
     shutil.copystat(d.path, dest)
