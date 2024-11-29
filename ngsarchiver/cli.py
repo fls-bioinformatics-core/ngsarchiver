@@ -81,7 +81,8 @@ def main(argv=None):
 
     # 'archive' command
     parser_archive = s.add_parser('archive',
-                                  help="make archive copy of a directory")
+                                  help="make compressed archive of a "
+                                  "directory")
     parser_archive.add_argument('dir',
                                 help="path to directory")
     parser_archive.add_argument('-o','--out-dir',metavar='OUT_DIR',
@@ -116,14 +117,15 @@ def main(argv=None):
                                   help="verify integrity of an archive "
                                  "directory")
     parser_verify.add_argument('archive',
-                               help="path to archive directory")
+                               help="path to compressed or copy archive "
+                               "directory")
 
     # 'unpack' command
     parser_unpack = s.add_parser('unpack',
-                                  help="unpack (extract) all files from an "
-                                 "archive")
+                                  help="extract all files from a "
+                                 "compressed archive")
     parser_unpack.add_argument('archive',
-                               help="path to archive directory")
+                               help="path to compressed archive directory")
     parser_unpack.add_argument('-o','--out-dir',metavar='OUT_DIR',
                                action='store',dest='out_dir',
                                help="unpack archive under OUT_DIR "
@@ -140,7 +142,7 @@ def main(argv=None):
 
     # 'search' command
     parser_search = s.add_parser('search',
-                                 help="search within one or more archives")
+                                 help="search within compressed archives")
     parser_search.add_argument('archives',
                                nargs="+",metavar="archive",
                                help="path to archive directory")
@@ -155,10 +157,10 @@ def main(argv=None):
 
     # 'extract' command
     parser_extract = s.add_parser('extract',
-                                  help="extract specific files from an "
-                                  "archive")
+                                  help="extract specific files from "
+                                  "compressed archive")
     parser_extract.add_argument('archive',
-                                help="path to archive directory")
+                                help="path to compressed archive directory")
     parser_extract.add_argument('-name',action='store',
                                 help="name or pattern to match base "
                                 "of file names to be extracted")
