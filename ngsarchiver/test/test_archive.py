@@ -30,6 +30,7 @@ from ngsarchiver.archive import make_archive_multitgz
 from ngsarchiver.archive import unpack_archive_multitgz
 from ngsarchiver.archive import make_copy
 from ngsarchiver.archive import make_manifest_file
+from ngsarchiver.archive import make_visual_tree_file
 from ngsarchiver.archive import check_make_symlink
 from ngsarchiver.archive import check_case_sensitive_filenames
 from ngsarchiver.archive import getsize
@@ -37,6 +38,7 @@ from ngsarchiver.archive import convert_size_to_bytes
 from ngsarchiver.archive import format_size
 from ngsarchiver.archive import format_bool
 from ngsarchiver.archive import group_case_sensitive_names
+from ngsarchiver.archive import tree
 from ngsarchiver.exceptions import NgsArchiverException
 
 # Set to False to keep test output dirs
@@ -1393,6 +1395,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1518,6 +1521,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1651,6 +1655,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1791,6 +1796,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1953,6 +1959,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -2142,6 +2149,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -2266,6 +2274,7 @@ a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex2.txt
 example_external_symlinks/subdir1/symlink1.txt	example_external_symlinks.tar.gz
 """)
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Add an external file
@@ -2423,6 +2432,7 @@ a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex2.txt
 example_broken_symlinks/subdir1/symlink1.txt	example_broken_symlinks.tar.gz
 """)
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -4352,6 +4362,8 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "miscellaneous.md5",
                      "ex5.txt",
                      "ex6.txt",
+                     "ARCHIVE_README",
+                     "ARCHIVE_TREE.txt",
                      "ARCHIVE_METADATA",
                      "ARCHIVE_METADATA/archive_checksums.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4389,6 +4401,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "example.00.md5",
                     "example.01.md5",
                     "ARCHIVE_README",
+                    "ARCHIVE_TREE.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4436,6 +4449,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "subdir2.00.md5",
                     "subdir2.01.md5",
                     "ARCHIVE_README",
+                    "ARCHIVE_TREE.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4493,6 +4507,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "miscellaneous.00.md5",
                     "miscellaneous.01.md5",
                     "ARCHIVE_README",
+                    "ARCHIVE_TREE.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4555,6 +4570,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "ex5.txt",
                     "ex6.txt",
                     "ARCHIVE_README",
+                    "ARCHIVE_TREE.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4591,6 +4607,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         expected = ("example.tar.gz",
                     "example.md5",
                     "ARCHIVE_README",
+                    "ARCHIVE_TREE.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -6643,6 +6660,56 @@ class TestMakeManifestFile(unittest.TestCase):
                           Directory(example_dir.path),
                           os.path.join(self.wd, "manifest"))
 
+class TestMakeVisualTreeFile(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestVisualTreeFile')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_make_visual_tree_file(self):
+        """
+        make_visual_tree_file: check tree file is created
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        # Create visual tree file
+        tree_file = make_visual_tree_file(Directory(example_dir.path),
+                                          os.path.join(self.wd, "tree.txt"))
+        self.assertEqual(tree_file, os.path.join(self.wd, "tree.txt"))
+        self.assertTrue(os.path.exists(tree_file))
+        # Check contents
+        expected_lines = [f"{os.path.basename(example_dir.path)}",
+                          "├── ex1.txt",
+                          "└── subdir",
+                          "    └── ex2.txt"]
+        with open(tree_file, 'rt') as fp:
+            for line in fp:
+                self.assertTrue(line.rstrip() in expected_lines,
+                                f"'{line.rstrip()}': unexpected line")
+
+    def test_make_visual_tree_file_noclobber(self):
+        """
+        make_visual_tree_file: raises exception if file already exists
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        # Touch existing tree file
+        with open(os.path.join(self.wd, "tree.txt"), "wt") as fp:
+            fp.write("")
+        self.assertRaises(NgsArchiverException,
+                          make_visual_tree_file,
+                          Directory(example_dir.path),
+                          os.path.join(self.wd, "tree.txt"))
+
 class TestCheckMakeSymlink(unittest.TestCase):
 
     def setUp(self):
@@ -6823,3 +6890,125 @@ class TestGroupCaseSensitiveNames(unittest.TestCase):
         group_case_sensitive_names: empty list as input
         """
         self.assertEqual(list(group_case_sensitive_names([])), [])
+
+
+class TestTree(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestTree')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_tree(self):
+        """
+        tree: regular files and directories
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        example_dir.add("subdir2/ex4.txt",type="file")
+        example_dir.create()
+        # Expected tree
+        expected_tree = ["├── ex1.txt",
+                         "├── subdir1",
+                         "│   ├── ex2.txt",
+                         "│   └── subdir12",
+                         "│       └── ex3.txt",
+                         "└── subdir2",
+                         "    └── ex4.txt"]
+        # Generate tree
+        example_tree = list(tree(example_dir.path))
+        print(example_tree)
+        self.assertEqual(example_tree, expected_tree)
+
+    def test_tree_with_symlink(self):
+        """
+        tree: directory includes symlink
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/ex3.txt",type="symlink",target="./ex2.txt")
+        example_dir.create()
+        # Expected tree
+        expected_tree = ["├── ex1.txt",
+                         "└── subdir1",
+                         "    ├── ex2.txt",
+                         "    └── ex3.txt -> ./ex2.txt"]
+        # Generate tree
+        example_tree = list(tree(example_dir.path))
+        print(example_tree)
+        self.assertEqual(example_tree, expected_tree)
+
+    def test_tree_with_broken_symlink(self):
+        """
+        tree: directory includes broken symlink
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/ex3.txt",type="symlink",target="missing")
+        example_dir.create()
+        # Expected tree
+        expected_tree = ["├── ex1.txt",
+                         "└── subdir1",
+                         "    ├── ex2.txt",
+                         "    └── ex3.txt -> missing"]
+        # Generate tree
+        example_tree = list(tree(example_dir.path))
+        print(example_tree)
+        self.assertEqual(example_tree, expected_tree)
+
+    def test_tree_with_dirlink(self):
+        """
+        tree: directory includes dirlink
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        example_dir.add("subdir2",type="symlink",target="./subdir1")
+        example_dir.create()
+        p = example_dir.path
+        # Expected tree
+        expected_tree = ["├── ex1.txt",
+                         "├── subdir1",
+                         "│   ├── ex2.txt",
+                         "│   └── subdir12",
+                         "│       └── ex3.txt",
+                         "└── subdir2 -> ./subdir1"]
+        # Generate tree
+        example_tree = list(tree(example_dir.path))
+        print(example_tree)
+        self.assertEqual(example_tree, expected_tree)
+
+    def test_tree_with_circular_dirlink(self):
+        """
+        tree: directory includes circular dirlink
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        example_dir.add("subdir2",type="symlink",target="./subdir2")
+        example_dir.create()
+        p = example_dir.path
+        # Expected tree
+        expected_tree = ["├── ex1.txt",
+                         "├── subdir1",
+                         "│   ├── ex2.txt",
+                         "│   └── subdir12",
+                         "│       └── ex3.txt",
+                         "└── subdir2 -> ./subdir2"]
+        # Generate tree
+        example_tree = list(tree(example_dir.path))
+        print(example_tree)
+        self.assertEqual(example_tree, expected_tree)

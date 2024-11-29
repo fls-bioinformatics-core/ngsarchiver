@@ -542,7 +542,15 @@ Within a compressed archive directory there will be:
   and a file which lists the original username and group
   associated with each file). If files were excluded
   from the archive (e.g. because they were unreadable)
-  then these will be listed in an additional file.
+  then these will be listed in an additional file;
+- a file called ``ARCHIVE_README`` which provides a
+  human-readable explanation of the archive directory
+  structure and contents, and how to recover the
+  original data;
+- a file called ``ARCHIVE_TREE.txt`` which provides a
+  visual tree representation of the source directory
+  structure (similar to that produced by the Linux
+  ``tree`` command line utility).
 
 The ``.tar.gz`` archives and regular files together
 are sufficient to recover the contents of the original

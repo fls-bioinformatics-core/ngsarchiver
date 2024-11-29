@@ -49,6 +49,16 @@ MD5_BLOCKSIZE = 1024*1024
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 README_LINE_WIDTH = 75
 
+# Tree components
+
+# Prefixes
+TREE_SPACE =  "    "
+TREE_BRANCH = "│   "
+
+# Pointers
+TREE_TEE =    "├── "
+TREE_LAST =   "└── "
+
 #######################################################################
 # Classes
 #######################################################################
@@ -1739,6 +1749,9 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     json_file = os.path.join(ngsarchiver_dir, "archiver_metadata.json")
     with open(json_file,'wt') as fp:
         json.dump(archive_metadata,fp,indent=2)
+    # Add a visual tree file
+    tree_file = os.path.join(temp_archive_dir, "ARCHIVE_TREE.txt")
+    make_visual_tree_file(d, tree_file)
     # Add a README
     readme = ReadmeFile(width=README_LINE_WIDTH)
     readme.add(f"This is a compressed archive of the directory originally "
@@ -1833,7 +1846,10 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 f"$ cat {d.basename}.archive/*.tar.gz | tar zxvf - -i\n"
                 f"$ md5sum -c {d.basename}.archive/*.md5",
                 indent="    ", wrap=False, keep_newlines=True)
-    readme.add("The ARCHIVE_METADATA subdirectory contains files with "
+    readme.add("The 'ARCHIVE_TREE.txt' file lists the contents of the "
+               "source directory as a text-base tree (similar to the output "
+               "of the Linux 'tree' utility).")
+    readme.add("The 'ARCHIVE_METADATA' subdirectory contains files with "
                "additional metadata about the source files and directories:")
     readme.add("* archive_checksums.md5: MD5 checksums for each of the "
                ".tar.gz and other files in the top-level archive directory, "
@@ -2398,6 +2414,28 @@ def make_manifest_file(d, manifest_file, follow_dirlinks=False):
                 rel_path=rel_path))
     return manifest_file
 
+def make_visual_tree_file(d, tree_file):
+    """
+    Create a visual tree file for a directory
+
+    A visual tree lists the directory contents in
+    the same format as the Linux "tree" command
+    line utility.
+
+    Arguments:
+      d (Directory): directory to generate the
+        manifest for
+      tree_file (str): path to the file to
+        write the visual tree to
+    """
+    if Path(tree_file).exists():
+        raise NgsArchiverException(f"{tree_file}: already exists")
+    with open(tree_file, "wt") as fp:
+        fp.write(f"{d.basename}\n")
+        for line in tree(d.path):
+            fp.write(f"{line}\n")
+    return tree_file
+
 def check_make_symlink(d):
     """
     Check if it's possible to make a symbolic link
@@ -2553,3 +2591,48 @@ def group_case_sensitive_names(file_list):
     for name in group_names:
         if len(group_names[name]) > 1:
             yield tuple(sorted(group_names[name]))
+
+
+def tree(dir_path, prefix=""):
+    """
+    Generate visual tree structure recursively
+
+    Recursive generator which (given a directory
+    Path object) yields a visual tree structure line
+    by line with each line prefixed by the same
+    characters (mimicking the basic output from
+    the Linux "tree" command).
+
+    Usage:
+
+    >>> for line in tree("."):
+    ...     print(line)
+
+    Based on code from
+    https://stackoverflow.com/a/59109706
+    with some minor modifications to handle
+    symbolic links and fix ordering of elements
+    (which may differ from the "tree" command).
+
+    Arguments:
+      dir_path (Path): starting directory
+      prefix (str): prefix string to add to yielded
+        lines (used internally for recursion)
+
+    Yields:
+      String: next line in the visual tree
+    """
+    contents = sorted(list(Path(dir_path).iterdir()))
+    # Contents each get pointers that are ├── with a final └── :
+    pointers = [TREE_TEE] * (len(contents) - 1) + [TREE_LAST]
+    for pointer, path in zip(pointers, contents):
+        name = path.name
+        if path.is_symlink():
+            # Add symlink target to name
+            name += f" -> {os.readlink(path)}"
+        yield prefix + pointer + name
+        if path.is_dir() and not path.is_symlink():
+            # Extend the prefix and recurse (but don't follow links)
+            extension = TREE_BRANCH if pointer == TREE_TEE else TREE_SPACE
+            # i.e. space because last, └── , above so no more |
+            yield from tree(path, prefix=prefix+extension)
