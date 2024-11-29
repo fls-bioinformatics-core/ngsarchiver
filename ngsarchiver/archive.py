@@ -1227,7 +1227,7 @@ class ArchiveDirectory(Directory):
             extract_dir)
         # Do checksum verification on unpacked archive
         if verify:
-            print("-- verifying checksums")
+            print("-- verifying checksums of unpacked files")
             archive_checksum_file = os.path.basename(self.archive_checksum_file)
             for md5file in [os.path.join(self._path,f)
                             for f in list(
