@@ -2408,6 +2408,28 @@ def make_manifest_file(d, manifest_file, follow_dirlinks=False):
                 rel_path=rel_path))
     return manifest_file
 
+def make_visual_tree_file(d, tree_file):
+    """
+    Create a visual tree file for a directory
+
+    A visual tree lists the directory contents in
+    the same format as the Linux "tree" command
+    line utility.
+
+    Arguments:
+      d (Directory): directory to generate the
+        manifest for
+      tree_file (str): path to the file to
+        write the visual tree to
+    """
+    if Path(tree_file).exists():
+        raise NgsArchiverException(f"{tree_file}: already exists")
+    with open(tree_file, "wt") as fp:
+        fp.write(f"{d.basename}\n")
+        for line in tree(d.path):
+            fp.write(f"{line}\n")
+    return tree_file
+
 def check_make_symlink(d):
     """
     Check if it's possible to make a symbolic link

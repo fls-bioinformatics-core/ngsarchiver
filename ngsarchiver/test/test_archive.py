@@ -30,6 +30,7 @@ from ngsarchiver.archive import make_archive_multitgz
 from ngsarchiver.archive import unpack_archive_multitgz
 from ngsarchiver.archive import make_copy
 from ngsarchiver.archive import make_manifest_file
+from ngsarchiver.archive import make_visual_tree_file
 from ngsarchiver.archive import check_make_symlink
 from ngsarchiver.archive import check_case_sensitive_filenames
 from ngsarchiver.archive import getsize
@@ -6643,6 +6644,56 @@ class TestMakeManifestFile(unittest.TestCase):
                           make_manifest_file,
                           Directory(example_dir.path),
                           os.path.join(self.wd, "manifest"))
+
+class TestMakeVisualTreeFile(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestVisualTreeFile')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_make_visual_tree_file(self):
+        """
+        make_visual_tree_file: check tree file is created
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        # Create visual tree file
+        tree_file = make_visual_tree_file(Directory(example_dir.path),
+                                          os.path.join(self.wd, "tree.txt"))
+        self.assertEqual(tree_file, os.path.join(self.wd, "tree.txt"))
+        self.assertTrue(os.path.exists(tree_file))
+        # Check contents
+        expected_lines = [f"{os.path.basename(example_dir.path)}",
+                          "├── ex1.txt",
+                          "└── subdir",
+                          "    └── ex2.txt"]
+        with open(tree_file, 'rt') as fp:
+            for line in fp:
+                self.assertTrue(line.rstrip() in expected_lines,
+                                f"'{line.rstrip()}': unexpected line")
+
+    def test_make_visual_tree_file_noclobber(self):
+        """
+        make_visual_tree_file: raises exception if file already exists
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.create()
+        # Touch existing tree file
+        with open(os.path.join(self.wd, "tree.txt"), "wt") as fp:
+            fp.write("")
+        self.assertRaises(NgsArchiverException,
+                          make_visual_tree_file,
+                          Directory(example_dir.path),
+                          os.path.join(self.wd, "tree.txt"))
 
 class TestCheckMakeSymlink(unittest.TestCase):
 
