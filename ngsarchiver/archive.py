@@ -1778,7 +1778,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
             # Additional TAR archive
             if not multi_volume:
                 readme.add("An additional compressed TAR archive file "
-                           "contains file and subdirectories not in the "
+                           "contains files and subdirectories not in the "
                            "above archive(s):")
                 readme.add(f"* {misc_archive_name}.tar.gz", indent="  ")
             else:
