@@ -3955,6 +3955,19 @@ class TestReadmeFile(unittest.TestCase):
                          "width limit and so must be\nwrapped onto "
                          "multiple lines")
 
+    def test_readmefile_wrap_lines_custom_width(self):
+        """
+        ReadmeFile: test wrapping long lines with custom width
+        """
+        readme = ReadmeFile(width=50)
+        self.assertEqual(readme.text(), "")
+        readme.add("Some content which exceeds the 50 character width "
+                   "limit and so must be wrapped onto multiple lines")
+        self.assertEqual(readme.text(),
+                         "Some content which exceeds the 50 character "
+                         "width\nlimit and so must be wrapped onto "
+                         "multiple lines")
+
     def test_readmefile_indent_lines(self):
         """
         ReadmeFile: test indenting lines

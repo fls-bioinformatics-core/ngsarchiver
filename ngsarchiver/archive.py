@@ -1439,9 +1439,15 @@ class CopyArchiveDirectory(Directory):
 class ReadmeFile:
     """
     Convenience class for creating README files
+
+    Arguments:
+      width (int): if supplied then sets the maximum length
+        before wrapping long lines (default: 70)
     """
-    def __init__(self):
-        self._width = 70
+    def __init__(self, width=None):
+        if width is None:
+            width = 70
+        self._width = int(width)
         self._textwrapper = textwrap.TextWrapper(width=self._width,
                                                  break_long_words=False,
                                                  break_on_hyphens=False,
