@@ -47,6 +47,7 @@ GITHUB_URL = "https://github.com/fls-bioinformatics-core/ngsarchiver"
 ZENODO_URL = "https://doi.org/10.5281/zenodo.14024309"
 MD5_BLOCKSIZE = 1024*1024
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+README_LINE_WIDTH = 75
 
 #######################################################################
 # Classes
@@ -1738,7 +1739,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     with open(json_file,'wt') as fp:
         json.dump(archive_metadata,fp,indent=2)
     # Add a README
-    readme = ReadmeFile()
+    readme = ReadmeFile(width=README_LINE_WIDTH)
     readme.add(f"This is a compressed archive of the directory originally "
                f"located at:")
     readme.add(f"{d.path}")
@@ -2275,7 +2276,7 @@ def make_copy(d, dest, replace_symlinks=False,
     with open(json_file, 'wt') as fp:
         json.dump(archive_metadata, fp, indent=2)
     # Add a README
-    readme = ReadmeFile()
+    readme = ReadmeFile(width=README_LINE_WIDTH)
     readme.add(f"This is an archive copy of the directory originally "
                f"located at:")
     readme.add(f"{d.path}")
