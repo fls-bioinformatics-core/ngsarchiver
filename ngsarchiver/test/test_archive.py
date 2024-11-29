@@ -3969,6 +3969,39 @@ class TestReadmeFile(unittest.TestCase):
                          "width limit and so must\n   be wrapped onto "
                          "multiple lines")
 
+    def test_readmefile_no_wrapping(self):
+        """
+        ReadmeFile: test disabling wrapping long lines
+        """
+        readme = ReadmeFile()
+        self.assertEqual(readme.text(), "")
+        readme.add("Some content which exceeds the 70 character width "
+                   "limit and will be wrapped")
+        readme.add("More content also exceeding 70 characters but will not "
+                   "be wrapped", wrap=False)
+        readme.add("Additional long content which will again be wrapped "
+                   "over multiple lines")
+        self.assertEqual(readme.text(),
+                         "Some content which exceeds the 70 character "
+                         "width limit and will be\nwrapped\n\nMore content "
+                         "also exceeding 70 characters but will not be "
+                         "wrapped\n\nAdditional long content which will "
+                         "again be wrapped over multiple\nlines")
+
+    def test_readmefile_keep_newlines(self):
+        """
+        ReadmeFile: test preserving newlines
+        """
+        readme = ReadmeFile()
+        self.assertEqual(readme.text(), "")
+        readme.add("Content with newlines which\nwill not be preserved\n")
+        readme.add("These newlines\nwill\nbe preserved", keep_newlines=True)
+        readme.add("These\nwill\nnot")
+        self.assertEqual(readme.text(),
+                         "Content with newlines which will not be "
+                         "preserved\n\nThese newlines\nwill\nbe preserved\n\n"
+                         "These will not")
+
 
 class TestGetRundirInstance(unittest.TestCase):
 

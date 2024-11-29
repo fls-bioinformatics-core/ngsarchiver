@@ -1441,12 +1441,14 @@ class ReadmeFile:
     Convenience class for creating README files
     """
     def __init__(self):
-        self._textwrapper = textwrap.TextWrapper(break_long_words=False,
+        self._width = 70
+        self._textwrapper = textwrap.TextWrapper(width=self._width,
+                                                 break_long_words=False,
                                                  break_on_hyphens=False,
-                                                 replace_whitespace=False)
+                                                 replace_whitespace=True)
         self._contents = []
 
-    def add(self, text, indent=None):
+    def add(self, text, indent=None, wrap=True, keep_newlines=False):
         """
         Append text to the README
 
@@ -1455,14 +1457,32 @@ class ReadmeFile:
             into multiple lines of 70 characters
           indent (str): if supplied then each line will be
             indented using this string (default: no indent)
+          wrap (bool): if True (the default) then wrap the text
+            to the default width; otherwise don't wrap
+          keep_newlines (bool): if False (the default) then
+            newlines in the text are removed; if True then
+            they are kept
         """
         if indent:
             self._textwrapper.initial_indent = indent
             self._textwrapper.subsequent_indent = indent
-        self._contents.append("\n".join(self._textwrapper.wrap(text)))
-        if indent:
+        else:
             self._textwrapper.initial_indent = ""
             self._textwrapper.subsequent_indent = ""
+        if wrap:
+            self._textwrapper.width = self._width
+        else:
+            if indent:
+                self._textwrapper.width = len(text) + len(indent) + 1
+            else:
+                self._textwrapper.width = len(text) + 1
+        if keep_newlines:
+            new_text = []
+            for line in text.split("\n"):
+                new_text.append("\n".join(self._textwrapper.wrap(line)))
+            self._contents.append("\n".join(new_text))
+        else:
+            self._contents.append("\n".join(self._textwrapper.wrap(text)))
 
     def text(self):
         """
