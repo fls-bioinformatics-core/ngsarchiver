@@ -1430,7 +1430,8 @@ class CopyArchiveDirectory(Directory):
             self.path,
             follow_symlinks=self.replace_symlinks,
             broken_symlinks_placeholders=self.transform_broken_symlinks,
-            ignore_paths=(os.path.basename(self._metadata_dir),
+            ignore_paths=("ARCHIVE_README",
+                          os.path.basename(self._metadata_dir),
                           os.path.basename(self._metadata_dir) + os.sep + "*"))
 
     def __repr__(self):
