@@ -1395,6 +1395,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1520,6 +1521,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1653,6 +1655,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1793,6 +1796,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -1955,6 +1959,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -2144,6 +2149,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -2268,6 +2274,7 @@ a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex2.txt
 example_external_symlinks/subdir1/symlink1.txt	example_external_symlinks.tar.gz
 """)
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Add an external file
@@ -2425,6 +2432,7 @@ a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex2.txt
 example_broken_symlinks/subdir1/symlink1.txt	example_broken_symlinks.tar.gz
 """)
         example_archive.add("ARCHIVE_README",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
         # Expected contents
@@ -4354,6 +4362,8 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "miscellaneous.md5",
                      "ex5.txt",
                      "ex6.txt",
+                     "ARCHIVE_README",
+                     "ARCHIVE_TREE.txt",
                      "ARCHIVE_METADATA",
                      "ARCHIVE_METADATA/archive_checksums.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4391,6 +4401,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "example.00.md5",
                     "example.01.md5",
                     "ARCHIVE_README",
+                    "ARCHIVE_TREE.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4438,6 +4449,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "subdir2.00.md5",
                     "subdir2.01.md5",
                     "ARCHIVE_README",
+                    "ARCHIVE_TREE.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4495,6 +4507,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "miscellaneous.00.md5",
                     "miscellaneous.01.md5",
                     "ARCHIVE_README",
+                    "ARCHIVE_TREE.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4557,6 +4570,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "ex5.txt",
                     "ex6.txt",
                     "ARCHIVE_README",
+                    "ARCHIVE_TREE.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4593,6 +4607,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         expected = ("example.tar.gz",
                     "example.md5",
                     "ARCHIVE_README",
+                    "ARCHIVE_TREE.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",

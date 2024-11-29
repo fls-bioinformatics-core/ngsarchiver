@@ -1749,6 +1749,9 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     json_file = os.path.join(ngsarchiver_dir, "archiver_metadata.json")
     with open(json_file,'wt') as fp:
         json.dump(archive_metadata,fp,indent=2)
+    # Add a visual tree file
+    tree_file = os.path.join(temp_archive_dir, "ARCHIVE_TREE.txt")
+    make_visual_tree_file(d, tree_file)
     # Add a README
     readme = ReadmeFile(width=README_LINE_WIDTH)
     readme.add(f"This is a compressed archive of the directory originally "
@@ -1843,7 +1846,10 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 f"$ cat {d.basename}.archive/*.tar.gz | tar zxvf - -i\n"
                 f"$ md5sum -c {d.basename}.archive/*.md5",
                 indent="    ", wrap=False, keep_newlines=True)
-    readme.add("The ARCHIVE_METADATA subdirectory contains files with "
+    readme.add("The 'ARCHIVE_TREE.txt' file lists the contents of the "
+               "source directory as a text-base tree (similar to the output "
+               "of the Linux 'tree' utility).")
+    readme.add("The 'ARCHIVE_METADATA' subdirectory contains files with "
                "additional metadata about the source files and directories:")
     readme.add("* archive_checksums.md5: MD5 checksums for each of the "
                ".tar.gz and other files in the top-level archive directory, "
