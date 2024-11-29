@@ -1799,9 +1799,39 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                "archive, which can be used to verify the files when they "
                "are unpacked.")
     readme.add("The original data can be recovered and verified using the "
-               "'ngsarchiver' utility's 'unpack' command (or by using the "
-               "'tar' and 'md5sum' Linux command line utilities directly "
-               "with the .tar.gz and MD5 checksum files).")
+               "'ngsarchiver' utility's 'unpack' command, for example:")
+    readme.add(f"$ archiver unpack {d.basename}.archive",
+               indent="    ", wrap=False, keep_newlines=True)
+    readme.add("It is also possible to restore the original data using the "
+               "Linux 'tar' and 'md5sum' command line utilities directly "
+               "with the .tar.gz and MD5 checksum files. For example, to "
+               "recover the original directory and its contents into the "
+               "current working directory:")
+    if not sub_dirs:
+        if not multi_volume:
+            readme.add(
+                f"$ tar zxvf {d.basename}.archive/{d.basename}.tar.gz\n"
+                f"$ md5sum -c {d.basename}.archive/{d.basename}.md5",
+                indent="    ", wrap=False, keep_newlines=True)
+        else:
+            readme.add(
+                f"$ cat {d.basename}.archive/{d.basename}.*.tar.gz | "
+                f"tar zxvf - -i\n"
+                f"$ md5sum -c {d.basename}.archive/*.md5",
+                indent="    ", wrap=False, keep_newlines=True)
+    else:
+        if extra_files:
+            readme.add(
+                f"$ mkdir {d.basename}\n"
+                f"$ cp -a {d.basename}.archive/projects.info {d.basename}\n"
+                f"$ cat {d.basename}.archive/*.tar.gz | tar zxvf - -i\n"
+                f"$ md5sum -c {d.basename}.archive/*.md5",
+                indent="    ", wrap=False, keep_newlines=True)
+        else:
+            readme.add(
+                f"$ cat {d.basename}.archive/*.tar.gz | tar zxvf - -i\n"
+                f"$ md5sum -c {d.basename}.archive/*.md5",
+                indent="    ", wrap=False, keep_newlines=True)
     readme.add("The ARCHIVE_METADATA subdirectory contains files with "
                "additional metadata about the source files and directories:")
     readme.add("* archive_checksums.md5: MD5 checksums for each of the "
