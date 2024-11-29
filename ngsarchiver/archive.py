@@ -49,6 +49,16 @@ MD5_BLOCKSIZE = 1024*1024
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 README_LINE_WIDTH = 75
 
+# Tree components
+
+# Prefixes
+TREE_SPACE =  "    "
+TREE_BRANCH = "│   "
+
+# Pointers
+TREE_TEE =    "├── "
+TREE_LAST =   "└── "
+
 #######################################################################
 # Classes
 #######################################################################
@@ -2553,3 +2563,48 @@ def group_case_sensitive_names(file_list):
     for name in group_names:
         if len(group_names[name]) > 1:
             yield tuple(sorted(group_names[name]))
+
+
+def tree(dir_path, prefix=""):
+    """
+    Generate visual tree structure recursively
+
+    Recursive generator which (given a directory
+    Path object) yields a visual tree structure line
+    by line with each line prefixed by the same
+    characters (mimicking the basic output from
+    the Linux "tree" command).
+
+    Usage:
+
+    >>> for line in tree("."):
+    ...     print(line)
+
+    Based on code from
+    https://stackoverflow.com/a/59109706
+    with some minor modifications to handle
+    symbolic links and fix ordering of elements
+    (which may differ from the "tree" command).
+
+    Arguments:
+      dir_path (Path): starting directory
+      prefix (str): prefix string to add to yielded
+        lines (used internally for recursion)
+
+    Yields:
+      String: next line in the visual tree
+    """
+    contents = sorted(list(Path(dir_path).iterdir()))
+    # Contents each get pointers that are ├── with a final └── :
+    pointers = [TREE_TEE] * (len(contents) - 1) + [TREE_LAST]
+    for pointer, path in zip(pointers, contents):
+        name = path.name
+        if path.is_symlink():
+            # Add symlink target to name
+            name += f" -> {os.readlink(path)}"
+        yield prefix + pointer + name
+        if path.is_dir() and not path.is_symlink():
+            # Extend the prefix and recurse (but don't follow links)
+            extension = TREE_BRANCH if pointer == TREE_TEE else TREE_SPACE
+            # i.e. space because last, └── , above so no more |
+            yield from tree(path, prefix=prefix+extension)

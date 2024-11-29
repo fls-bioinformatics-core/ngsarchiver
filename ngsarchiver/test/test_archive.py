@@ -37,6 +37,7 @@ from ngsarchiver.archive import convert_size_to_bytes
 from ngsarchiver.archive import format_size
 from ngsarchiver.archive import format_bool
 from ngsarchiver.archive import group_case_sensitive_names
+from ngsarchiver.archive import tree
 from ngsarchiver.exceptions import NgsArchiverException
 
 # Set to False to keep test output dirs
@@ -6823,3 +6824,125 @@ class TestGroupCaseSensitiveNames(unittest.TestCase):
         group_case_sensitive_names: empty list as input
         """
         self.assertEqual(list(group_case_sensitive_names([])), [])
+
+
+class TestTree(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestTree')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_tree(self):
+        """
+        tree: regular files and directories
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        example_dir.add("subdir2/ex4.txt",type="file")
+        example_dir.create()
+        # Expected tree
+        expected_tree = ["├── ex1.txt",
+                         "├── subdir1",
+                         "│   ├── ex2.txt",
+                         "│   └── subdir12",
+                         "│       └── ex3.txt",
+                         "└── subdir2",
+                         "    └── ex4.txt"]
+        # Generate tree
+        example_tree = list(tree(example_dir.path))
+        print(example_tree)
+        self.assertEqual(example_tree, expected_tree)
+
+    def test_tree_with_symlink(self):
+        """
+        tree: directory includes symlink
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/ex3.txt",type="symlink",target="./ex2.txt")
+        example_dir.create()
+        # Expected tree
+        expected_tree = ["├── ex1.txt",
+                         "└── subdir1",
+                         "    ├── ex2.txt",
+                         "    └── ex3.txt -> ./ex2.txt"]
+        # Generate tree
+        example_tree = list(tree(example_dir.path))
+        print(example_tree)
+        self.assertEqual(example_tree, expected_tree)
+
+    def test_tree_with_broken_symlink(self):
+        """
+        tree: directory includes broken symlink
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/ex3.txt",type="symlink",target="missing")
+        example_dir.create()
+        # Expected tree
+        expected_tree = ["├── ex1.txt",
+                         "└── subdir1",
+                         "    ├── ex2.txt",
+                         "    └── ex3.txt -> missing"]
+        # Generate tree
+        example_tree = list(tree(example_dir.path))
+        print(example_tree)
+        self.assertEqual(example_tree, expected_tree)
+
+    def test_tree_with_dirlink(self):
+        """
+        tree: directory includes dirlink
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        example_dir.add("subdir2",type="symlink",target="./subdir1")
+        example_dir.create()
+        p = example_dir.path
+        # Expected tree
+        expected_tree = ["├── ex1.txt",
+                         "├── subdir1",
+                         "│   ├── ex2.txt",
+                         "│   └── subdir12",
+                         "│       └── ex3.txt",
+                         "└── subdir2 -> ./subdir1"]
+        # Generate tree
+        example_tree = list(tree(example_dir.path))
+        print(example_tree)
+        self.assertEqual(example_tree, expected_tree)
+
+    def test_tree_with_circular_dirlink(self):
+        """
+        tree: directory includes circular dirlink
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        example_dir.add("subdir2",type="symlink",target="./subdir2")
+        example_dir.create()
+        p = example_dir.path
+        # Expected tree
+        expected_tree = ["├── ex1.txt",
+                         "├── subdir1",
+                         "│   ├── ex2.txt",
+                         "│   └── subdir12",
+                         "│       └── ex3.txt",
+                         "└── subdir2 -> ./subdir2"]
+        # Generate tree
+        example_tree = list(tree(example_dir.path))
+        print(example_tree)
+        self.assertEqual(example_tree, expected_tree)
