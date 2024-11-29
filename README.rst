@@ -543,7 +543,7 @@ Within a compressed archive directory there will be:
   associated with each file). If files were excluded
   from the archive (e.g. because they were unreadable)
   then these will be listed in an additional file;
-- a file called ``ARCHIVE_README`` which provides a
+- a file called ``ARCHIVE_README.txt`` which provides a
   human-readable explanation of the archive directory
   structure and contents, and how to recover the
   original data;
