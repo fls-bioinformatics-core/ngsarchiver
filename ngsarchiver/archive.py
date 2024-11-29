@@ -47,6 +47,7 @@ GITHUB_URL = "https://github.com/fls-bioinformatics-core/ngsarchiver"
 ZENODO_URL = "https://doi.org/10.5281/zenodo.14024309"
 MD5_BLOCKSIZE = 1024*1024
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+README_LINE_WIDTH = 75
 
 #######################################################################
 # Classes
@@ -1439,14 +1440,22 @@ class CopyArchiveDirectory(Directory):
 class ReadmeFile:
     """
     Convenience class for creating README files
+
+    Arguments:
+      width (int): if supplied then sets the maximum length
+        before wrapping long lines (default: 70)
     """
-    def __init__(self):
-        self._textwrapper = textwrap.TextWrapper(break_long_words=False,
+    def __init__(self, width=None):
+        if width is None:
+            width = 70
+        self._width = int(width)
+        self._textwrapper = textwrap.TextWrapper(width=self._width,
+                                                 break_long_words=False,
                                                  break_on_hyphens=False,
-                                                 replace_whitespace=False)
+                                                 replace_whitespace=True)
         self._contents = []
 
-    def add(self, text, indent=None):
+    def add(self, text, indent=None, wrap=True, keep_newlines=False):
         """
         Append text to the README
 
@@ -1455,14 +1464,32 @@ class ReadmeFile:
             into multiple lines of 70 characters
           indent (str): if supplied then each line will be
             indented using this string (default: no indent)
+          wrap (bool): if True (the default) then wrap the text
+            to the default width; otherwise don't wrap
+          keep_newlines (bool): if False (the default) then
+            newlines in the text are removed; if True then
+            they are kept
         """
         if indent:
             self._textwrapper.initial_indent = indent
             self._textwrapper.subsequent_indent = indent
-        self._contents.append("\n".join(self._textwrapper.wrap(text)))
-        if indent:
+        else:
             self._textwrapper.initial_indent = ""
             self._textwrapper.subsequent_indent = ""
+        if wrap:
+            self._textwrapper.width = self._width
+        else:
+            if indent:
+                self._textwrapper.width = len(text) + len(indent) + 1
+            else:
+                self._textwrapper.width = len(text) + 1
+        if keep_newlines:
+            new_text = []
+            for line in text.split("\n"):
+                new_text.append("\n".join(self._textwrapper.wrap(line)))
+            self._contents.append("\n".join(new_text))
+        else:
+            self._contents.append("\n".join(self._textwrapper.wrap(text)))
 
     def text(self):
         """
@@ -1712,7 +1739,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     with open(json_file,'wt') as fp:
         json.dump(archive_metadata,fp,indent=2)
     # Add a README
-    readme = ReadmeFile()
+    readme = ReadmeFile(width=README_LINE_WIDTH)
     readme.add(f"This is a compressed archive of the directory originally "
                f"located at:")
     readme.add(f"{d.path}")
@@ -1751,7 +1778,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
             # Additional TAR archive
             if not multi_volume:
                 readme.add("An additional compressed TAR archive file "
-                           "contains file and subdirectories not in the "
+                           "contains files and subdirectories not in the "
                            "above archive(s):")
                 readme.add(f"* {misc_archive_name}.tar.gz", indent="  ")
             else:
@@ -1772,9 +1799,39 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                "archive, which can be used to verify the files when they "
                "are unpacked.")
     readme.add("The original data can be recovered and verified using the "
-               "'ngsarchiver' utility's 'unpack' command (or by using the "
-               "'tar' and 'md5sum' Linux command line utilities directly "
-               "with the .tar.gz and MD5 checksum files).")
+               "'ngsarchiver' utility's 'unpack' command, for example:")
+    readme.add(f"$ archiver unpack {d.basename}.archive",
+               indent="    ", wrap=False, keep_newlines=True)
+    readme.add("It is also possible to restore the original data using the "
+               "Linux 'tar' and 'md5sum' command line utilities directly "
+               "with the .tar.gz and MD5 checksum files. For example, to "
+               "recover the original directory and its contents into the "
+               "current working directory:")
+    if not sub_dirs:
+        if not multi_volume:
+            readme.add(
+                f"$ tar zxvf {d.basename}.archive/{d.basename}.tar.gz\n"
+                f"$ md5sum -c {d.basename}.archive/{d.basename}.md5",
+                indent="    ", wrap=False, keep_newlines=True)
+        else:
+            readme.add(
+                f"$ cat {d.basename}.archive/{d.basename}.*.tar.gz | "
+                f"tar zxvf - -i\n"
+                f"$ md5sum -c {d.basename}.archive/*.md5",
+                indent="    ", wrap=False, keep_newlines=True)
+    else:
+        if extra_files:
+            readme.add(
+                f"$ mkdir {d.basename}\n"
+                f"$ cp -a {d.basename}.archive/projects.info {d.basename}\n"
+                f"$ cat {d.basename}.archive/*.tar.gz | tar zxvf - -i\n"
+                f"$ md5sum -c {d.basename}.archive/*.md5",
+                indent="    ", wrap=False, keep_newlines=True)
+        else:
+            readme.add(
+                f"$ cat {d.basename}.archive/*.tar.gz | tar zxvf - -i\n"
+                f"$ md5sum -c {d.basename}.archive/*.md5",
+                indent="    ", wrap=False, keep_newlines=True)
     readme.add("The ARCHIVE_METADATA subdirectory contains files with "
                "additional metadata about the source files and directories:")
     readme.add("* archive_checksums.md5: MD5 checksums for each of the "
@@ -2249,7 +2306,7 @@ def make_copy(d, dest, replace_symlinks=False,
     with open(json_file, 'wt') as fp:
         json.dump(archive_metadata, fp, indent=2)
     # Add a README
-    readme = ReadmeFile()
+    readme = ReadmeFile(width=README_LINE_WIDTH)
     readme.add(f"This is an archive copy of the directory originally "
                f"located at:")
     readme.add(f"{d.path}")
