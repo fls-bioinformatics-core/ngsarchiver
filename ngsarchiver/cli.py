@@ -112,6 +112,38 @@ def main(argv=None):
                                 "archiving anyway (may result in "
                                 "incomplete or problematic archive)")
 
+    # 'copy' command
+    parser_copy = s.add_parser('copy',
+                               help="make copy archive of a directory")
+    parser_copy.add_argument('dir',
+                             help="path to directory")
+    parser_copy.add_argument('dest_dir', nargs="?",
+                             help="create copy under 'dest_dir' "
+                             "(default: current directory)")
+    parser_copy.add_argument('-c','--check',action='store_true',
+                             help="check for and warn about potential "
+                             "issues; don't perform copying")
+    parser_copy.add_argument('-r','--replace-symlinks',action='store_true',
+                             help="replace symbolic links with their "
+                             "target (default is to copy links as-is; will "
+                             "fail for broken links unless '-t' option "
+                             "is also specified; will fail for dirlinks "
+                             "unless '-f' option is also specified)")
+    parser_copy.add_argument('-f','--follow-dirlinks',action='store_true',
+                             help="replace dirlinks (symbolic links to "
+                             "directories) with actual directories, and "
+                             "recursively copy the contents of those "
+                             "directories")
+    parser_copy.add_argument('-t','--transform-broken-symlinks',
+                             action='store_true',
+                             help="replace broken and unresolvable symbolic "
+                             "links with placeholder files (default is to "
+                             "copy broken and unresolvable links as-is)")
+    parser_copy.add_argument('--force',action='store_true',
+                             help="ignore issues and perform "
+                             "copy anyway (may result in incomplete "
+                             "or problematic copy)")
+
     # 'verify' command
     parser_verify = s.add_parser('verify',
                                   help="verify integrity of an archive "
@@ -130,15 +162,6 @@ def main(argv=None):
                                action='store',dest='out_dir',
                                help="unpack archive under OUT_DIR "
                                "(default: current directory)")
-
-    # 'compare' command
-    parser_compare = s.add_parser('compare',
-                                  help="check one directory against "
-                                  "another")
-    parser_compare.add_argument('dir1',
-                                help="path to first directory")
-    parser_compare.add_argument('dir2',
-                                help="path to second directory")
 
     # 'search' command
     parser_search = s.add_parser('search',
@@ -174,37 +197,14 @@ def main(argv=None):
                                 "paths when extracting files (default "
                                 "is to drop leading paths)")
 
-    # 'copy' command
-    parser_copy = s.add_parser('copy',
-                               help="make direct copy of a directory")
-    parser_copy.add_argument('dir',
-                             help="path to directory")
-    parser_copy.add_argument('dest_dir', nargs="?",
-                             help="create copy under 'dest_dir' "
-                             "(default: current directory)")
-    parser_copy.add_argument('-c','--check',action='store_true',
-                             help="check for and warn about potential "
-                             "issues; don't perform copying")
-    parser_copy.add_argument('-r','--replace-symlinks',action='store_true',
-                             help="replace symbolic links with their "
-                             "target (default is to copy links as-is; will "
-                             "fail for broken links unless '-t' option "
-                             "is also specified; will fail for dirlinks "
-                             "unless '-f' option is also specified)")
-    parser_copy.add_argument('-f','--follow-dirlinks',action='store_true',
-                             help="replace dirlinks (symbolic links to "
-                             "directories) with actual directories, and "
-                             "recursively copy the contents of those "
-                             "directories")
-    parser_copy.add_argument('-t','--transform-broken-symlinks',
-                             action='store_true',
-                             help="replace broken and unresolvable symbolic "
-                             "links with placeholder files (default is to "
-                             "copy broken and unresolvable links as-is)")
-    parser_copy.add_argument('--force',action='store_true',
-                             help="ignore issues and perform "
-                             "copy anyway (may result in incomplete "
-                             "or problematic copy)")
+    # 'compare' command
+    parser_compare = s.add_parser('compare',
+                                  help="check if two directories have the "
+                                  "same contents")
+    parser_compare.add_argument('dir1',
+                                help="path to first directory")
+    parser_compare.add_argument('dir2',
+                                help="path to second directory")
 
     # Parse the arguments
     args = p.parse_args(argv)
