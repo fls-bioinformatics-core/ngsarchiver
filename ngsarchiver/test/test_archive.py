@@ -3728,6 +3728,7 @@ class TestCopyArchiveDirectory(unittest.TestCase):
         example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
         example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
         example_archive.add("subdir2/ex4.txt",type="symlink",target="./ex3.txt")
+        example_archive.add("ARCHIVE_README", type="file")
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
                             content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
@@ -3779,6 +3780,7 @@ d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex3.txt
         example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
         example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
         example_archive.add("subdir2/ex4.txt",type="file",content="example 3")
+        example_archive.add("ARCHIVE_README", type="file")
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
                             content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
@@ -3831,6 +3833,7 @@ d376eaa7e7aecf81dcbdd6081fae63a9  subdir2/ex4.txt
         example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
         example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
         example_archive.add("subdir3/ex3.txt",type="file",content="example 3")
+        example_archive.add("ARCHIVE_README", type="file")
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
                             content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
@@ -3883,6 +3886,7 @@ d376eaa7e7aecf81dcbdd6081fae63a9  subdir3/ex3.txt
         example_archive.add("subdir1/ex2.txt",type="file",content="example 2")
         example_archive.add("subdir2/ex3.txt",type="file",content="example 3")
         example_archive.add("subdir2/ex4.txt",type="file",content="missing.txt")
+        example_archive.add("ARCHIVE_README", type="file")
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_METADATA/checksums.md5",type="file",
                             content="""e93b3fa481be3932aa08bd68c3deee70  ex1.txt
@@ -4029,6 +4033,30 @@ class TestGetRundirInstance(unittest.TestCase):
     def test_get_rundir_instance_copy_archive_directory(self):
         """
         get_rundir_instance: returns 'CopyArchiveDirectory' instance
+        """
+        # Build example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
+        example_dir.add("ARCHIVE_README", type="file")
+        example_dir.add("ARCHIVE_METADATA/checksums.md5",type="file")
+        example_dir.add("ARCHIVE_METADATA/archiver_metadata.json",type="file",
+                        content="""{
+  "name": "example"
+}
+""")
+        example_dir.add("ARCHIVE_METADATA/manifest",type="file")
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir2/ex3.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        p = example_dir.path
+        # Check correct class is returned
+        d = get_rundir_instance(p)
+        self.assertTrue(isinstance(d,CopyArchiveDirectory))
+
+    def test_get_rundir_instance_copy_archive_directory_legacy_no_readme(self):
+        """
+        get_rundir_instance: returns 'CopyArchiveDirectory' instance (legacy/no README)
         """
         # Build example dir
         example_dir = UnittestDir(os.path.join(self.wd,"example.archive"))
