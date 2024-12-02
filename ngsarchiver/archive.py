@@ -1759,6 +1759,19 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     json_file = os.path.join(ngsarchiver_dir, "archiver_metadata.json")
     with open(json_file,'wt') as fp:
         json.dump(archive_metadata,fp,indent=2)
+    # Add a file list
+    file_list = os.path.join(temp_archive_dir, "ARCHIVE_FILELIST.txt")
+    with open(file_list, "wt") as fp:
+        for o in d.walk():
+            o = Path(o)
+            rel_path = str(o.relative_to(d.path))
+            if o.is_symlink():
+                # Append link target
+                rel_path += f" -> {os.readlink(o)}"
+            elif o.is_dir():
+                # Append a slash to directory names
+                rel_path += os.sep
+            fp.write(f"{rel_path}\n")
     # Add a visual tree file
     tree_file = os.path.join(temp_archive_dir, "ARCHIVE_TREE.txt")
     make_visual_tree_file(d, tree_file)
@@ -1856,9 +1869,14 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                 f"$ cat {d.basename}.archive/*.tar.gz | tar zxvf - -i\n"
                 f"$ md5sum -c {d.basename}.archive/*.md5",
                 indent="    ", wrap=False, keep_newlines=True)
-    readme.add("The 'ARCHIVE_TREE.txt' file lists the contents of the "
-               "source directory as a text-base tree (similar to the output "
-               "of the Linux 'tree' utility).")
+    readme.add("The following additional files are created by the archiver:")
+    readme.add("* 'ARCHIVE_FILELIST.txt': lists the relative paths of the "
+               "files and directories from the source (note: directories "
+               "will have '/' appended to their paths, and symbolic links "
+               "will be listed with their targets)", indent="  ")
+    readme.add("* 'ARCHIVE_TREE.txt': lists the contents of the source "
+               "directory as a text-based 'visual tree' (similar to the "
+               "output of the Linux 'tree' utility)", indent="  ")
     readme.add("The 'ARCHIVE_METADATA' subdirectory contains files with "
                "additional metadata about the source files and directories:")
     readme.add("* archive_checksums.md5: MD5 checksums for each of the "
