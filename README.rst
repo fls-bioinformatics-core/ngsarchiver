@@ -547,6 +547,9 @@ Within a compressed archive directory there will be:
   human-readable explanation of the archive directory
   structure and contents, and how to recover the
   original data;
+- a file called ``ARCHIVE_FILELIST.txt`` which lists
+  the relative paths of all the files and directories
+  in the source directory;
 - a file called ``ARCHIVE_TREE.txt`` which provides a
   visual tree representation of the source directory
   structure (similar to that produced by the Linux
