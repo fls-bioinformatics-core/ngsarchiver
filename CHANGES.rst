@@ -2,6 +2,25 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.7.0 (2024-12-02)
+---------------------------
+
+* Updated the command line help and documentation for the
+  archiver subcommands (PR #45)
+* Add unpacking information to the ``ARCHIVE_README`` files
+  for compressed archive directories (PR #46)
+* Bug fix to copy verification for copy archive directories
+  (PR #48)
+* Add ``ARCHIVE_TREE.txt`` files to compressed archive
+  directories (visual tree representation of the source
+  directory contents) (PR #49)
+* Rename ``ARCHIVE_README`` files to ``ARCHIVE_README.txt``
+  (PR #50)
+* Add ``ARCHIVE_FILELIST.txt`` files to compressed archive
+  directories (plain text lists of paths of the source
+  directory contents) (PR #51)
+
+---------------------------
 Version 1.6.0 (2024-11-28)
 ---------------------------
 
