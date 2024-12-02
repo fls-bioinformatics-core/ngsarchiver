@@ -1395,6 +1395,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README.txt",type="file")
+        example_archive.add("ARCHIVE_FILELIST.txt",type="file")
         example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
@@ -1521,6 +1522,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README.txt",type="file")
+        example_archive.add("ARCHIVE_FILELIST.txt",type="file")
         example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
@@ -1655,6 +1657,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README.txt",type="file")
+        example_archive.add("ARCHIVE_FILELIST.txt",type="file")
         example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
@@ -1796,6 +1799,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README.txt",type="file")
+        example_archive.add("ARCHIVE_FILELIST.txt",type="file")
         example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
@@ -1959,6 +1963,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README.txt",type="file")
+        example_archive.add("ARCHIVE_FILELIST.txt",type="file")
         example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
@@ -2149,6 +2154,7 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
 """)
         example_archive.add("ARCHIVE_METADATA/manifest",type="file")
         example_archive.add("ARCHIVE_README.txt",type="file")
+        example_archive.add("ARCHIVE_FILELIST.txt",type="file")
         example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
@@ -2274,6 +2280,7 @@ a03dcb0295d903ee194ccb117b41f870  example_external_symlinks/subdir3/ex2.txt
 example_external_symlinks/subdir1/symlink1.txt	example_external_symlinks.tar.gz
 """)
         example_archive.add("ARCHIVE_README.txt",type="file")
+        example_archive.add("ARCHIVE_FILELIST.txt",type="file")
         example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
@@ -2432,6 +2439,7 @@ a03dcb0295d903ee194ccb117b41f870  example_broken_symlinks/subdir3/ex2.txt
 example_broken_symlinks/subdir1/symlink1.txt	example_broken_symlinks.tar.gz
 """)
         example_archive.add("ARCHIVE_README.txt",type="file")
+        example_archive.add("ARCHIVE_FILELIST.txt",type="file")
         example_archive.add("ARCHIVE_TREE.txt",type="file")
         example_archive.create()
         p = example_archive.path
@@ -4357,6 +4365,9 @@ class TestMakeArchiveDir(unittest.TestCase):
         self.assertTrue(os.path.exists(archive_dir))
         for item in ("example.tar.gz",
                      "example.md5",
+                     "ARCHIVE_README.txt",
+                     "ARCHIVE_TREE.txt",
+                     "ARCHIVE_FILELIST.txt",
                      "ARCHIVE_METADATA",
                      "ARCHIVE_METADATA/archive_checksums.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4364,6 +4375,39 @@ class TestMakeArchiveDir(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
+        # Check MD5 files are properly formatted
+        for md5file in ("example.md5",
+                        "ARCHIVE_METADATA/archive_checksums.md5"):
+            with open(os.path.join(archive_dir, md5file), "rt") as fp:
+                for line in fp:
+                    line = line.rstrip("\n")
+                    self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                    is not None,
+                                    f"{md5file}: incorrectly formatted "
+                                    f"MD5 checksum line: {line}")
+        # Check file list
+        with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                if " -> " not in line:
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, line)),
+                                    f"{line}: in filelist but doesn't exist")
+                    if line.endswith(os.sep):
+                        self.assertTrue(os.path.isdir(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is not a directory")
+                    else:
+                        self.assertFalse(os.path.islink(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is a link")
+                else:
+                    f,l = line.split(" -> ")
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, f)),
+                                    f"{f}: in filelist but doesn't exist")
+                    self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
+                                     f"{f}: incorrect target in filelist ({l})")
 
     def test_make_archive_dir_multiple_subarchives(self):
         """
@@ -4389,6 +4433,9 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "subdir1.md5",
                      "subdir2.tar.gz",
                      "subdir2.md5",
+                     "ARCHIVE_README.txt",
+                     "ARCHIVE_TREE.txt",
+                     "ARCHIVE_FILELIST.txt",
                      "ARCHIVE_METADATA",
                      "ARCHIVE_METADATA/archive_checksums.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4396,6 +4443,40 @@ class TestMakeArchiveDir(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
+        # Check MD5 files are properly formatted
+        for md5file in ("subdir1.md5",
+                        "subdir2.md5",
+                        "ARCHIVE_METADATA/archive_checksums.md5"):
+            with open(os.path.join(archive_dir, md5file), "rt") as fp:
+                for line in fp:
+                    line = line.rstrip("\n")
+                    self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                    is not None,
+                                    f"{md5file}: incorrectly formatted "
+                                    f"MD5 checksum line: {line}")
+        # Check file list
+        with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                if " -> " not in line:
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, line)),
+                                    f"{line}: in filelist but doesn't exist")
+                    if line.endswith(os.sep):
+                        self.assertTrue(os.path.isdir(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is not a directory")
+                    else:
+                        self.assertFalse(os.path.islink(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is a link")
+                else:
+                    f,l = line.split(" -> ")
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, f)),
+                                    f"{f}: in filelist but doesn't exist")
+                    self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
+                                     f"{f}: incorrect target in filelist ({l})")
 
     def test_make_archive_dir_multiple_subarchives_including_misc(self):
         """
@@ -4426,6 +4507,9 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "subdir2.md5",
                      "miscellaneous.tar.gz",
                      "miscellaneous.md5",
+                     "ARCHIVE_README.txt",
+                     "ARCHIVE_TREE.txt",
+                     "ARCHIVE_FILELIST.txt",
                      "ARCHIVE_METADATA",
                      "ARCHIVE_METADATA/archive_checksums.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4433,6 +4517,41 @@ class TestMakeArchiveDir(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
+        # Check MD5 files are properly formatted
+        for md5file in ("subdir1.md5",
+                        "subdir2.md5",
+                        "miscellaneous.md5",
+                        "ARCHIVE_METADATA/archive_checksums.md5"):
+            with open(os.path.join(archive_dir, md5file), "rt") as fp:
+                for line in fp:
+                    line = line.rstrip("\n")
+                    self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                    is not None,
+                                    f"{md5file}: incorrectly formatted "
+                                    f"MD5 checksum line: {line}")
+        # Check file list
+        with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                if " -> " not in line:
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, line)),
+                                    f"{line}: in filelist but doesn't exist")
+                    if line.endswith(os.sep):
+                        self.assertTrue(os.path.isdir(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is not a directory")
+                    else:
+                        self.assertFalse(os.path.islink(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is a link")
+                else:
+                    f,l = line.split(" -> ")
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, f)),
+                                    f"{f}: in filelist but doesn't exist")
+                    self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
+                                     f"{f}: incorrect target in filelist ({l})")
 
     def test_make_archive_dir_multiple_subarchives_including_misc_and_extra_files(self):
         """
@@ -4470,6 +4589,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                      "ex6.txt",
                      "ARCHIVE_README.txt",
                      "ARCHIVE_TREE.txt",
+                     "ARCHIVE_FILELIST.txt",
                      "ARCHIVE_METADATA",
                      "ARCHIVE_METADATA/archive_checksums.md5",
                      "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4477,6 +4597,41 @@ class TestMakeArchiveDir(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(archive_dir,item)),
                 "missing '%s'" % item)
+        # Check MD5 files are properly formatted
+        for md5file in ("subdir1.md5",
+                        "subdir2.md5",
+                        "miscellaneous.md5",
+                        "ARCHIVE_METADATA/archive_checksums.md5"):
+            with open(os.path.join(archive_dir, md5file), "rt") as fp:
+                for line in fp:
+                    line = line.rstrip("\n")
+                    self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                    is not None,
+                                    f"{md5file}: incorrectly formatted "
+                                    f"MD5 checksum line: {line}")
+        # Check file list
+        with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                if " -> " not in line:
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, line)),
+                                    f"{line}: in filelist but doesn't exist")
+                    if line.endswith(os.sep):
+                        self.assertTrue(os.path.isdir(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is not a directory")
+                    else:
+                        self.assertFalse(os.path.islink(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is a link")
+                else:
+                    f,l = line.split(" -> ")
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, f)),
+                                    f"{f}: in filelist but doesn't exist")
+                    self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
+                                     f"{f}: incorrect target in filelist ({l})")
 
     def test_make_archive_dir_multi_volume_single_archive(self):
         """
@@ -4508,6 +4663,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "example.01.md5",
                     "ARCHIVE_README.txt",
                     "ARCHIVE_TREE.txt",
+                    "ARCHIVE_FILELIST.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4520,6 +4676,40 @@ class TestMakeArchiveDir(unittest.TestCase):
         for item in a.walk():
             self.assertTrue(os.path.relpath(item,archive_dir) in expected,
                             "'%s' not expected" % item)
+        # Check MD5 files are properly formatted
+        for md5file in ("example.00.md5",
+                        "example.01.md5",
+                        "ARCHIVE_METADATA/archive_checksums.md5"):
+            with open(os.path.join(archive_dir, md5file), "rt") as fp:
+                for line in fp:
+                    line = line.rstrip("\n")
+                    self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                    is not None,
+                                    f"{md5file}: incorrectly formatted "
+                                    f"MD5 checksum line: {line}")
+        # Check file list
+        with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                if " -> " not in line:
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, line)),
+                                    f"{line}: in filelist but doesn't exist")
+                    if line.endswith(os.sep):
+                        self.assertTrue(os.path.isdir(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is not a directory")
+                    else:
+                        self.assertFalse(os.path.islink(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is a link")
+                else:
+                    f,l = line.split(" -> ")
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, f)),
+                                    f"{f}: in filelist but doesn't exist")
+                    self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
+                                     f"{f}: incorrect target in filelist ({l})")
 
     def test_make_archive_dir_multi_volume_multiple_subarchives(self):
         """
@@ -4556,6 +4746,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "subdir2.01.md5",
                     "ARCHIVE_README.txt",
                     "ARCHIVE_TREE.txt",
+                    "ARCHIVE_FILELIST.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4568,6 +4759,42 @@ class TestMakeArchiveDir(unittest.TestCase):
         for item in a.walk():
             self.assertTrue(os.path.relpath(item,archive_dir) in expected,
                             "'%s' not expected" % item)
+        # Check MD5 files are properly formatted
+        for md5file in ("subdir1.00.md5",
+                        "subdir1.01.md5",
+                        "subdir2.00.md5",
+                        "subdir2.01.md5",
+                        "ARCHIVE_METADATA/archive_checksums.md5"):
+            with open(os.path.join(archive_dir, md5file), "rt") as fp:
+                for line in fp:
+                    line = line.rstrip("\n")
+                    self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                    is not None,
+                                    f"{md5file}: incorrectly formatted "
+                                    f"MD5 checksum line: {line}")
+        # Check file list
+        with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                if " -> " not in line:
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, line)),
+                                    f"{line}: in filelist but doesn't exist")
+                    if line.endswith(os.sep):
+                        self.assertTrue(os.path.isdir(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is not a directory")
+                    else:
+                        self.assertFalse(os.path.islink(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is a link")
+                else:
+                    f,l = line.split(" -> ")
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, f)),
+                                    f"{f}: in filelist but doesn't exist")
+                    self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
+                                     f"{f}: incorrect target in filelist ({l})")
 
     def test_make_archive_dir_multi_volume_multiple_subarchives_including_misc(self):
         """
@@ -4614,6 +4841,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "miscellaneous.01.md5",
                     "ARCHIVE_README.txt",
                     "ARCHIVE_TREE.txt",
+                    "ARCHIVE_FILELIST.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4626,6 +4854,44 @@ class TestMakeArchiveDir(unittest.TestCase):
         for item in a.walk():
             self.assertTrue(os.path.relpath(item,archive_dir) in expected,
                             "'%s' not expected" % item)
+        # Check MD5 files are properly formatted
+        for md5file in ("subdir1.00.md5",
+                        "subdir1.01.md5",
+                        "subdir2.00.md5",
+                        "subdir2.01.md5",
+                        "miscellaneous.00.md5",
+                        "miscellaneous.01.md5",
+                        "ARCHIVE_METADATA/archive_checksums.md5"):
+            with open(os.path.join(archive_dir, md5file), "rt") as fp:
+                for line in fp:
+                    line = line.rstrip("\n")
+                    self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                    is not None,
+                                    f"{md5file}: incorrectly formatted "
+                                    f"MD5 checksum line: {line}")
+        # Check file list
+        with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                if " -> " not in line:
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, line)),
+                                    f"{line}: in filelist but doesn't exist")
+                    if line.endswith(os.sep):
+                        self.assertTrue(os.path.isdir(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is not a directory")
+                    else:
+                        self.assertFalse(os.path.islink(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is a link")
+                else:
+                    f,l = line.split(" -> ")
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, f)),
+                                    f"{f}: in filelist but doesn't exist")
+                    self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
+                                     f"{f}: incorrect target in filelist ({l})")
 
     def test_make_archive_dir_multi_volume_multiple_subarchives_including_misc_and_extra_files(self):
         """
@@ -4677,6 +4943,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "ex6.txt",
                     "ARCHIVE_README.txt",
                     "ARCHIVE_TREE.txt",
+                    "ARCHIVE_FILELIST.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4689,6 +4956,44 @@ class TestMakeArchiveDir(unittest.TestCase):
         for item in a.walk():
             self.assertTrue(os.path.relpath(item,archive_dir) in expected,
                             "'%s' not expected" % item)
+        # Check MD5 files are properly formatted
+        for md5file in ("subdir1.00.md5",
+                        "subdir1.01.md5",
+                        "subdir2.00.md5",
+                        "subdir2.01.md5",
+                        "miscellaneous.00.md5",
+                        "miscellaneous.01.md5",
+                        "ARCHIVE_METADATA/archive_checksums.md5"):
+            with open(os.path.join(archive_dir, md5file), "rt") as fp:
+                for line in fp:
+                    line = line.rstrip("\n")
+                    self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                    is not None,
+                                    f"{md5file}: incorrectly formatted "
+                                    f"MD5 checksum line: {line}")
+        # Check file list
+        with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                if " -> " not in line:
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, line)),
+                                    f"{line}: in filelist but doesn't exist")
+                    if line.endswith(os.sep):
+                        self.assertTrue(os.path.isdir(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is not a directory")
+                    else:
+                        self.assertFalse(os.path.islink(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is a link")
+                else:
+                    f,l = line.split(" -> ")
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, f)),
+                                    f"{f}: in filelist but doesn't exist")
+                    self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
+                                     f"{f}: incorrect target in filelist ({l})")
 
     def test_make_archive_dir_handle_symlinks(self):
         """
@@ -4714,6 +5019,7 @@ class TestMakeArchiveDir(unittest.TestCase):
                     "example.md5",
                     "ARCHIVE_README.txt",
                     "ARCHIVE_TREE.txt",
+                    "ARCHIVE_FILELIST.txt",
                     "ARCHIVE_METADATA",
                     "ARCHIVE_METADATA/archive_checksums.md5",
                     "ARCHIVE_METADATA/archiver_metadata.json",
@@ -4733,6 +5039,39 @@ class TestMakeArchiveDir(unittest.TestCase):
                                "symlinks"),'rt') as fp:
             self.assertEqual(fp.read(),
                              "example/subdir/symlink1.txt\texample.tar.gz\n")
+        # Check MD5 files are properly formatted
+        for md5file in ("example.md5",
+                        "ARCHIVE_METADATA/archive_checksums.md5"):
+            with open(os.path.join(archive_dir, md5file), "rt") as fp:
+                for line in fp:
+                    line = line.rstrip("\n")
+                    self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                    is not None,
+                                    f"{md5file}: incorrectly formatted "
+                                    f"MD5 checksum line: {line}")
+        # Check file list
+        with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                if " -> " not in line:
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, line)),
+                                    f"{line}: in filelist but doesn't exist")
+                    if line.endswith(os.sep):
+                        self.assertTrue(os.path.isdir(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is not a directory")
+                    else:
+                        self.assertFalse(os.path.islink(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is a link")
+                else:
+                    f,l = line.split(" -> ")
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, f)),
+                                    f"{f}: in filelist but doesn't exist")
+                    self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
+                                     f"{f}: incorrect target in filelist ({l})")
 
 class TestMd5sum(unittest.TestCase):
 
