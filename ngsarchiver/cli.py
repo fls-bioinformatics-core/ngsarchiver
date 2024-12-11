@@ -219,6 +219,7 @@ def main(argv=None):
                       "Compressed",
                       "Compressed%",
                       "Unreadable?",
+                      "Unwriteable?",
                       "Symlinks?",
                       "Dirlinks?",
                       "External?",
@@ -246,6 +247,7 @@ def main(argv=None):
                         f"{float(compressed_file_size)/float(size)*100.0:.1f}" \
                         if not (compressed_file_size == 0 and size == 0) else "0.0",
                         format_bool(not d.is_readable),
+                        format_bool(not d.is_writeable),
                         format_bool(d.has_symlinks),
                         format_bool(d.has_dirlinks),
                         format_bool(d.has_external_symlinks),
@@ -282,6 +284,13 @@ def main(argv=None):
                     is_readable = False
                 if is_readable:
                     print("-- no unreadable files")
+                print("Unwriteable files:")
+                is_writeable = True
+                for f in d.unwriteable_files:
+                    print(f"-- {f}")
+                    is_writeable = False
+                if is_writeable:
+                    print("-- no unwriteable files")
                 print("Symlinks: %s" % format_bool(d.has_symlinks))
                 print("Dirlinks:")
                 has_dirlinks = False
@@ -335,6 +344,8 @@ def main(argv=None):
             else:
                 print(f"Unreadable files     : "
                       f"{format_bool(not d.is_readable)}")
+                print(f"Unwriteable files    : "
+                      f"{format_bool(not d.is_writeable)}")
                 print(f"Symlinks             : {format_bool(d.has_symlinks)}")
                 print(f"Dirlinks             : {format_bool(d.has_dirlinks)}")
                 print(f"External symlinks    : "
