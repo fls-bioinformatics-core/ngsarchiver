@@ -1438,6 +1438,13 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
                          ["example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt",
                           "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -1565,6 +1572,13 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         self.assertEqual(sorted([x.path for x in a.search(
             path="example/subdir*/ex1.txt")]),
                          ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt",
                           "example/subdir3/ex1.txt"])
         # Verify archive
@@ -1705,6 +1719,13 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                          ["example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt",
                           "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -1832,6 +1853,11 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                           "example/subdir2/ex1.txt"])
         self.assertEqual(sorted([x.path for x in a.search(
             path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
                          ["example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt"])
         # Verify archive
@@ -2009,6 +2035,13 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         self.assertEqual(sorted([x.path for x in a.search(
             path="example/subdir*/ex1.txt")]),
                          ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt",
                           "example/subdir3/ex1.txt"])
         # Verify archive
@@ -2205,6 +2238,13 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                          ["example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt",
                           "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -2327,6 +2367,13 @@ example_external_symlinks/subdir1/symlink1.txt	example_external_symlinks.tar.gz
             path="example_external_symlinks/subdir*/*symlink1.txt")]),
                          ["example_external_symlinks/subdir1/symlink1.txt",
                           "example_external_symlinks/subdir2/external_symlink1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example_external_symlinks/ex1.txt",
+                          "example_external_symlinks/subdir1/ex1.txt",
+                          "example_external_symlinks/subdir2/ex1.txt",
+                          "example_external_symlinks/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -2482,6 +2529,13 @@ example_broken_symlinks/subdir1/symlink1.txt	example_broken_symlinks.tar.gz
             path="example_broken_symlinks/subdir*/*symlink1.txt")]),
                          ["example_broken_symlinks/subdir1/symlink1.txt",
                           "example_broken_symlinks/subdir2/broken_symlink1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example_broken_symlinks/ex1.txt",
+                          "example_broken_symlinks/subdir1/ex1.txt",
+                          "example_broken_symlinks/subdir2/ex1.txt",
+                          "example_broken_symlinks/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -2637,6 +2691,13 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
                          ["example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt",
                           "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -2758,6 +2819,13 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         self.assertEqual(sorted([x.path for x in a.search(
             path="example/subdir*/ex1.txt")]),
                          ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt",
                           "example/subdir3/ex1.txt"])
         # Verify archive
@@ -2892,6 +2960,13 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                          ["example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt",
                           "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -3013,6 +3088,11 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                           "example/subdir2/ex1.txt"])
         self.assertEqual(sorted([x.path for x in a.search(
             path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
                          ["example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt"])
         # Verify archive
@@ -3184,6 +3264,13 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
         self.assertEqual(sorted([x.path for x in a.search(
             path="example/subdir*/ex1.txt")]),
                          ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt",
                           "example/subdir3/ex1.txt"])
         # Verify archive
@@ -3374,6 +3461,13 @@ a0b67a19eabb5b96f97a8694e4d8cd9e  miscellaneous.tar.gz
                          ["example/subdir1/ex1.txt",
                           "example/subdir2/ex1.txt",
                           "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -3490,6 +3584,13 @@ example_external_symlinks/subdir1/symlink1.txt	example_external_symlinks.tar.gz
             path="example_external_symlinks/subdir*/*symlink1.txt")]),
                          ["example_external_symlinks/subdir1/symlink1.txt",
                           "example_external_symlinks/subdir2/external_symlink1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example_external_symlinks/ex1.txt",
+                          "example_external_symlinks/subdir1/ex1.txt",
+                          "example_external_symlinks/subdir2/ex1.txt",
+                          "example_external_symlinks/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
@@ -3640,6 +3741,13 @@ example_broken_symlinks/subdir1/symlink1.txt	example_broken_symlinks.tar.gz
             path="example_broken_symlinks/subdir*/*symlink1.txt")]),
                          ["example_broken_symlinks/subdir1/symlink1.txt",
                           "example_broken_symlinks/subdir2/broken_symlink1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example_broken_symlinks/ex1.txt",
+                          "example_broken_symlinks/subdir1/ex1.txt",
+                          "example_broken_symlinks/subdir2/ex1.txt",
+                          "example_broken_symlinks/subdir3/ex1.txt"])
         # Verify archive
         self.assertTrue(a.verify_archive())
         # Unpack
