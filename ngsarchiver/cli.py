@@ -524,9 +524,26 @@ def main(argv=None):
     if args.subcommand == 'unpack':
         a = ArchiveDirectory(args.archive)
         print("Unpacking archive: %s" % a)
-        print("Destination      : %s" % ('CWD' if not args.out_dir
-                                         else args.out_dir))
-        d = a.unpack(extract_dir=args.out_dir)
+        dest_dir = args.out_dir
+        if not dest_dir:
+            dest_dir = os.getcwd()
+        print("Destination      : %s" % dest_dir)
+        if "source_has_symlinks" in a.archive_metadata:
+            if a.archive_metadata["source_has_symlinks"]:
+                # Check if symlink creation is possible
+                if not check_make_symlink(dest_dir):
+                    logger.critical("archive includes symlinks but cannot "
+                                    "make links under destination directory")
+                    return CLIStatus.ERROR
+        if "source_has_case_sensitive_filenames" in a.archive_metadata:
+            if a.archive_metadata["source_has_case_sensitive_filenames"]:
+                # Check if case-sensitive filenames are supported
+                if not check_case_sensitive_filenames(dest_dir):
+                    logger.critical("archive includes case-sensitive file "
+                                    "names but destination cannot handle "
+                                    "names which only differ by case")
+                return CLIStatus.ERROR
+        d = a.unpack(extract_dir=dest_dir)
         print("Unpacked directory: %s" % d)
         return CLIStatus.OK
 
