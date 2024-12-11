@@ -47,6 +47,7 @@ GITHUB_URL = "https://github.com/fls-bioinformatics-core/ngsarchiver"
 ZENODO_URL = "https://doi.org/10.5281/zenodo.14024309"
 MD5_BLOCKSIZE = 1024*1024
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+README_DATE_FORMAT = "%H:%M:%S %A %d %B %Y"
 README_LINE_WIDTH = 75
 
 # Tree components
@@ -1613,6 +1614,15 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         'name': d.basename,
         'source': d.path,
         'source_date': None,
+        'source_size': format_size(d.size,human_readable=True),
+        'source_has_broken_symlinks': d.has_broken_symlinks,
+        'source_has_dirlinks': d.has_dirlinks,
+        'source_has_external_symlinks': d.has_external_symlinks,
+        'source_has_hard_linked_files': d.has_hard_linked_files,
+        'source_has_symlinks': d.has_symlinks,
+        'source_has_unresolvable_symlinks': d.has_unresolvable_symlinks,
+        'source_has_unreadable_files': not d.is_readable,
+        'source_has_case_sensitive_filenames': d.has_case_sensitive_filenames,
         'type': ArchiveDirectory.__name__,
         'subarchives': [],
         'files': [],
@@ -1780,10 +1790,13 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     readme.add(f"This is a compressed archive of the directory originally "
                f"located at:")
     readme.add(f"{d.path}")
-    readme.add(f"The archive was created using the 'ngsarchiver' utility "
-               f"(version {get_version()}), which is hosted on Github at "
-               f"{GITHUB_URL} and is also archived on Zenodo at "
+    readme.add(f"The archive was created at "
+               f"{time.strftime(README_DATE_FORMAT)} using the 'ngsarchiver' "
+               f"utility (version {get_version()}), which is hosted on "
+               f"Github at {GITHUB_URL} and is also archived on Zenodo at "
                f"{ZENODO_URL}.")
+    readme.add(f"The original directory was calculated to be "
+               f"{format_size(d.size,human_readable=True)}.")
     if not sub_dirs:
         # All files in a single archive
         if not multi_volume:
@@ -2338,12 +2351,21 @@ def make_copy(d, dest, replace_symlinks=False,
         'source': d.path,
         'source_date': datetime.datetime.fromtimestamp(
             source_timestamp).strftime(DATE_FORMAT),
+        'source_size': format_size(d.size,human_readable=True),
+        'source_has_broken_symlinks': d.has_broken_symlinks,
+        'source_has_dirlinks': d.has_dirlinks,
+        'source_has_external_symlinks': d.has_external_symlinks,
+        'source_has_hard_linked_files': d.has_hard_linked_files,
+        'source_has_symlinks': d.has_symlinks,
+        'source_has_unresolvable_symlinks': d.has_unresolvable_symlinks,
+        'source_has_unreadable_files': not d.is_readable,
+        'source_has_case_sensitive_filenames': d.has_case_sensitive_filenames,
         'type': CopyArchiveDirectory.__name__,
         'user': getpass.getuser(),
         'creation_date': time.strftime(DATE_FORMAT),
-        'replace_symlinks': format_bool(replace_symlinks),
-        'transform_broken_symlinks': format_bool(transform_broken_symlinks),
-        'follow_dirlinks': format_bool(follow_dirlinks),
+        'replace_symlinks': replace_symlinks,
+        'transform_broken_symlinks': transform_broken_symlinks,
+        'follow_dirlinks': follow_dirlinks,
         'ngsarchiver_version': get_version(),
     }
     # Write archive contents to JSON file
@@ -2355,9 +2377,10 @@ def make_copy(d, dest, replace_symlinks=False,
     readme.add(f"This is an archive copy of the directory originally "
                f"located at:")
     readme.add(f"{d.path}")
-    readme.add(f"The archive was created using the 'ngsarchiver' utility "
-               f"(version {get_version()}), which is hosted on Github at "
-               f"{GITHUB_URL} and is also archived on Zenodo at "
+    readme.add(f"The archive was created at "
+               f"{time.strftime(README_DATE_FORMAT)} using the 'ngsarchiver' "
+               f"utility (version {get_version()}), which is hosted on "
+               f"Github at {GITHUB_URL} and is also archived on Zenodo at "
                f"{ZENODO_URL}.")
     if not (replace_symlinks or transform_broken_symlinks or follow_dirlinks):
         readme.add(f"All files and directories in the source directory "
