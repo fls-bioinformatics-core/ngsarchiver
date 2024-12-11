@@ -248,13 +248,29 @@ class Directory:
         return True
 
     @property
+    def unwriteable_files(self):
+        """
+        Return full paths to files etc that are not writeable
+        """
+        for o in self.walk():
+            try:
+                if self._cache[o]["unwriteable"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["unwriteable"] = (not os.path.islink(o) and
+                                                 not os.access(o,os.W_OK))
+                if self._cache[o]["unwriteable"]:
+                    yield o
+
+    @property
     def is_writeable(self):
         """
         Check if all files and subdirectories are writeable
         """
-        for o in self.walk():
-            if not os.access(o,os.W_OK):
-                return False
+        for o in self.unwriteable_files:
+            return False
         return True
 
     @property
