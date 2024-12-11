@@ -2,6 +2,21 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.8.0 (2024-12-11)
+---------------------------
+
+* Additional metadata items stored for compressed and copy
+  archive directories (include size of the soure directory
+  and whether it included symlinks etc) (PR #53)
+* ``unpack`` command checks if destination file system can
+  support symlink creation and/or case-sensitive naming, if
+  either of these are required to unpack a compressed
+  archive (PR #54)
+* ``info`` command also reports on "unwriteable" files (i.e.
+  files that the current user doesn't have write permissions
+  for) (PR #55)
+
+---------------------------
 Version 1.7.0 (2024-12-02)
 ---------------------------
 
