@@ -2363,9 +2363,9 @@ def make_copy(d, dest, replace_symlinks=False,
         'type': CopyArchiveDirectory.__name__,
         'user': getpass.getuser(),
         'creation_date': time.strftime(DATE_FORMAT),
-        'replace_symlinks': format_bool(replace_symlinks),
-        'transform_broken_symlinks': format_bool(transform_broken_symlinks),
-        'follow_dirlinks': format_bool(follow_dirlinks),
+        'replace_symlinks': replace_symlinks,
+        'transform_broken_symlinks': transform_broken_symlinks,
+        'follow_dirlinks': follow_dirlinks,
         'ngsarchiver_version': get_version(),
     }
     # Write archive contents to JSON file
