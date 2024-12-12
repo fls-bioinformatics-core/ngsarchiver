@@ -1109,6 +1109,7 @@ class ArchiveDirectory(Directory):
         if not name and not path:
             # Nothing to do
             return
+        matches = set()
         if case_insensitive:
             if name:
                 name = name.lower()
@@ -1121,10 +1122,14 @@ class ArchiveDirectory(Directory):
             else:
                 p_ = p
             if name:
-                if fnmatch.fnmatch(os.path.basename(p_),name):
+                if fnmatch.fnmatch(os.path.basename(p_),name) and \
+                   m not in matches:
+                    matches.add(m)
                     yield m
             if path:
-                if fnmatch.fnmatch(p_,path):
+                if fnmatch.fnmatch(p_,path) and \
+                   m not in matches:
+                    matches.add(m)
                     yield m
 
     def extract_files(self,name,extract_dir=None,include_path=False):
