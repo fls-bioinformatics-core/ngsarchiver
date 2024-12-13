@@ -2603,6 +2603,127 @@ example_broken_symlinks/subdir1/symlink1.txt	example_broken_symlinks.tar.gz
                          "broken_symlink1.txt")),
                          "./ex3.txt")
 
+    def test_archivedirectory_unpack_non_standard_name(self):
+        """
+        ArchiveDirectory: unpack archive with non-standard name
+        """
+        # Build example archive dir with a non-standard name
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "example.archived"))
+        example_archive.add("example.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sIAAAAAAAAA+2ZYWqDQBCF/Z1TeIJkdxzda/QKpllog6HBbMDjd7QVopKWQJxt2ff9MehCFl6+8Wl8V5/Ojd9lK2IE58r+aF1pbo8jmWXmQpZZI+usqchmebnmpkaul1C3eZ6dj/sf1/12/Z/iv/O/XPeH95ZW+R08lL+T85bkOvLXYJ6/72gbuvDU7+gDriq+n7/IPs2/YJL8zVN3cYfE839p6lf/9tEcfJsH34VN7A0BVZb+27/hP8N/DeB/2kz9t/H7H1df/c+h/2kwzz96/xvyl/nvMP81wPxPm6X/kfsfM/qfIvA/bab+F/H7n6O+/5GcQv9TYJ5/9P435F/IZ8x/DTD/02bpf+z3f4TnP0Xgf9qM/q/h/chD/g///5Mpcf9XAf4DAECafAIvyELwACgAAA=='))
+        example_archive.add("example.md5",
+                            type="file",
+                            content="""d1ee10b76e42d7e06921e41fbb9b75f7  example/ex1.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir2/ex1.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir1/ex1.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex2.txt
+d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
+                            type="file",
+                            content="f210d02b4a294ec38c6ed82b92a73c44  example.tar.gz\n")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",
+                            type="file",
+                            content="""{
+  "name": "example",
+  "source": "/original/path/to/example",
+  "source_date": "2019-11-27 17:19:02",
+  "type": "ArchiveDirectory",
+  "subarchives": [
+    "example.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "2023-06-16 09:58:39",
+  "multi_volume": false,
+  "volume_size": null,
+  "compression_level": 6,
+  "ngsarchiver_version": "0.0.1"
+}
+""")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_README.txt",type="file")
+        example_archive.add("ARCHIVE_FILELIST.txt",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
+        example_archive.create()
+        p = example_archive.path
+        # Expected contents
+        expected = ('example/ex1.txt',
+                    'example/subdir1',
+                    'example/subdir1/ex1.txt',
+                    'example/subdir1/ex2.txt',
+                    'example/subdir2',
+                    'example/subdir2/ex1.txt',
+                    'example/subdir2/ex2.txt',
+                    'example/subdir3',
+                    'example/subdir3/ex1.txt',
+                    'example/subdir3/ex2.txt',)
+        # Check example loads as ArchiveDirectory
+        a = ArchiveDirectory(p)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        # Check subset of metadata
+        metadata = a.archive_metadata
+        self.assertEqual(metadata['name'],"example")
+        self.assertEqual(metadata['subarchives'],["example.tar.gz"])
+        self.assertEqual(metadata['files'],[])
+        self.assertEqual(metadata['multi_volume'],False)
+        self.assertEqual(metadata['volume_size'],None)
+        # List contents
+        for item in a.list():
+            self.assertTrue(item.path in expected,
+                            "%s: unexpected item" % item.path)
+        # Search for items
+        self.assertEqual(sorted([x.path for x in a.search(name="ex1.*")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            path="example/subdir*/ex1.txt")]),
+                         ["example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        self.assertEqual(sorted([x.path for x in a.search(
+            name="ex1.*",
+            path="*/ex1.txt")]),
+                         ["example/ex1.txt",
+                          "example/subdir1/ex1.txt",
+                          "example/subdir2/ex1.txt",
+                          "example/subdir3/ex1.txt"])
+        # Verify archive
+        self.assertTrue(a.verify_archive())
+        # Unpack (& check no extra artefacts are created)
+        self.assertFalse(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.listdir(self.wd), ["example.archived"])
+        a.unpack(extract_dir=self.wd)
+        self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        self.assertEqual(os.listdir(self.wd), ["example.archived", "example"])
+        self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
+                         os.path.getmtime(a.path))
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(self.wd,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in Directory(os.path.join(self.wd,"example")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in expected,
+                            "'%s' not expected" % item)
+        # Extract items
+        extract_dir = os.path.join(self.wd,"test_extract")
+        os.mkdir(extract_dir)
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"ex1.txt")))
+        a.extract_files(name="example/ex1.*",extract_dir=extract_dir,
+                        include_path=True)
+        self.assertTrue(os.path.exists(
+            os.path.join(extract_dir,"example","ex1.txt")))
+
+
 class TestLegacyArchiveDirectory(unittest.TestCase):
 
     def setUp(self):
