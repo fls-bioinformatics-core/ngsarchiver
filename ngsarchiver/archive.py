@@ -1238,8 +1238,7 @@ class ArchiveDirectory(Directory):
             raise NgsArchiverException("%s: destination '%s' doesn't "
                                        "exist or is not a directory"
                                        % (self._path,extract_dir))
-        d = os.path.join(extract_dir,
-                         os.path.basename(self._path)[:-len('.archive')])
+        d = os.path.join(extract_dir, self.archive_metadata["name"])
         if os.path.exists(d):
             raise NgsArchiverException("%s: would overwrite existing "
                                        "directory in destination '%s' "
