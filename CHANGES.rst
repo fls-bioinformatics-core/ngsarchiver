@@ -2,6 +2,16 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.8.1 (2024-12-13)
+---------------------------
+
+* Bug fix to prevent ``extract`` command attempting to extract
+  the same files multiple times (PR #57)
+* Bug fix to handle non-standard compressed archive directory
+  names (i.e. not in ``SOURCE.archive`` format) when unpacking
+  (PR #58)
+
+---------------------------
 Version 1.8.0 (2024-12-11)
 ---------------------------
 
