@@ -2,6 +2,15 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.8.2 (2024-12-16)
+---------------------------
+
+* Bug fix for ``unpack`` command when unpacking an archive
+  with filenames that differ only by case (would incorrectly
+  fail even when the destination file system was able to
+  differentiate filenames differing only by case) (PR #60)
+
+---------------------------
 Version 1.8.1 (2024-12-13)
 ---------------------------
 
