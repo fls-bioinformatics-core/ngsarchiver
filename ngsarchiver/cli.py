@@ -553,7 +553,7 @@ def main(argv=None):
                     logger.critical("archive includes case-sensitive file "
                                     "names but destination cannot handle "
                                     "names which only differ by case")
-                return CLIStatus.ERROR
+                    return CLIStatus.ERROR
         d = a.unpack(extract_dir=dest_dir)
         print("Unpacked directory: %s" % d)
         return CLIStatus.OK
