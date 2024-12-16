@@ -427,6 +427,117 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
                          CLIStatus.OK)
         self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
 
+    def test_unpack_symlinks(self):
+        """
+        CLI: test the 'unpack' command (includes symlink)
+        """
+        # Make example archive dir to unpack
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "example_symlink.archive"))
+        example_archive.add("example_symlink.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sICHMOYGcC/2V4YW1wbGVfc3ltbGluay50YXIA7dJBCsIwEIXhrD1FTqBJTZMTeA6pEKE2LcVWqLe3QQIqqAhVEf9vM4vMYjJv/FDUbfDr7liHsqkWoam0mJgaOedi1S5XlzUR2rhlbFPaCKVza6yQmR/0vB/6qee5cuj6Yi+laHebh33P3tNHUv0R/ib/d6w87sNacz9/naf8rc1czH88BCE/ssQ/z391zl9uy+Bn3x4GAAAAAAAAAAAAAAAAwEtOb7+0GwAoAAA='))
+        example_archive.add("example_symlink.md5",
+                            type="file",
+                            content="""b4f9ae8d540e6dc361c6377d5749faf9  example_symlink/ex1.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
+                            type="file",
+                            content="a8c27b8a20bf13089a907e68cedb159b  example_symlink.tar.gz\n")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",type="file",
+                            content="""{
+  "name": "example_symlink",
+  "source": "/original/path/to/example_symlink",
+  "source_date": "2024-12-16 11:25:00",
+  "source_size": "4.0K",
+  "source_has_broken_symlinks": false,
+  "source_has_dirlinks": false,
+  "source_has_external_symlinks": false,
+  "source_has_hard_linked_files": false,
+  "source_has_symlinks": true,
+  "source_has_unresolvable_symlinks": false,
+  "source_has_unreadable_files": false,
+  "source_has_case_sensitive_filenames": false,
+  "type": "ArchiveDirectory",
+  "subarchives": [
+    "example_symlink.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "2024-12-16 11:26:43",
+  "multi_volume": false,
+  "volume_size": null,
+  "compression_level": 6,
+  "ngsarchiver_version": "1.8.1"
+}
+""")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_METADATA/symlinks",type="file",
+                            content="example_symlink/lnk1	example_symlink.tar.gz\n")
+        example_archive.add("ARCHIVE_FILELIST.txt",type="file")
+        example_archive.add("ARCHIVE_README.txt",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
+        example_archive.create()
+        self.assertEqual(main(['unpack',example_archive.path]),
+                         CLIStatus.OK)
+        self.assertTrue(os.path.exists(os.path.join(self.wd,
+                                                    "example_symlink")))
+
+    def test_unpack_case_sensitive_file_names(self):
+        """
+        CLI: test the 'unpack' command (case-sensitive file names)
+        """
+        # Make example archive dir to unpack
+        example_archive = UnittestDir(os.path.join(self.wd,
+                                                   "example_cs.archive"))
+        example_archive.add("example_cs.tar.gz",
+                            type="binary",
+                            content=base64.b64decode(b'H4sICKYOYGcC/2V4YW1wbGVfY3MudGFyAO3TQQuCMBjG8Z37FPsEtjV15w4LAoMOHryFxYLCQNLAj59hVBAUgRjC/3d5x/bC3jEe3+SnsvCbXTV1mQ7SLBW9U604Dm9V20i91o6OhA6taVdWm5lQ2kTGCqn6H+Xdparzs5SiPG4/9n07vz/lUUfCZfPVOnFysUzc5N/DYHD+mX/f6KBu6v7v+CX/Kmz7dNjukf8huO7/5f5QePIPAAAAAAAAAAAAAAAwPlcGoo/KACgAAA=='))
+        example_archive.add("example_cs.md5",
+                            type="file",
+                            content="""808a0729a22c5d6f9df80c4816465909  example_cs/EX1.TXT
+b4f9ae8d540e6dc361c6377d5749faf9  example_cs/ex1.txt
+""")
+        example_archive.add("ARCHIVE_METADATA/archive_checksums.md5",
+                            type="file",
+                            content="2238933c3328eaa5d4c8a7839dd88261  example_cs.tar.gz\n")
+        example_archive.add("ARCHIVE_METADATA/archiver_metadata.json",type="file",
+                            content="""{
+  "name": "example_cs",
+  "source": "/original/path/to/example_cs",
+  "source_date": "2024-12-16 11:26:18",
+  "source_size": "8.0K",
+  "source_has_broken_symlinks": false,
+  "source_has_dirlinks": false,
+  "source_has_external_symlinks": false,
+  "source_has_hard_linked_files": false,
+  "source_has_symlinks": false,
+  "source_has_unresolvable_symlinks": false,
+  "source_has_unreadable_files": false,
+  "source_has_case_sensitive_filenames": true,
+  "type": "ArchiveDirectory",
+  "subarchives": [
+    "example_cs.tar.gz"
+  ],
+  "files": [],
+  "user": "anon",
+  "creation_date": "2024-12-16 11:27:34",
+  "multi_volume": false,
+  "volume_size": null,
+  "compression_level": 6,
+  "ngsarchiver_version": "1.8.1"
+}
+""")
+        example_archive.add("ARCHIVE_METADATA/manifest",type="file")
+        example_archive.add("ARCHIVE_FILELIST.txt",type="file")
+        example_archive.add("ARCHIVE_README.txt",type="file")
+        example_archive.add("ARCHIVE_TREE.txt",type="file")
+        example_archive.create()
+        self.assertEqual(main(['unpack',example_archive.path]),
+                         CLIStatus.OK)
+        self.assertTrue(os.path.exists(os.path.join(self.wd,
+                                                    "example_cs")))
+
     def test_compare(self):
         """
         CLI: test the 'compare' command
