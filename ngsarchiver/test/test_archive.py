@@ -683,6 +683,20 @@ class TestDirectory(unittest.TestCase):
                                   os.path.join(p, "subdir1", "ex2.txt"))]))
         self.assertTrue(d.has_case_sensitive_filenames)
 
+    def test_directory_is_empty(self):
+        """
+        Directory: check detection of empty directory
+        """
+        # Build (empty) example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"empty_example"))
+        example_dir.create()
+        self.assertTrue(Directory(example_dir.path).is_empty)
+        # Build non-empty dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.create()
+        self.assertFalse(Directory(example_dir.path).is_empty)
+
     def test_directory_check_group(self):
         """
         Directory: check 'check_group' method

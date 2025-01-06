@@ -475,6 +475,15 @@ class Directory:
         return False
 
     @property
+    def is_empty(self):
+        """
+        Check if directory is empty
+        """
+        for o in self.walk():
+            return False
+        return True
+
+    @property
     def compressed_files(self):
         """
         Return files that are compressed
