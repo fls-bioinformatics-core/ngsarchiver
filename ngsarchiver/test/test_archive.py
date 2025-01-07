@@ -27,6 +27,7 @@ from ngsarchiver.archive import verify_checksums
 from ngsarchiver.archive import make_archive_dir
 from ngsarchiver.archive import make_archive_tgz
 from ngsarchiver.archive import make_archive_multitgz
+from ngsarchiver.archive import make_empty_archive
 from ngsarchiver.archive import unpack_archive_multitgz
 from ngsarchiver.archive import make_copy
 from ngsarchiver.archive import make_manifest_file
@@ -5871,6 +5872,87 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
         # Check no expected members are missing from the archive
         for f in expected:
             self.assertTrue(f in members)
+
+class TestMakeEmptyArchive(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestMakeEmptyArchive')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_make_empty_archive(self):
+        """
+        make_empty_archive: create archive for empty directory
+        """
+        # Build example dir
+        empty_dir = UnittestDir(os.path.join(self.wd, "empty"))
+        empty_dir.create()
+        p = empty_dir.path
+        # Make archive
+        empty_archive = os.path.join(self.wd, "empty.tar.gz")
+        self.assertEqual(make_empty_archive(empty_archive, p),
+                         empty_archive)
+        # Check archive exists
+        self.assertTrue(os.path.exists(empty_archive))
+        # Check archive contains only expected members
+        expected = set(["."])
+        members = set()
+        # Check contents
+        with tarfile.open(empty_archive, "r:gz") as tgz:
+            for f in tgz.getnames():
+                self.assertTrue(f in expected,
+                                f"{f} in archive but shouldn't be")
+                self.assertFalse(f in members, f"{f} appears multiple times")
+                members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            self.assertTrue(f in members, f"{f} not found in archive")
+
+    def test_make_empty_archive_with_base_dir(self):
+        """
+        make_empty_archive: empty archive with base directory
+        """
+        # Build example dir
+        empty_dir = UnittestDir(os.path.join(self.wd, "empty"))
+        empty_dir.create()
+        p = empty_dir.path
+        # Make archive
+        empty_archive = os.path.join(self.wd, "empty.tar.gz")
+        self.assertEqual(make_empty_archive(empty_archive, p,
+                                            base_dir="empty"),
+                         empty_archive)
+        # Check archive exists
+        self.assertTrue(os.path.exists(empty_archive))
+        # Check archive contains only expected members
+        expected = set(["empty/."])
+        members = set()
+        # Check contents
+        with tarfile.open(empty_archive, "r:gz") as tgz:
+            for f in tgz.getnames():
+                self.assertTrue(f in expected,
+                                f"{f} in archive but shouldn't be")
+                self.assertFalse(f in members, f"{f} appears multiple times")
+                members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            self.assertTrue(f in members, f"{f} not found in archive")
+
+    def test_make_empty_archive_source_dir_not_empty(self):
+        """
+        make_empty_archive: raise exception if source directory isn't empty
+        """
+        # Build example dir
+        non_empty_dir = UnittestDir(os.path.join(self.wd, "not_empty"))
+        non_empty_dir.add("file1.txt", type="file", content="text")
+        non_empty_dir.create()
+        # Attempting to make archive should raise exception
+        non_empty_archive = os.path.join(self.wd, "not_empty.tar.gz")
+        self.assertRaises(NgsArchiverException,
+                          make_empty_archive,
+                          non_empty_archive,
+                          non_empty_dir.path)
 
 class TestUnpackArchiveMultiTgz(unittest.TestCase):
 
