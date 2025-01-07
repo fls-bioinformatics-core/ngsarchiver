@@ -6204,6 +6204,53 @@ class TestUnpackArchiveMultiTgz(unittest.TestCase):
             self.assertTrue(os.path.relpath(item,self.wd) in all_expected,
                             "'%s' not expected" % item)
 
+    def test_unpack_archive_multitgz_multiple_tar_gz_empty_archive(self):
+        """
+        unpack_archive_multitgz: multiple .tar.gz files including empty archive
+        """
+        # Make example tar.gz files
+        example_targz_data = [
+            { 'path': os.path.join(self.wd,"subdir1.tar.gz"),
+              'b64content': b'H4sIAAAAAAAAA+3T3QqCMBjG8R13FV5BbnO62+gWNAcVRqILdvkpEYRhnfiB9P+dvAd7YS88PC7k17pycXsvynOjYjED2bE27aeyqXyfL0IZY5JuTZlMSKWVtSJK5zhm6N76vIkiUV+Kr3u/3jfKDfJ3Qe998JP+0QecZWY8f60G+SdGd/nLSa8Y8ef5H6r86E63qnRN5F3wu7UPwqI++69W7r959t/Q/yXQfwAAAAAAAAAAAAAAtu8BVJJOSAAoAAA=',
+              'expected': ('example/subdir1',
+                           'example/subdir1/ex1.txt',
+                           'example/subdir1/ex2.txt',),
+            },
+            # "Empty" archive
+            { 'path': os.path.join(self.wd,"subdir2.tar.gz"),
+              'b64content': b'H4sICEcNfWcC/3N1YmRpcjIudGFyAO3PQQqDQAxA0RxlTtBJHMecR6kLpQXRCj1+62JAENqN7v7b/EWySPp3+5wefVzW7j7MVbxFOZ1+ueet5ln3LcRqT15pUycTtdSoScjnn3K0Lq92DkGmsfu5929eHikFAAAAAAAAAAAAAAAAAOBCH1KGpMIAKAAA',
+              'expected': ('example/subdir2',),
+            },
+            { 'path': os.path.join(self.wd,"miscellaneous.tar.gz"),
+              'b64content': b'H4sIAAAAAAAAA+3W0QrCIBQGYK97Cp+gHZ3O1+gVtiZULBqbAx8/V0GxqCjmovZ/N4oOdkD+o9bn+7qyifVi6bxjMVCQZaofhdF0O55JwYRSKiUygjQjISlsc4pSzUDXurzhnNW74ul3r/Z/1KrK13ZzqErbcGe9W3y7IJiUveS/7Ypy26RJjH/0ETdGP84/0TX/Rvb5l2GJ6xjFDM08/8Pzt16Ofg+81f9P55+GOfr/FND/5+0+/+O/Az/JvzTI/xSQfwAAAAAAAAAAAAAAAID/cQRHXCooACgAAA==',
+              'expected': ('example/ex1.txt',
+                           'example/subdir3',
+                           'example/subdir3/ex1.txt',
+                           'example/subdir3/ex2.txt',),
+            }
+        ]
+        for targz in example_targz_data:
+            example_targz = targz['path']
+            with open(example_targz,'wb') as fp:
+                fp.write(base64.b64decode(targz['b64content']))
+        # Unpack the targz files
+        example_targzs = [t['path'] for t in example_targz_data]
+        unpack_archive_multitgz(example_targzs,extract_dir=self.wd)
+        # Check unpacked directories
+        self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        all_expected = []
+        for targz in example_targz_data:
+            expected = targz['expected']
+            for item in expected:
+                self.assertTrue(
+                    os.path.exists(os.path.join(self.wd,item)),
+                    "missing '%s'" % item)
+                all_expected.append(item)
+        # Check extra items aren't present
+        for item in Directory(os.path.join(self.wd,"example")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in all_expected,
+                            "'%s' not expected" % item)
+
 class TestMakeCopy(unittest.TestCase):
 
     def setUp(self):
