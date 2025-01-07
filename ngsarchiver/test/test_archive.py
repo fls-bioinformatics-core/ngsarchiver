@@ -27,6 +27,7 @@ from ngsarchiver.archive import verify_checksums
 from ngsarchiver.archive import make_archive_dir
 from ngsarchiver.archive import make_archive_tgz
 from ngsarchiver.archive import make_archive_multitgz
+from ngsarchiver.archive import make_empty_archive
 from ngsarchiver.archive import unpack_archive_multitgz
 from ngsarchiver.archive import make_copy
 from ngsarchiver.archive import make_manifest_file
@@ -682,6 +683,20 @@ class TestDirectory(unittest.TestCase):
                                  (os.path.join(p, "subdir1", "Ex2.txt"),
                                   os.path.join(p, "subdir1", "ex2.txt"))]))
         self.assertTrue(d.has_case_sensitive_filenames)
+
+    def test_directory_is_empty(self):
+        """
+        Directory: check detection of empty directory
+        """
+        # Build (empty) example dir
+        example_dir = UnittestDir(os.path.join(self.wd,"empty_example"))
+        example_dir.create()
+        self.assertTrue(Directory(example_dir.path).is_empty)
+        # Build non-empty dir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.create()
+        self.assertFalse(Directory(example_dir.path).is_empty)
 
     def test_directory_check_group(self):
         """
@@ -4865,6 +4880,80 @@ class TestMakeArchiveDir(unittest.TestCase):
                     self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
                                      f"{f}: incorrect target in filelist ({l})")
 
+    def test_make_archive_dir_multiple_subarchives_empty_toplevel_subdir(self):
+        """
+        make_archive_dir: multiple subarchives (empty top-level subdir)
+        """
+        # Build example directory with an empty top-level subdir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("subdir1/ex1.txt",type="file",content="Some text\n")
+        example_dir.add("subdir2/",type="dir")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
+                             out_dir=self.wd)
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        for item in ("subdir1.tar.gz",
+                     "subdir1.md5",
+                     "subdir2.tar.gz",
+                     "subdir2.md5",
+                     "ARCHIVE_README.txt",
+                     "ARCHIVE_TREE.txt",
+                     "ARCHIVE_FILELIST.txt",
+                     "ARCHIVE_METADATA",
+                     "ARCHIVE_METADATA/archive_checksums.md5",
+                     "ARCHIVE_METADATA/archiver_metadata.json",
+                     "ARCHIVE_METADATA/manifest",):
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
+        # Check MD5 files are properly formatted
+        for md5file in ("subdir1.md5",
+                        "subdir2.md5",
+                        "ARCHIVE_METADATA/archive_checksums.md5"):
+            with open(os.path.join(archive_dir, md5file), "rt") as fp:
+                for line in fp:
+                    line = line.rstrip("\n")
+                    self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                    is not None,
+                                    f"{md5file}: incorrectly formatted "
+                                    f"MD5 checksum line: {line}")
+        # Check empty archive
+        with tarfile.open(os.path.join(archive_dir, "subdir2.tar.gz"),
+                          "r:gz") as tgz:
+            members = tgz.getnames()
+            self.assertEqual(["example/subdir2/."], members)
+        # Check file list
+        with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                if " -> " not in line:
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, line)),
+                                    f"{line}: in filelist but doesn't exist")
+                    if line.endswith(os.sep):
+                        self.assertTrue(os.path.isdir(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is not a directory")
+                    else:
+                        self.assertFalse(os.path.islink(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is a link")
+                else:
+                    f,l = line.split(" -> ")
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, f)),
+                                    f"{f}: in filelist but doesn't exist")
+                    self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
+                                     f"{f}: incorrect target in filelist ({l})")
+
     def test_make_archive_dir_multi_volume_single_archive(self):
         """
         make_archive_dir: single multi-volume archive
@@ -5203,6 +5292,91 @@ class TestMakeArchiveDir(unittest.TestCase):
                                     is not None,
                                     f"{md5file}: incorrectly formatted "
                                     f"MD5 checksum line: {line}")
+        # Check file list
+        with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
+            for line in fp:
+                line = line.rstrip("\n")
+                if " -> " not in line:
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, line)),
+                                    f"{line}: in filelist but doesn't exist")
+                    if line.endswith(os.sep):
+                        self.assertTrue(os.path.isdir(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is not a directory")
+                    else:
+                        self.assertFalse(os.path.islink(
+                            os.path.join(d.path, line)),
+                                        f"{line}: is a link")
+                else:
+                    f,l = line.split(" -> ")
+                    self.assertTrue(os.path.lexists(
+                        os.path.join(d.path, f)),
+                                    f"{f}: in filelist but doesn't exist")
+                    self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
+                                     f"{f}: incorrect target in filelist ({l})")
+
+    def test_make_archive_dir_multi_volume_multiple_subarchives_empty_toplevel_subdir(self):
+        """
+        make_archive_dir: multiple multi-volume subarchives (empty top-level subdir)
+        """
+        # Build example directory with an empty top-level subdir
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        for ix in range(0,40):
+            example_dir.add("subdir1/ex%d.txt" % ix,
+                            type="file",
+                            content=random_text(1000))
+        example_dir.add("subdir2/",type="dir")
+        example_dir.create()
+        p = example_dir.path
+        # Make archive directory
+        d = Directory(p)
+        a = make_archive_dir(d,sub_dirs=('subdir1','subdir2'),
+                             out_dir=self.wd,volume_size='12K')
+        self.assertTrue(isinstance(a,ArchiveDirectory))
+        self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
+        # Check resulting archive
+        archive_dir = os.path.join(self.wd,"example.archive")
+        self.assertEqual(a.path,archive_dir)
+        self.assertTrue(os.path.exists(archive_dir))
+        expected = ("subdir1.00.tar.gz",
+                    "subdir1.01.tar.gz",
+                    "subdir2.00.tar.gz",
+                    "subdir1.00.md5",
+                    "subdir1.01.md5",
+                    "subdir2.00.md5",
+                    "ARCHIVE_README.txt",
+                    "ARCHIVE_TREE.txt",
+                    "ARCHIVE_FILELIST.txt",
+                    "ARCHIVE_METADATA",
+                    "ARCHIVE_METADATA/archive_checksums.md5",
+                    "ARCHIVE_METADATA/archiver_metadata.json",
+                    "ARCHIVE_METADATA/manifest",)
+        for item in expected:
+            self.assertTrue(
+                os.path.exists(os.path.join(archive_dir,item)),
+                "missing '%s'" % item)
+        # Check extra items aren't present
+        for item in a.walk():
+            self.assertTrue(os.path.relpath(item,archive_dir) in expected,
+                            "'%s' not expected" % item)
+        # Check MD5 files are properly formatted
+        for md5file in ("subdir1.00.md5",
+                        "subdir1.01.md5",
+                        "subdir2.00.md5",
+                        "ARCHIVE_METADATA/archive_checksums.md5"):
+            with open(os.path.join(archive_dir, md5file), "rt") as fp:
+                for line in fp:
+                    line = line.rstrip("\n")
+                    self.assertTrue(re.fullmatch("[a-f0-9]+  .*", line)
+                                    is not None,
+                                    f"{md5file}: incorrectly formatted "
+                                    f"MD5 checksum line: {line}")
+        # Check empty archive
+        with tarfile.open(os.path.join(archive_dir, "subdir2.00.tar.gz"),
+                          "r:gz") as tgz:
+            members = tgz.getnames()
+            self.assertEqual(["example/subdir2/."], members)
         # Check file list
         with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
             for line in fp:
@@ -5858,6 +6032,87 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
         for f in expected:
             self.assertTrue(f in members)
 
+class TestMakeEmptyArchive(unittest.TestCase):
+
+    def setUp(self):
+        self.wd = tempfile.mkdtemp(suffix='TestMakeEmptyArchive')
+
+    def tearDown(self):
+        if REMOVE_TEST_OUTPUTS:
+            shutil.rmtree(self.wd)
+
+    def test_make_empty_archive(self):
+        """
+        make_empty_archive: create archive for empty directory
+        """
+        # Build example dir
+        empty_dir = UnittestDir(os.path.join(self.wd, "empty"))
+        empty_dir.create()
+        p = empty_dir.path
+        # Make archive
+        empty_archive = os.path.join(self.wd, "empty.tar.gz")
+        self.assertEqual(make_empty_archive(empty_archive, p),
+                         empty_archive)
+        # Check archive exists
+        self.assertTrue(os.path.exists(empty_archive))
+        # Check archive contains only expected members
+        expected = set(["."])
+        members = set()
+        # Check contents
+        with tarfile.open(empty_archive, "r:gz") as tgz:
+            for f in tgz.getnames():
+                self.assertTrue(f in expected,
+                                f"{f} in archive but shouldn't be")
+                self.assertFalse(f in members, f"{f} appears multiple times")
+                members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            self.assertTrue(f in members, f"{f} not found in archive")
+
+    def test_make_empty_archive_with_base_dir(self):
+        """
+        make_empty_archive: empty archive with base directory
+        """
+        # Build example dir
+        empty_dir = UnittestDir(os.path.join(self.wd, "empty"))
+        empty_dir.create()
+        p = empty_dir.path
+        # Make archive
+        empty_archive = os.path.join(self.wd, "empty.tar.gz")
+        self.assertEqual(make_empty_archive(empty_archive, p,
+                                            base_dir="empty"),
+                         empty_archive)
+        # Check archive exists
+        self.assertTrue(os.path.exists(empty_archive))
+        # Check archive contains only expected members
+        expected = set(["empty/."])
+        members = set()
+        # Check contents
+        with tarfile.open(empty_archive, "r:gz") as tgz:
+            for f in tgz.getnames():
+                self.assertTrue(f in expected,
+                                f"{f} in archive but shouldn't be")
+                self.assertFalse(f in members, f"{f} appears multiple times")
+                members.add(f)
+        # Check no expected members are missing from the archive
+        for f in expected:
+            self.assertTrue(f in members, f"{f} not found in archive")
+
+    def test_make_empty_archive_source_dir_not_empty(self):
+        """
+        make_empty_archive: raise exception if source directory isn't empty
+        """
+        # Build example dir
+        non_empty_dir = UnittestDir(os.path.join(self.wd, "not_empty"))
+        non_empty_dir.add("file1.txt", type="file", content="text")
+        non_empty_dir.create()
+        # Attempting to make archive should raise exception
+        non_empty_archive = os.path.join(self.wd, "not_empty.tar.gz")
+        self.assertRaises(NgsArchiverException,
+                          make_empty_archive,
+                          non_empty_archive,
+                          non_empty_dir.path)
+
 class TestUnpackArchiveMultiTgz(unittest.TestCase):
 
     def setUp(self):
@@ -5918,6 +6173,53 @@ class TestUnpackArchiveMultiTgz(unittest.TestCase):
               'expected': ('example/subdir2',
                            'example/subdir2/ex1.txt',
                            'example/subdir2/ex2.txt',),
+            },
+            { 'path': os.path.join(self.wd,"miscellaneous.tar.gz"),
+              'b64content': b'H4sIAAAAAAAAA+3W0QrCIBQGYK97Cp+gHZ3O1+gVtiZULBqbAx8/V0GxqCjmovZ/N4oOdkD+o9bn+7qyifVi6bxjMVCQZaofhdF0O55JwYRSKiUygjQjISlsc4pSzUDXurzhnNW74ul3r/Z/1KrK13ZzqErbcGe9W3y7IJiUveS/7Ypy26RJjH/0ETdGP84/0TX/Rvb5l2GJ6xjFDM08/8Pzt16Ofg+81f9P55+GOfr/FND/5+0+/+O/Az/JvzTI/xSQfwAAAAAAAAAAAAAAAID/cQRHXCooACgAAA==',
+              'expected': ('example/ex1.txt',
+                           'example/subdir3',
+                           'example/subdir3/ex1.txt',
+                           'example/subdir3/ex2.txt',),
+            }
+        ]
+        for targz in example_targz_data:
+            example_targz = targz['path']
+            with open(example_targz,'wb') as fp:
+                fp.write(base64.b64decode(targz['b64content']))
+        # Unpack the targz files
+        example_targzs = [t['path'] for t in example_targz_data]
+        unpack_archive_multitgz(example_targzs,extract_dir=self.wd)
+        # Check unpacked directories
+        self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
+        all_expected = []
+        for targz in example_targz_data:
+            expected = targz['expected']
+            for item in expected:
+                self.assertTrue(
+                    os.path.exists(os.path.join(self.wd,item)),
+                    "missing '%s'" % item)
+                all_expected.append(item)
+        # Check extra items aren't present
+        for item in Directory(os.path.join(self.wd,"example")).walk():
+            self.assertTrue(os.path.relpath(item,self.wd) in all_expected,
+                            "'%s' not expected" % item)
+
+    def test_unpack_archive_multitgz_multiple_tar_gz_empty_archive(self):
+        """
+        unpack_archive_multitgz: multiple .tar.gz files including empty archive
+        """
+        # Make example tar.gz files
+        example_targz_data = [
+            { 'path': os.path.join(self.wd,"subdir1.tar.gz"),
+              'b64content': b'H4sIAAAAAAAAA+3T3QqCMBjG8R13FV5BbnO62+gWNAcVRqILdvkpEYRhnfiB9P+dvAd7YS88PC7k17pycXsvynOjYjED2bE27aeyqXyfL0IZY5JuTZlMSKWVtSJK5zhm6N76vIkiUV+Kr3u/3jfKDfJ3Qe998JP+0QecZWY8f60G+SdGd/nLSa8Y8ef5H6r86E63qnRN5F3wu7UPwqI++69W7r959t/Q/yXQfwAAAAAAAAAAAAAAtu8BVJJOSAAoAAA=',
+              'expected': ('example/subdir1',
+                           'example/subdir1/ex1.txt',
+                           'example/subdir1/ex2.txt',),
+            },
+            # "Empty" archive
+            { 'path': os.path.join(self.wd,"subdir2.tar.gz"),
+              'b64content': b'H4sICEcNfWcC/3N1YmRpcjIudGFyAO3PQQqDQAxA0RxlTtBJHMecR6kLpQXRCj1+62JAENqN7v7b/EWySPp3+5wefVzW7j7MVbxFOZ1+ueet5ln3LcRqT15pUycTtdSoScjnn3K0Lq92DkGmsfu5929eHikFAAAAAAAAAAAAAAAAAOBCH1KGpMIAKAAA',
+              'expected': ('example/subdir2',),
             },
             { 'path': os.path.join(self.wd,"miscellaneous.tar.gz"),
               'b64content': b'H4sIAAAAAAAAA+3W0QrCIBQGYK97Cp+gHZ3O1+gVtiZULBqbAx8/V0GxqCjmovZ/N4oOdkD+o9bn+7qyifVi6bxjMVCQZaofhdF0O55JwYRSKiUygjQjISlsc4pSzUDXurzhnNW74ul3r/Z/1KrK13ZzqErbcGe9W3y7IJiUveS/7Ypy26RJjH/0ETdGP84/0TX/Rvb5l2GJ6xjFDM08/8Pzt16Ofg+81f9P55+GOfr/FND/5+0+/+O/Az/JvzTI/xSQfwAAAAAAAAAAAAAAAID/cQRHXCooACgAAA==',
