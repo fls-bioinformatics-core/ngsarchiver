@@ -2,6 +2,16 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.8.3 (2025-01-07)
+---------------------------
+
+* Bug fix for ``archive`` command when a multi-subdir or
+  multi-project has one or more empty top-level subdirs
+  (would result in either invalid or missing ``tar.gz``
+  archives for empty subdirs, so source run directory
+  could not be completely recovered) (PR #62)
+
+---------------------------
 Version 1.8.2 (2024-12-16)
 ---------------------------
 
