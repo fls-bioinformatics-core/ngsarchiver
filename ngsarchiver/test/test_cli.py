@@ -625,7 +625,7 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
 
     def test_extract(self):
         """
-        CLI: test the 'search' command
+        CLI: test the 'extract' command
         """
         # Make example archive dir to extract files from
         example_archive = UnittestDir(os.path.join(self.wd,
