@@ -570,9 +570,9 @@ class TestDirectory(unittest.TestCase):
         self.assertEqual(list(d.unreadable_files),[unreadable_file,])
         self.assertFalse(d.is_readable)
 
-    def test_directory_writeability(self):
+    def test_directory_writability(self):
         """
-        Directory: check writeability
+        Directory: check writability
         """
         # Build example dir
         example_dir = UnittestDir(os.path.join(self.wd,"example"))
@@ -582,14 +582,14 @@ class TestDirectory(unittest.TestCase):
         p = example_dir.path
         # Check writability
         d = Directory(p)
-        self.assertEqual(list(d.unwriteable_files),[])
-        self.assertTrue(d.is_writeable)
-        # Make unwriteable file by stripping permissions
+        self.assertEqual(list(d.unwritable_files),[])
+        self.assertTrue(d.is_writable)
+        # Make unwritable file by stripping permissions
         d = Directory(p)
-        unwriteable_file = os.path.join(p,"ex1.txt")
-        os.chmod(unwriteable_file,0o466)
-        self.assertEqual(list(d.unwriteable_files),[unwriteable_file,])
-        self.assertFalse(d.is_writeable)
+        unwritable_file = os.path.join(p,"ex1.txt")
+        os.chmod(unwritable_file,0o466)
+        self.assertEqual(list(d.unwritable_files),[unwritable_file,])
+        self.assertFalse(d.is_writable)
 
     def test_directory_hard_links(self):
         """

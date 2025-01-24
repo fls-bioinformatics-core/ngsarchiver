@@ -248,30 +248,44 @@ class Directory:
         return True
 
     @property
-    def unwriteable_files(self):
+    def unwritable_files(self):
         """
-        Return full paths to files etc that are not writeable
+        Return full paths to files etc that are not writable
         """
         for o in self.walk():
             try:
-                if self._cache[o]["unwriteable"]:
+                if self._cache[o]["unwritable"]:
                     yield o
             except KeyError:
                 if o not in self._cache:
                     self._cache[o] = {}
-                self._cache[o]["unwriteable"] = (not os.path.islink(o) and
-                                                 not os.access(o,os.W_OK))
-                if self._cache[o]["unwriteable"]:
+                self._cache[o]["unwritable"] = (not os.path.islink(o) and
+                                                not os.access(o,os.W_OK))
+                if self._cache[o]["unwritable"]:
                     yield o
+
+    @property
+    def unwriteable_files(self):
+        """
+        Wrapper for 'unwritable_files' (for backwards compatibility)
+        """
+        return self.unwritable_files
+
+    @property
+    def is_writable(self):
+        """
+        Check if all files and subdirectories are writable
+        """
+        for o in self.unwritable_files:
+            return False
+        return True
 
     @property
     def is_writeable(self):
         """
-        Check if all files and subdirectories are writeable
+        Wrapper for 'is_writable' (for backwards compatibility)
         """
-        for o in self.unwriteable_files:
-            return False
-        return True
+        return self.is_writable
 
     @property
     def symlinks(self):
