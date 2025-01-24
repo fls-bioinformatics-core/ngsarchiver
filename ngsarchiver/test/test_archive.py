@@ -5479,6 +5479,33 @@ class TestMakeArchiveDir(unittest.TestCase):
                     self.assertEqual(os.readlink(os.path.join(d.path, f)), l,
                                      f"{f}: incorrect target in filelist ({l})")
 
+    def test_make_archive_dir_ensure_user_read_write(self):
+        """
+        make_archive_dir: archive directory has read-write permissions for user
+        """
+        # Build example directory
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="Example text\n")
+        example_dir.add("subdir/ex2.txt",type="file",content="More text\n")
+        example_dir.add("subdir/ex3.txt",type="file",content="Yet more\n")
+        example_dir.create()
+        p = example_dir.path
+        try:
+            # Set read-only for user (read-write for group and world)
+            os.chmod(p, 0o577)
+            self.assertTrue(os.access(p, os.R_OK))
+            self.assertFalse(os.access(p, os.W_OK))
+            # Make archive directory
+            a = make_archive_dir(Directory(p), out_dir=self.wd)
+            self.assertTrue(isinstance(a,ArchiveDirectory))
+            self.assertEqual(a.archive_metadata["type"], "ArchiveDirectory")
+            # Check permissions on archive directory
+            self.assertTrue(os.access(a.path, os.R_OK))
+            self.assertTrue(os.access(a.path, os.W_OK))
+        finally:
+            # Reset write permissions on source
+            os.chmod(p, 0o777)
+
 class TestMd5sum(unittest.TestCase):
 
     def setUp(self):
