@@ -2,6 +2,19 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.9.0 (2025-01-24)
+---------------------------
+
+* Bug fix for ``archive`` command when source directory
+  doesn't have read-write permission for "user", ensure
+  that resulting compressed archive directory does have
+  read-write permission (PR #65)
+* Update ``archive`` command so that any unreadable
+  content in source directory is treated as an
+  unresolvable error (i.e. even when ``--force`` is also
+  specified), and no archive will be created (PR #67)
+
+---------------------------
 Version 1.8.3 (2025-01-07)
 ---------------------------
 

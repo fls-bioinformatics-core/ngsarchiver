@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 #     archive.py: archiving classes and functions
-#     Copyright (C) University of Manchester 2023-2024 Peter Briggs
+#     Copyright (C) University of Manchester 2023-2025 Peter Briggs
 #
 
 """
