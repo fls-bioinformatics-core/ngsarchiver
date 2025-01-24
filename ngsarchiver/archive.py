@@ -1934,8 +1934,11 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
                    "links from the source directory", indent="  ")
     readme.write(os.path.join(temp_archive_dir, "ARCHIVE_README.txt"))
     # Move to final location and update the attributes
+    # Also ensure user has read-write permissions on the archive
     shutil.move(temp_archive_dir, archive_dir)
     shutil.copystat(d.path,archive_dir)
+    chmod(archive_dir,
+          os.stat(archive_dir).st_mode | stat.S_IRUSR | stat.S_IWUSR)
     return ArchiveDirectory(archive_dir)
 
 def md5sum(f):
