@@ -214,6 +214,27 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(main(['archive',example_dir.path]),
                          CLIStatus.ERROR)
 
+    def test_archive_refuse_if_source_has_unreadable_files(self):
+        """
+        CLI: test the 'archive' command refuses for source with unreadable file (even using --force)
+        """
+        # Make example directory to archive
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.create()
+        try:
+            # Make one of the files unreadable
+            os.chmod(os.path.join(example_dir.path, "ex1.txt"), 0o000)
+            # Check archiving refuses
+            self.assertEqual(main(['archive',example_dir.path]),
+                             CLIStatus.ERROR)
+            # Check archiving refuses even with --force
+            self.assertEqual(main(['archive', '--force', example_dir.path]),
+                             CLIStatus.ERROR)
+        finally:
+            os.chmod(os.path.join(example_dir.path, "ex1.txt"), 0o644)
+
     def test_archive_refuse_compressed_archive_directory(self):
         """
         CLI: test the 'archive' command refuses for a compressed archive
