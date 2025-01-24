@@ -108,9 +108,9 @@ def main(argv=None):
                                 help="check for and warn about potential "
                                 "issues; don't perform archiving")
     parser_archive.add_argument('--force',action='store_true',
-                                help="ignore issues and perform "
-                                "archiving anyway (may result in "
-                                "incomplete or problematic archive)")
+                                help="ignore issues with links, UIDS and/or "
+                                "archive volume sizes and perform archiving "
+                                "anyway")
 
     # 'copy' command
     parser_copy = s.add_parser('copy',
@@ -398,18 +398,22 @@ def main(argv=None):
         print(f"-- unknown UIDs         : {format_bool(has_unknown_uids)}")
         has_hard_linked_files = d.has_hard_linked_files
         print(f"-- hard linked files    : {format_bool(has_hard_linked_files)}")
+        if not is_readable:
+            msg = "Unreadable files and/or directories detected"
+            logger.critical(msg)
+            if args.check:
+                check_status = 1
+            else:
+                return CLIStatus.ERROR
         if has_external_symlinks or \
            has_broken_symlinks or \
-           not is_readable or \
            has_unknown_uids:
-            msg = "Readability, symlink and/or UID issues detected"
+            msg = "Symlink and/or UID issues detected"
             if args.check:
                 logger.warning(msg)
                 check_status = 1
             elif args.force:
                 msg += " (ignored"
-                if not is_readable:
-                    msg += "; unreadable files will be omitted"
                 if has_external_symlinks or \
                    has_broken_symlinks or \
                    has_unresolvable_symlinks:
