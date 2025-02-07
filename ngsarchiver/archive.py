@@ -2214,7 +2214,8 @@ def make_empty_archive(archive_name, root_dir, base_dir=None,
                                        f"to archive: {ex}")
     return archive_name
 
-def unpack_archive_multitgz(archive_list,extract_dir=None):
+def unpack_archive_multitgz(archive_list, extract_dir=None,
+                            set_permissions=False, set_times=False):
     """
     Unpack a multi-volume 'gztar' archive
 
@@ -2223,6 +2224,12 @@ def unpack_archive_multitgz(archive_list,extract_dir=None):
         unpack
       extract_dir (str): specifies directory to unpack
         volumes into (default: current directory)
+      set_permissions (bool): if True then set permissions
+        on extracted files to those from the archive
+        (default: don't set permissions)
+      set_times (bool): if True then set times on extracted
+        files to those from the archive (default: don't set
+        times)
     """
     if extract_dir is None:
         extract_dir = os.getcwd()
@@ -2234,20 +2241,87 @@ def unpack_archive_multitgz(archive_list,extract_dir=None):
         # volumes)
         with tarfile.open(a,'r:gz',errorlevel=1) as tgz:
             for o in tgz:
-                try:
-                    tgz.extract(o,path=extract_dir,set_attrs=False)
-                except Exception as ex:
-                    print("Exception extracting '%s' from '%s': %s"
-                          % (o.name,a,ex))
-                    raise ex
-    atime = time.time()
+                if not o.isdir():
+                    # Extract file without attributes
+                    try:
+                        tgz.extract(o, path=extract_dir, set_attrs=False)
+                    except Exception as ex:
+                        print(f"Exception extracting '{o.name}' from '{a}': "
+                              f"{ex}")
+                        raise ex
+                else:
+                    # Explicitly create directories rather than
+                    # extracting them (workaround for setting
+                    # default permissions)
+                    try:
+                        os.makedirs(os.path.join(extract_dir, o.name))
+                    except Exception as ex:
+                        print(f"Exception creating directory '{o.name}' "
+                              f"from '{a}': {ex}")
+                        raise ex
+    # Set attributes (time and mode) on extracted files
+    set_attributes_from_archive_multitgz(archive_list,
+                                         extract_dir=extract_dir,
+                                         set_permissions=set_permissions,
+                                         set_times=set_times)
+
+def set_attributes_from_archive_multitgz(archive_list, extract_dir=None,
+                                         set_permissions=False,
+                                         set_times=False):
+    """
+    Update permissions and/or times on extracted files
+
+    Arguments:
+      archive_list (list): list of archive volumes to
+        copy attributes from
+      extract_dir (str): specifies directory where unpacked
+        files and directories are (default: current directory)
+      set_permissions (bool): if True then set permissions
+        on extracted files to those from the archive
+        (default: don't set permissions)
+      set_times (bool): if True then set times on extracted
+        files to those from the archive (default: don't set
+        times)
+    """
+    if set_permissions and set_times:
+        attr_types = "permissions and times"
+    elif set_permissions and not set_times:
+        attr_types = "permissions"
+    elif set_times and not set_permissions:
+        attr_types = "times"
+    else:
+        # Nothing to do
+        return
+    if extract_dir is None:
+        extract_dir = os.getcwd()
+    attributes = {}
     for a in archive_list:
-        print("Updating attributes from %s..." % a)
-        with tarfile.open(a,'r:gz',errorlevel=1) as tgz:
-            for o in tgz:
-                o_ = os.path.join(extract_dir,o.name)
-                chmod(o_,o.mode)
-                utime(o_,(atime,o.mtime))
+        print(f"Collecting attributes from {a}...")
+        with tarfile.open(a,'r:gz', errorlevel=1) as tgz:
+            for src in tgz:
+                tgt = os.path.join(extract_dir, src.name)
+                if os.path.islink(tgt):
+                    continue
+                attributes[src.name] = (src.mtime, src.mode)
+    atime = time.time()
+    print(f"Updating {attr_types} on files...")
+    for src in attributes:
+        tgt = os.path.join(extract_dir, src)
+        if not os.path.isdir(tgt):
+            attrs = attributes[src]
+            if set_times:
+                utime(tgt, (atime, attrs[0]))
+            if set_permissions:
+                chmod(tgt, attrs[1])
+    print(f"Updating {attr_types} on directories...")
+    for src in attributes:
+        tgt = os.path.join(extract_dir, src)
+        if os.path.isdir(tgt):
+            attrs = attributes[src]
+            if set_times:
+                utime(tgt, (atime, attrs[0]))
+            if set_permissions:
+                chmod(tgt, attrs[1])
 
 def make_copy(d, dest, replace_symlinks=False,
               transform_broken_symlinks=False,
