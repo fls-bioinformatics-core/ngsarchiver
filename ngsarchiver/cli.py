@@ -162,6 +162,11 @@ def main(argv=None):
                                action='store',dest='out_dir',
                                help="unpack archive under OUT_DIR "
                                "(default: current directory)")
+    parser_unpack.add_argument('--copy-permissions',
+                               action='store_true', dest='copy_permissions',
+                               help="copy the permissions stored in the "
+                               "archive to the extracted files (default: "
+                               "set permissions to read-write)")
 
     # 'search' command
     parser_search = s.add_parser('search',
@@ -558,7 +563,8 @@ def main(argv=None):
                                     "names but destination cannot handle "
                                     "names which only differ by case")
                     return CLIStatus.ERROR
-        d = a.unpack(extract_dir=dest_dir)
+        d = a.unpack(extract_dir=dest_dir,
+                     set_permissions=args.copy_permissions)
         print("Unpacked directory: %s" % d)
         return CLIStatus.OK
 
