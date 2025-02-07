@@ -2081,12 +2081,6 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
     d = Directory(root_dir)
     archive_name = "%s.%s" % (base_name,ext)
     root_dir = d.path
-    if d.is_empty:
-        # Special case: directory is empty
-        logger.warning(f"{d.path}: creating archive for empty directory")
-        archive_name = "%s.%s" % (base_name, ext)
-        return make_empty_archive(archive_name, root_dir, base_dir=base_dir,
-                                  compresslevel=compresslevel)
     with tarfile.open(archive_name,'w:gz',compresslevel=compresslevel) \
          as tgz:
         # Add entry for top-level directory
@@ -2165,12 +2159,6 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
     """
     d = Directory(root_dir)
     max_size = convert_size_to_bytes(size)
-    if d.is_empty:
-        # Special case: directory is empty
-        logger.warning(f"{d.path}: creating archive for empty directory")
-        archive_name = "%s.00.%s" % (base_name, ext)
-        return [make_empty_archive(archive_name, root_dir, base_dir=base_dir,
-                                   compresslevel=compresslevel)]
     # Initialise tar archive and add entry for top-level directory
     indx = 0
     archive_name = "%s.%02d.%s" % (base_name, indx, ext)
