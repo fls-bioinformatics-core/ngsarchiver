@@ -412,15 +412,20 @@ directory with the same name will not be overwritten.
 The restored archive contents are also verified using
 their original checksums as part of the unpacking.
 
-The timestamps and permissions of the contents are
-also restored (with the caveat that all restored
-content will have read-write permission added for the
-user unpacking the archive, regardless of the
-permissions of the original files).
+In addition the timestamps of the unpacked files and
+directories are also restored to those from the source
+directory; by default permissions are not restored,
+instead they be the default permissions for the user
+unpacking the archive (read-write permission will also
+be added). This mimicks the default behaviour of the
+``tar`` utility when unpacking ``.tar.gz`` archives.
 
-Ownership information is not restored (unless the
-archiving and unpacking operations are both performed
-by superuser).
+The ``--copy-permissions`` option can be specified to
+force the permissions to also be restored. Note that
+this can produce undesirable results depending on the
+permissions on the source directory.
+
+Ownership information is not restored.
 
 If only a subset of files need to be restored from
 the archive then the ``extract`` command is recommended
