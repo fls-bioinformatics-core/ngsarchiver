@@ -2,6 +2,24 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.10.0 (2025-02-07)
+---------------------------
+
+* Default for ``unpack`` command is now to set default
+  permissions for unpacked archive (previous default was
+  to copy permissions stored in the archive - this
+  behaviour is now available using the ``--copy-permission``
+  option) and fixes bug where copied permissions could
+  cause ``unpack`` to fail (PR #69)
+* Update ``archive`` command to store entry for top-level
+  subdirectories so that timestamps and permissions can
+  be recovered by ``unpack``. Compressed archives created
+  prior to this version do not have this information
+  (essentially it is lost - note that timestamps and
+  permissions for all other contents are stored and can
+  be recovered) (PR #70)
+
+---------------------------
 Version 1.9.0 (2025-01-24)
 ---------------------------
 
