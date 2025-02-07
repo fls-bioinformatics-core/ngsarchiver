@@ -1289,11 +1289,7 @@ class ArchiveDirectory(Directory):
         # Unpack individual archive files
         archive_list = [os.path.join(self._path,a)
                         for a in self._archive_metadata['subarchives']]
-        unpack_archive_multitgz(
-            archive_list,
-            extract_dir,
-            set_permissions=False,
-            set_times=False)
+        unpack_archive_multitgz(archive_list, extract_dir)
         # Do checksum verification on unpacked archive
         if verify:
             print("-- verifying checksums of unpacked files")
