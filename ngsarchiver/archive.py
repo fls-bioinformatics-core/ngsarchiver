@@ -2218,46 +2218,6 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
         tgz.close()
     return archive_list
 
-def make_empty_archive(archive_name, root_dir, base_dir=None,
-                       compresslevel=6):
-    """
-    Make a tar.gz archive for an empty directory
-
-    The gzipped tar archive will contain a single entry for
-    "." in the empty directory.
-
-    Raises an exception if the target directory is not empty.
-
-    Arguments:
-      archive_name (str): output archive file name
-        (can include leading path)
-      root_dir (str): path to the directory for which
-        the empty archive will be created
-      base_dir (str): optional path to be prepended to
-        the paths of the archive contents
-      compresslevel (int): optionally specify the
-        gzip compression level (default: 6)
-    """
-    d = Directory(root_dir)
-    if not d.is_empty:
-        raise NgsArchiverException(f"{d.path}: refusing to make empty "
-                                   f"archive for non-empty directory")
-    with tarfile.open(archive_name,'w:gz',
-                      compresslevel=compresslevel) as tgz:
-        arcname = "."
-        if base_dir:
-            arcname = os.path.join(base_dir,arcname)
-        try:
-            tgz.add(d.path,arcname=arcname,recursive=False)
-        except PermissionError as ex:
-            logger.warning(f"{d.path}: unable to add empty top-level "
-                           f"directory to archive: {ex} (ignored)")
-        except Exception as ex:
-            raise NgsArchiverException(f"{d.path}: unable to add "
-                                       f"empty top-level directory "
-                                       f"to archive: {ex}")
-    return archive_name
-
 def unpack_archive_multitgz(archive_list, extract_dir=None,
                             set_permissions=False, set_times=False):
     """
