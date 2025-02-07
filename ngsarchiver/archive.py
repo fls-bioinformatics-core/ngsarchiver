@@ -2254,7 +2254,8 @@ def unpack_archive_multitgz(archive_list, extract_dir=None,
                     # extracting them (workaround for setting
                     # default permissions)
                     try:
-                        os.makedirs(os.path.join(extract_dir, o.name))
+                        os.makedirs(os.path.join(extract_dir, o.name),
+                                    exist_ok=True)
                     except Exception as ex:
                         print(f"Exception creating directory '{o.name}' "
                               f"from '{a}': {ex}")
