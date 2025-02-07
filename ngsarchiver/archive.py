@@ -2089,6 +2089,17 @@ def make_archive_tgz(base_name,root_dir,base_dir=None,ext="tar.gz",
                                   compresslevel=compresslevel)
     with tarfile.open(archive_name,'w:gz',compresslevel=compresslevel) \
          as tgz:
+        # Add entry for top-level directory
+        if base_dir:
+            arcname = base_dir
+        else:
+            arcname = "."
+        try:
+            tgz.add(d.path, arcname=arcname, recursive=False)
+        except Exception as ex:
+            raise NgsArchiverException(f"{d.path}: unable to add top-level "
+                                       f"directory to archive: {ex}")
+        # Add contents
         for o in d.walk():
             if include_files and o not in include_files:
                 continue
@@ -2154,16 +2165,28 @@ def make_archive_multitgz(base_name,root_dir,base_dir=None,
     """
     d = Directory(root_dir)
     max_size = convert_size_to_bytes(size)
-    indx = 0
-    archive_name = None
-    archive_list = []
-    tgz = None
     if d.is_empty:
         # Special case: directory is empty
         logger.warning(f"{d.path}: creating archive for empty directory")
         archive_name = "%s.00.%s" % (base_name, ext)
         return [make_empty_archive(archive_name, root_dir, base_dir=base_dir,
                                    compresslevel=compresslevel)]
+    # Initialise tar archive and add entry for top-level directory
+    indx = 0
+    archive_name = "%s.%02d.%s" % (base_name, indx, ext)
+    tgz = tarfile.open(archive_name,'w:gz',
+                       compresslevel=compresslevel)
+    archive_list = [archive_name]
+    if base_dir:
+        arcname = base_dir
+    else:
+        arcname = "."
+    try:
+        tgz.add(d.path, arcname=arcname, recursive=False)
+    except Exception as ex:
+        raise NgsArchiverException(f"{d.path}: unable to add top-level "
+                                   f"directory to archive: {ex}")
+    # Add the directory contents
     for o in d.walk():
         if include_files and o not in include_files:
             continue
