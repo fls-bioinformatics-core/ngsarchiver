@@ -5168,7 +5168,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         with tarfile.open(os.path.join(archive_dir, "subdir2.tar.gz"),
                           "r:gz") as tgz:
             members = tgz.getnames()
-            self.assertEqual(["example/subdir2/."], members)
+            self.assertEqual(["example/subdir2"], members)
         # Check file list
         with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
             for line in fp:
@@ -5615,7 +5615,7 @@ class TestMakeArchiveDir(unittest.TestCase):
         with tarfile.open(os.path.join(archive_dir, "subdir2.00.tar.gz"),
                           "r:gz") as tgz:
             members = tgz.getnames()
-            self.assertEqual(["example/subdir2/."], members)
+            self.assertEqual(["example/subdir2"], members)
         # Check file list
         with open(os.path.join(archive_dir, "ARCHIVE_FILELIST.txt"), "rt") as fp:
             for line in fp:
@@ -5935,7 +5935,8 @@ class TestMakeArchiveTgz(unittest.TestCase):
         # Check archive exists
         self.assertTrue(os.path.exists(test_archive_path))
         # Check archive contains only expected members
-        expected = set(("ex1.txt",
+        expected = set((".",
+                        "ex1.txt",
                         "subdir",
                         "subdir/ex2.txt",))
         members = set()
@@ -5965,7 +5966,8 @@ class TestMakeArchiveTgz(unittest.TestCase):
         # Check archive exists
         self.assertTrue(os.path.exists(test_archive_path))
         # Check archive contains only expected members
-        expected = set(("example/ex1.txt",
+        expected = set(("example",
+                        "example/ex1.txt",
                         "example/subdir",
                         "example/subdir/ex2.txt",))
         members = set()
@@ -6001,7 +6003,8 @@ class TestMakeArchiveTgz(unittest.TestCase):
         # Check archive exists
         self.assertTrue(os.path.exists(test_archive_path))
         # Check archive contains only expected members
-        expected = set(("ex1.txt",
+        expected = set((".",
+                        "ex1.txt",
                         "subdir",
                         "subdir/ex2.txt",))
         members = set()
@@ -6039,7 +6042,8 @@ class TestMakeArchiveTgz(unittest.TestCase):
         # Check archive exists
         self.assertTrue(os.path.exists(test_archive_path))
         # Check archive contains only expected members
-        expected = set(("ex1.txt",
+        expected = set((".",
+                        "ex1.txt",
                         "subdir",
                         "subdir/ex2.txt",))
         members = set()
@@ -6072,7 +6076,8 @@ class TestMakeArchiveTgz(unittest.TestCase):
         # Check archive exists
         self.assertTrue(os.path.exists(test_archive_path))
         # Check archive contains only expected members
-        expected = set(("ex1.txt",
+        expected = set((".",
+                        "ex1.txt",
                         "subdir",
                         "subdir/ex2.txt",))
         members = set()
@@ -6116,6 +6121,7 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
                          test_archive_paths)
         # Check archives contains only expected members
         expected = set(example_dir.list())
+        expected.add(".")
         members = set()
         for test_archive_path in test_archive_paths:
             # Check archive exists
@@ -6155,6 +6161,7 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
                          test_archive_paths)
         # Check archives contains only expected members
         expected = set(example_dir.list(prefix="example"))
+        expected.add("example")
         members = set()
         for test_archive_path in test_archive_paths:
             # Check archive exists
@@ -6201,6 +6208,7 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
                          test_archive_paths)
         # Check archives contains only expected members
         expected = set(overlay_dir.list())
+        expected.add(".")
         members = set()
         for test_archive_path in test_archive_paths:
             # Check archive exists
@@ -6284,6 +6292,7 @@ class TestMakeArchiveMultiTgz(unittest.TestCase):
                          test_archive_paths)
         # Check archives contains only expected members
         expected = set(example_dir.list())
+        expected.add(".")
         members = set()
         for test_archive_path in test_archive_paths:
             # Check archive exists
