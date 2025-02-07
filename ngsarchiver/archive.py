@@ -1234,7 +1234,8 @@ class ArchiveDirectory(Directory):
                                            "when extracting '%s'" %
                                            (self.path,m.path))
 
-    def unpack(self,extract_dir=None,verify=True,set_read_write=True):
+    def unpack(self, extract_dir=None, verify=True, set_permissions=False,
+               set_read_write=True):
         """
         Unpacks the archive
 
@@ -1243,9 +1244,14 @@ class ArchiveDirectory(Directory):
             archive into (default: cwd)
           verify (bool): if True then verify checksums
             for extracted archives (default: True)
+          set_permissions (bool): if True then transfer
+            original permissions from archive to the
+            extracted files and directories (default:
+            False)
           set_read_write (bool): if True then ensure
             extracted files have read/write permissions
-            for the user (default: True)
+            for the user; ignored if 'set_permissions'
+            is True (default: True)
 
         Returns:
           Directory: appropriate subclass instance of
@@ -1275,10 +1281,13 @@ class ArchiveDirectory(Directory):
             f = os.path.join(self._path,f)
             shutil.copy2(f,d)
         # Unpack individual archive files
+        archive_list = [os.path.join(self._path,a)
+                        for a in self._archive_metadata['subarchives']]
         unpack_archive_multitgz(
-            [os.path.join(self._path,a)
-             for a in self._archive_metadata['subarchives']],
-            extract_dir)
+            archive_list,
+            extract_dir,
+            set_permissions=False,
+            set_times=False)
         # Do checksum verification on unpacked archive
         if verify:
             print("-- verifying checksums of unpacked files")
@@ -1302,14 +1311,29 @@ class ArchiveDirectory(Directory):
                         if not os.path.islink(f):
                             raise NgsArchiverException("%s: missing symlink"
                                                        % f)
-        # Ensure all files etc have read/write permission
+        # Set attributes
+        print("-- copying attributes from archive")
+        set_attributes_from_archive_multitgz(archive_list,
+                                             extract_dir=extract_dir,
+                                             set_permissions=set_permissions,
+                                             set_times=True)
         if set_read_write:
-            print("-- updating permissions to read-write")
-            for o in Directory(d).walk():
-                if not os.path.islink(o):
-                    # Ignore symbolic links
-                    s = os.stat(o)
-                    chmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
+            # Check permissions weren't already explicitly copied
+            # from the archive
+            if set_permissions:
+                print("-- permissions copied from archive: read/write "
+                      "update ignored")
+            else:
+                # Ensure all files etc have read/write permission
+                print("-- updating permissions to read-write")
+                for o in Directory(d).walk():
+                    if not os.path.islink(o):
+                        # Ignore symbolic links
+                        try:
+                            s = os.stat(o)
+                            chmod(o,s.st_mode | stat.S_IRUSR | stat.S_IWUSR)
+                        except PermissionError:
+                            logger.warning(f"{o}: unable to reset permissions")
         # Update the timestamp on the unpacked directory
         shutil.copystat(self.path,d)
         # Return the appropriate wrapper instance
