@@ -1279,7 +1279,13 @@ class ArchiveDirectory(Directory):
         for f in self._archive_metadata['files']:
             print("-- copying %s" % f)
             f = os.path.join(self._path,f)
-            shutil.copy2(f,d)
+            dst = os.path.join(d, os.path.basename(f))
+            # Use 'copyfile' rather than 'copy2' to avoid setting
+            # permissions here
+            shutil.copyfile(f, dst)
+            # Set timestamp from source file
+            st = os.lstat(f)
+            os.utime(dst, times=(st.st_atime, st.st_mtime))
         # Unpack individual archive files
         archive_list = [os.path.join(self._path,a)
                         for a in self._archive_metadata['subarchives']]
@@ -1311,12 +1317,18 @@ class ArchiveDirectory(Directory):
                         if not os.path.islink(f):
                             raise NgsArchiverException("%s: missing symlink"
                                                        % f)
-        # Set attributes
+        # Set attributes on extracted files
         print("-- copying attributes from archive")
         set_attributes_from_archive_multitgz(archive_list,
                                              extract_dir=extract_dir,
                                              set_permissions=set_permissions,
                                              set_times=True)
+        # Transfer permissions on copied files if required
+        if set_permissions:
+            for f in self._archive_metadata['files']:
+                f = os.path.join(self._path, f)
+                dst = os.path.join(d, os.path.basename(f))
+                chmod(dst, os.stat(f).st_mode)
         if set_read_write:
             # Check permissions weren't already explicitly copied
             # from the archive
@@ -1335,7 +1347,8 @@ class ArchiveDirectory(Directory):
                         except PermissionError:
                             logger.warning(f"{o}: unable to reset permissions")
         # Update the timestamp on the unpacked directory
-        shutil.copystat(self.path,d)
+        st = os.lstat(self.path)
+        os.utime(d, times=(st.st_atime, st.st_mtime))
         # Return the appropriate wrapper instance
         return get_rundir_instance(d)
 
