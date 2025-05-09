@@ -5879,6 +5879,31 @@ class TestVerifyChecksums(unittest.TestCase):
         # Do verification
         self.assertFalse(verify_checksums(md5file))
 
+    def test_verify_checksums_double_space_in_checksum_line(self):
+        """
+        verify_checksums: handle double space in checksum line
+        """
+        # Build example directory with filename containing
+        # double spaces
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex  1.txt",type="file",content="Example text\n")
+        example_dir.create()
+        p = example_dir.path
+        # Create checksum file
+        checksums = {
+            'ex  1.txt': "8bcc714d327b74a95a166574d0103f5c",
+        }
+        md5file = os.path.join(self.wd,"checksums.txt")
+        with open(md5file,'wt') as fp:
+            for f in checksums:
+                fp.write(
+                    "{checksum}  {path}/{file}\n".format(
+                        path=p,
+                        file=f,
+                        checksum=checksums[f]))
+        # Do verification
+        self.assertTrue(verify_checksums(md5file))
+
     def test_verify_checksums_bad_checksum_line(self):
         """
         verify_checksums: raises exception for 'bad' checksum line
