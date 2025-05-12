@@ -2,6 +2,16 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.10.1 (2025-05-12)
+---------------------------
+
+* Bug fix for MD5 checksum verification for filenames
+  which contain multiple spaces (affected ``unpack``
+  command) (PR #73)
+* Minor fixes to messaging typos in ``info`` and ``copy``
+  commands (PR #76)
+
+---------------------------
 Version 1.10.0 (2025-02-07)
 ---------------------------
 
