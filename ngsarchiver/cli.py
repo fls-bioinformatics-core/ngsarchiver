@@ -349,7 +349,7 @@ def main(argv=None):
             else:
                 print(f"Unreadable files     : "
                       f"{format_bool(not d.is_readable)}")
-                print(f"Unwritable files    : "
+                print(f"Unwritable files     : "
                       f"{format_bool(not d.is_writable)}")
                 print(f"Symlinks             : {format_bool(d.has_symlinks)}")
                 print(f"Dirlinks             : {format_bool(d.has_dirlinks)}")
