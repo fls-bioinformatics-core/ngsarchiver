@@ -64,8 +64,22 @@ TREE_LAST =   "└── "
 # Classes
 #######################################################################
 
+# Base class to subclass for custom "Path" class
+BasePath = pathlib.Path
+try:
+    # Check for _flavour attribute
+    # Should be present from Python >=3.12 where
+    # "pathlib.Path" can be subclassed directly
+    BasePath._flavour
+except AttributeError:
+    # _flavour attribue is missing
+    # "pathlib.Path" cannot be not directly subclassed
+    # so use trick from https://stackoverflow.com/a/34116756
+    # to use the parent class instead
+    BasePath = type(pathlib.Path())
 
-class Path(type(pathlib.Path())):
+
+class Path(BasePath):
     """
     Wrapper for pathlib.Path class with additional methods
 
@@ -85,7 +99,12 @@ class Path(type(pathlib.Path())):
     """
 
     def __init__(self, *args, **kws):
-        super().__init__()
+        try:
+            # Direct subclass (Python >=3.12)
+            super().__init__(*args, **kws)
+        except TypeError:
+            # Subclass parent (Python <=3.11)
+            super().__init__()
 
     def owner(self):
         """
