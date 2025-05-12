@@ -2361,7 +2361,7 @@ def make_copy(d, dest, replace_symlinks=False,
     temp_copy = dest + ".part"
     if Path(temp_copy).exists():
         raise NgsArchiverException(f"{d}: found existing partial copy "
-                                   "'{temp_copy}' (remove before retrying)")
+                                   f"'{temp_copy}' (remove before retrying)")
     # Do the copy
     os.makedirs(temp_copy)
     print(f"- copying to {temp_copy}...")
