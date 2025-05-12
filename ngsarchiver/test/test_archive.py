@@ -2715,7 +2715,8 @@ d1ee10b76e42d7e06921e41fbb9b75f7  example/subdir3/ex1.txt
         self.assertEqual(os.listdir(self.wd), ["example.archived"])
         a.unpack(extract_dir=self.wd)
         self.assertTrue(os.path.exists(os.path.join(self.wd,"example")))
-        self.assertEqual(os.listdir(self.wd), ["example.archived", "example"])
+        self.assertEqual(sorted(os.listdir(self.wd)),
+                         sorted(["example.archived", "example"]))
         self.assertEqual(os.path.getmtime(os.path.join(self.wd,"example")),
                          os.path.getmtime(a.path))
         for item in expected:
