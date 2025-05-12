@@ -2031,7 +2031,10 @@ def verify_checksums(md5file,root_dir=None,verbose=False):
     with open(md5file,'rt') as fp:
         for lineno,line in enumerate(fp,start=1):
             try:
-                chksum,path = line.rstrip('\n').split('  ')
+                line = line.rstrip("\n")
+                idx = line.index("  ")
+                chksum = line[:idx]
+                path = line[idx+2:]
                 if verbose:
                     print("-- checking MD5 sum for %s" % path)
                 if root_dir:
