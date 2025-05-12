@@ -2,7 +2,7 @@
 
 Setup script to install ngsarchiver package
 
-Copyright (C) University of Manchester 2023 Peter Briggs
+Copyright (C) University of Manchester 2023-2025 Peter Briggs
 
 """
 
@@ -47,9 +47,10 @@ setup(name = "ngsarchiver",
           "Topic :: Scientific/Engineering",
           "Topic :: Scientific/Engineering :: Bio-Informatics",
           "Programming Language :: Python :: 3",
-          'Programming Language :: Python :: 3.6',
-          'Programming Language :: Python :: 3.7',
           'Programming Language :: Python :: 3.8',
+          'Programming Language :: Python :: 3.9',
+          'Programming Language :: Python :: 3.10',
+          'Programming Language :: Python :: 3.11',
       ],
       include_package_data=True,
       zip_safe = False)
