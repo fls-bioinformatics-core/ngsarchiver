@@ -507,10 +507,13 @@ archive to be checked against the original directory
    archiver compare /PATH/TO/DIR1 /PATH/TO/DIR2
 
 The comparison checks for missing and extra files, and
-that files have the same checksums.
+that files have the same checksums. (Note however that
+it doesn't check timestamps, permissions or ownership.)
 
-(Note however that it doesn't check timestamps,
-permissions or ownership.)
+If one or other of the directories being compared
+contain special files (for example, socket files) then
+these can be excluded from the comparison by
+specifying the ``--exclude-special`` option.
 
 -----------------------------------
 Compressed archive directory format
@@ -648,6 +651,9 @@ when creating an archive:
   in the source where the user running the archiving doesn't
   have read access means that those files cannot be included
   in the archive.
+- **Special files**: special files are file-like objects
+  on the file system (such as sockets) which also cannot be
+  included in the archive.
 - **Hard links**: depending on the archiving mode, the
   presence of hard links can result in bloating of the
   archive directory, as the hard linked file may be included
