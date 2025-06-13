@@ -515,6 +515,36 @@ class Directory:
         return False
 
     @property
+    def special_files(self):
+        """
+        Return file system objects which are "special files"
+
+        Special files are things like sockets; anything that
+        isn't a regular file, directory or a link is considered
+        to be a special file.
+        """
+        for o in self.walk():
+            try:
+                if self._cache[o]["is_special_file"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_special_file"] = Path(o).\
+                                                    is_special_file()
+                if self._cache[o]["is_special_file"]:
+                    yield o
+
+    @property
+    def has_special_files(self):
+        """
+        Check if directory contains special files
+        """
+        for o in self.special_files:
+            return True
+        return False
+
+    @property
     def is_empty(self):
         """
         Check if directory is empty
