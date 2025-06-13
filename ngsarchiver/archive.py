@@ -1754,6 +1754,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         'source_has_symlinks': d.has_symlinks,
         'source_has_unresolvable_symlinks': d.has_unresolvable_symlinks,
         'source_has_unreadable_files': not d.is_readable,
+        'source_has_special_files': d.has_special_files,
         'source_has_case_sensitive_filenames': d.has_case_sensitive_filenames,
         'type': ArchiveDirectory.__name__,
         'subarchives': [],
@@ -1769,15 +1770,19 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     source_timestamp = os.path.getmtime(d.path)
     archive_metadata["source_date"] = datetime.datetime.fromtimestamp(
         source_timestamp).strftime(DATE_FORMAT)
-    # Get list of unreadable objects that can't be archived
+    # Get list of unreadable objects and special files that can't
+    # be archived
     # These will be excluded from the archive dir
     unreadable = list(d.unreadable_files)
-    if unreadable:
-        logger.warning("Excluding %s unreadable objects from the "
-                       "archive" % len(unreadable))
+    special = list(d.special_files)
+    if unreadable or special:
+        logger.warning(f"Excluding {len(unreadable)+len(special)} "
+                       f"unarchiveable objects from the archive")
         excluded = os.path.join(ngsarchiver_dir,"excluded.txt")
         with open(excluded,'wt') as fp:
             for f in unreadable:
+                fp.write("%s\n" % Path(f).relative_to(d.path))
+            for f in special:
                 fp.write("%s\n" % Path(f).relative_to(d.path))
         logger.warning("Wrote list of excluded objects to '%s'" %
                        excluded)
@@ -1906,6 +1911,9 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     with open(file_list, "wt") as fp:
         for o in d.walk():
             o = Path(o)
+            if o.is_special_file():
+                # Exclude special file
+                continue
             rel_path = str(o.relative_to(d.path))
             if o.is_symlink():
                 # Append link target
