@@ -171,6 +171,32 @@ class Path(type(pathlib.Path())):
                 return True
         return False
 
+    def is_special_file(self):
+        """
+        Returns True is Path is a special file
+
+        'Special files' are file system objects such as
+        sockets etc.
+
+        Returns False if the path points to a regular
+        file, a directory, or a link. Otherwise it
+        returns True.
+
+        Returns None if the path points to a non-existent
+        file system object.
+        """
+        try:
+            st_mode = os.lstat(self).st_mode
+            for f in (stat.S_ISREG,
+                      stat.S_ISDIR,
+                      stat.S_ISLNK):
+                if bool(f(st_mode)):
+                    # Not a special file
+                    return False
+            return True
+        except FileNotFoundError:
+            return None
+
 
 class Directory:
     """

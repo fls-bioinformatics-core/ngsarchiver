@@ -153,6 +153,7 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(f).is_dirlink())
         self.assertFalse(Path(f).is_broken_symlink())
         self.assertFalse(Path(f).is_unresolvable_symlink())
+        self.assertFalse(Path(f).is_special_file())
 
     def test_path_is_directory(self):
         """
@@ -165,6 +166,7 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(d).is_dirlink())
         self.assertFalse(Path(d).is_broken_symlink())
         self.assertFalse(Path(d).is_unresolvable_symlink())
+        self.assertFalse(Path(d).is_special_file())
 
     def test_path_is_symlink(self):
         """
@@ -180,6 +182,7 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s).is_dirlink())
         self.assertFalse(Path(s).is_broken_symlink())
         self.assertFalse(Path(s).is_unresolvable_symlink())
+        self.assertFalse(Path(s).is_special_file())
 
     def test_path_is_dirlink(self):
         """
@@ -194,6 +197,7 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s).is_hardlink())
         self.assertFalse(Path(s).is_broken_symlink())
         self.assertFalse(Path(s).is_unresolvable_symlink())
+        self.assertFalse(Path(s).is_special_file())
 
     def test_path_is_broken_symlink(self):
         """
@@ -206,6 +210,7 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s).is_hardlink())
         self.assertFalse(Path(s).is_dirlink())
         self.assertFalse(Path(s).is_unresolvable_symlink())
+        self.assertFalse(Path(s).is_special_file())
 
     def test_path_is_hard_link(self):
         """
@@ -221,6 +226,7 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(h).is_dirlink())
         self.assertFalse(Path(h).is_broken_symlink())
         self.assertFalse(Path(h).is_unresolvable_symlink())
+        self.assertFalse(Path(h).is_special_file())
 
     def test_path_is_symlink_loop_single_symlink(self):
         """
@@ -233,6 +239,7 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s).is_hardlink())
         self.assertFalse(Path(s).is_dirlink())
         self.assertFalse(Path(s).is_broken_symlink())
+        self.assertFalse(Path(s).is_special_file())
         # Check unresolvable symlinks don't upset 'is_dir'
         self.assertFalse(Path(s).is_dir())
 
@@ -249,6 +256,7 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s1).is_hardlink())
         self.assertFalse(Path(s1).is_dirlink())
         self.assertFalse(Path(s1).is_broken_symlink())
+        self.assertFalse(Path(s1).is_special_file())
         # Check unresolvable symlinks don't upset 'is_dir'
         self.assertFalse(Path(s1).is_dir())
 
@@ -265,6 +273,7 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s).is_hardlink())
         self.assertFalse(Path(s).is_dirlink())
         self.assertFalse(Path(s).is_unresolvable_symlink())
+        self.assertFalse(Path(s).is_special_file())
 
     def test_path_is_symlink_to_inaccessible_file(self):
         """
@@ -284,6 +293,7 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s).is_hardlink())
         self.assertFalse(Path(s).is_dirlink())
         self.assertFalse(Path(s).is_unresolvable_symlink())
+        self.assertFalse(Path(s).is_special_file())
         # Make subdirectory unreadable
         try:
             os.chmod(d, 0o000)
@@ -292,6 +302,7 @@ class TestPath(unittest.TestCase):
             self.assertFalse(Path(s).is_hardlink())
             self.assertFalse(Path(s).is_dirlink())
             self.assertFalse(Path(s).is_unresolvable_symlink())
+            self.assertFalse(Path(s).is_special_file())
         finally:
             os.chmod(d, 0o777)
 
