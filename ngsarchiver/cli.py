@@ -414,6 +414,8 @@ def main(argv=None):
         print(f"-- unknown UIDs         : {format_bool(has_unknown_uids)}")
         has_hard_linked_files = d.has_hard_linked_files
         print(f"-- hard linked files    : {format_bool(has_hard_linked_files)}")
+        has_special_files = d.has_special_files
+        print(f"-- special files        : {format_bool(has_special_files)}")
         if not is_readable:
             msg = "Unreadable files and/or directories detected"
             logger.critical(msg)
@@ -449,6 +451,17 @@ def main(argv=None):
                 logger.warning("%s (ignored; hard-linked files will "
                                "appear multiple times and size of the "
                                "archive may be inflated)" % msg)
+            else:
+                logger.critical(msg)
+                return CLIStatus.ERROR
+        if has_special_files:
+            msg = "Special files detected"
+            if args.check:
+                logger.warning(msg)
+                check_status = 1
+            elif args.force:
+                msg += " (ignored; special files will be excluded)"
+                logger.warning(msg)
             else:
                 logger.critical(msg)
                 return CLIStatus.ERROR
