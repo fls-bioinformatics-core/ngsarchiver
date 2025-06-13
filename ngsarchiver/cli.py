@@ -206,6 +206,10 @@ def main(argv=None):
     parser_compare = s.add_parser('compare',
                                   help="check if two directories have the "
                                   "same contents")
+    parser_compare.add_argument('--exclude-special',
+                                action='store_true',
+                                help="excludes special files (e.g. sockets) "
+                                "from the comparison")
     parser_compare.add_argument('dir1',
                                 help="path to first directory")
     parser_compare.add_argument('dir2',
@@ -600,7 +604,10 @@ def main(argv=None):
             logger.error(ex)
             return CLIStatus.ERROR
         print("Comparing %s against %s" % (d1,args.dir2))
-        if d1.verify_copy(args.dir2):
+        if args.exclude_special:
+            print("-- excluding special files from the comparison")
+        if d1.verify_copy(args.dir2,
+                          exclude_special_files=args.exclude_special):
             print("-- ok")
             return CLIStatus.OK
         else:
