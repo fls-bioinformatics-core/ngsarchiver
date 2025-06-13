@@ -709,6 +709,7 @@ class Directory:
 
     def verify_copy(self,d,follow_symlinks=False,
                     broken_symlinks_placeholders=False,
+                    exclude_special_files=False,
                     ignore_paths=None):
         """
         Verify the directory contents against a copy
@@ -749,6 +750,10 @@ class Directory:
         The 'broken_symlink_placeholders' option operates
         independently of the 'follow_symlinks' option.
 
+        If 'exclude_special_files' is set to True then any
+        special files in either the source or target will
+        be excluded from the verification.
+
         Arguments:
           d (str): path to directory to check against
           follow_symlinks (bool): if True then checks are
@@ -774,6 +779,9 @@ class Directory:
                     ignore = True
                     break
             if ignore:
+                continue
+            # Exclude special files
+            if exclude_special_files and Path(o).is_special_file():
                 continue
             # Compare with target
             o_ = os.path.join(d, rel_path)
@@ -835,6 +843,9 @@ class Directory:
                     ignore = True
                     break
             if ignore:
+                continue
+            # Exclude special files
+            if exclude_special_files and Path(o).is_special_file():
                 continue
             # Check also exists in source
             o_ = os.path.join(self._path, rel_path)
