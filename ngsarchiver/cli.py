@@ -231,6 +231,7 @@ def main(argv=None):
                       "Broken?",
                       "Unresolvable?",
                       "Hardlinks?",
+                      "Special?",
                       "Unknown_uids?",
                       "Case_sensitive?"]
             print("\t".join(header))
@@ -259,6 +260,7 @@ def main(argv=None):
                         format_bool(d.has_broken_symlinks),
                         format_bool(d.has_unresolvable_symlinks),
                         format_bool(d.has_hard_linked_files),
+                        format_bool(d.has_special_files),
                         format_bool(d.has_unknown_uids),
                         format_bool(d.has_case_sensitive_filenames)]
                 print("\t".join([str(x) for x in line]))
@@ -330,6 +332,13 @@ def main(argv=None):
                     has_hard_links = True
                 if not has_hard_links:
                     print("-- no hard linked files")
+                print("Special files:")
+                has_special_files = False
+                for f in d.special_files:
+                    print(f"-- {f}")
+                    has_special_files = True
+                if not has_special_files:
+                    print("-- no special files")
                 print("Unknown UIDs:")
                 has_unknown_uids = False
                 for f in d.unknown_uids:
@@ -361,6 +370,8 @@ def main(argv=None):
                       f"{format_bool(d.has_unresolvable_symlinks)}")
                 print(f"Hard linked files    : "
                       f"{format_bool(d.has_hard_linked_files)}")
+                print(f"Special files        : "
+                      f"{format_bool(d.has_special_files)}")
                 print(f"Unknown UIDs         : "
                       f"{format_bool(d.has_unknown_uids)}")
                 print(f"Case-sensitive files : "
