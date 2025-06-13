@@ -206,6 +206,10 @@ def main(argv=None):
     parser_compare = s.add_parser('compare',
                                   help="check if two directories have the "
                                   "same contents")
+    parser_compare.add_argument('--exclude-special',
+                                action='store_true',
+                                help="excludes special files (e.g. sockets) "
+                                "from the comparison")
     parser_compare.add_argument('dir1',
                                 help="path to first directory")
     parser_compare.add_argument('dir2',
@@ -231,6 +235,7 @@ def main(argv=None):
                       "Broken?",
                       "Unresolvable?",
                       "Hardlinks?",
+                      "Special?",
                       "Unknown_uids?",
                       "Case_sensitive?"]
             print("\t".join(header))
@@ -259,6 +264,7 @@ def main(argv=None):
                         format_bool(d.has_broken_symlinks),
                         format_bool(d.has_unresolvable_symlinks),
                         format_bool(d.has_hard_linked_files),
+                        format_bool(d.has_special_files),
                         format_bool(d.has_unknown_uids),
                         format_bool(d.has_case_sensitive_filenames)]
                 print("\t".join([str(x) for x in line]))
@@ -330,6 +336,13 @@ def main(argv=None):
                     has_hard_links = True
                 if not has_hard_links:
                     print("-- no hard linked files")
+                print("Special files:")
+                has_special_files = False
+                for f in d.special_files:
+                    print(f"-- {f}")
+                    has_special_files = True
+                if not has_special_files:
+                    print("-- no special files")
                 print("Unknown UIDs:")
                 has_unknown_uids = False
                 for f in d.unknown_uids:
@@ -361,6 +374,8 @@ def main(argv=None):
                       f"{format_bool(d.has_unresolvable_symlinks)}")
                 print(f"Hard linked files    : "
                       f"{format_bool(d.has_hard_linked_files)}")
+                print(f"Special files        : "
+                      f"{format_bool(d.has_special_files)}")
                 print(f"Unknown UIDs         : "
                       f"{format_bool(d.has_unknown_uids)}")
                 print(f"Case-sensitive files : "
@@ -403,6 +418,8 @@ def main(argv=None):
         print(f"-- unknown UIDs         : {format_bool(has_unknown_uids)}")
         has_hard_linked_files = d.has_hard_linked_files
         print(f"-- hard linked files    : {format_bool(has_hard_linked_files)}")
+        has_special_files = d.has_special_files
+        print(f"-- special files        : {format_bool(has_special_files)}")
         if not is_readable:
             msg = "Unreadable files and/or directories detected"
             logger.critical(msg)
@@ -438,6 +455,17 @@ def main(argv=None):
                 logger.warning("%s (ignored; hard-linked files will "
                                "appear multiple times and size of the "
                                "archive may be inflated)" % msg)
+            else:
+                logger.critical(msg)
+                return CLIStatus.ERROR
+        if has_special_files:
+            msg = "Special files detected"
+            if args.check:
+                logger.warning(msg)
+                check_status = 1
+            elif args.force:
+                msg += " (ignored; special files will be excluded)"
+                logger.warning(msg)
             else:
                 logger.critical(msg)
                 return CLIStatus.ERROR
@@ -576,7 +604,10 @@ def main(argv=None):
             logger.error(ex)
             return CLIStatus.ERROR
         print("Comparing %s against %s" % (d1,args.dir2))
-        if d1.verify_copy(args.dir2):
+        if args.exclude_special:
+            print("-- excluding special files from the comparison")
+        if d1.verify_copy(args.dir2,
+                          exclude_special_files=args.exclude_special):
             print("-- ok")
             return CLIStatus.OK
         else:
