@@ -121,7 +121,8 @@ class Path(type(pathlib.Path())):
         """
         Overrides 'is_dir' method from base class
         """
-        if not self.is_unresolvable_symlink():
+        if not self.is_broken_symlink() and \
+           not self.is_unresolvable_symlink():
             return super().is_dir()
         return False
 
