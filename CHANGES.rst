@@ -2,6 +2,20 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.11.0 (2025-06-16)
+---------------------------
+
+* Add support for Python 3.12 (PR #77)
+* Updates for handling special files (e.g. sockets):
+  the ``archive`` command will ignore them (provided the
+  ``--force`` option is supplied, otherwise it will stop);
+  ``compare`` will ignore them if the ``--exclude-special``
+  option is supplied (otherwise it will include then in the
+  comparison) (PR #79)
+* Bug fix for handling symbolic links with inaccessible
+  targets (PR #80)
+
+---------------------------
 Version 1.10.1 (2025-05-12)
 ---------------------------
 
