@@ -294,6 +294,7 @@ class TestPath(unittest.TestCase):
         self.assertFalse(Path(s).is_dirlink())
         self.assertFalse(Path(s).is_unresolvable_symlink())
         self.assertFalse(Path(s).is_special_file())
+        self.assertFalse(Path(s).is_dir())
         # Make subdirectory unreadable
         try:
             os.chmod(d, 0o000)
@@ -303,6 +304,7 @@ class TestPath(unittest.TestCase):
             self.assertFalse(Path(s).is_dirlink())
             self.assertFalse(Path(s).is_unresolvable_symlink())
             self.assertFalse(Path(s).is_special_file())
+            self.assertFalse(Path(s).is_dir())
         finally:
             os.chmod(d, 0o777)
 
