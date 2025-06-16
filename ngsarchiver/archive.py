@@ -171,6 +171,32 @@ class Path(type(pathlib.Path())):
                 return True
         return False
 
+    def is_special_file(self):
+        """
+        Returns True is Path is a special file
+
+        'Special files' are file system objects such as
+        sockets etc.
+
+        Returns False if the path points to a regular
+        file, a directory, or a link. Otherwise it
+        returns True.
+
+        Returns None if the path points to a non-existent
+        file system object.
+        """
+        try:
+            st_mode = os.lstat(self).st_mode
+            for f in (stat.S_ISREG,
+                      stat.S_ISDIR,
+                      stat.S_ISLNK):
+                if bool(f(st_mode)):
+                    # Not a special file
+                    return False
+            return True
+        except FileNotFoundError:
+            return None
+
 
 class Directory:
     """
@@ -489,6 +515,36 @@ class Directory:
         return False
 
     @property
+    def special_files(self):
+        """
+        Return file system objects which are "special files"
+
+        Special files are things like sockets; anything that
+        isn't a regular file, directory or a link is considered
+        to be a special file.
+        """
+        for o in self.walk():
+            try:
+                if self._cache[o]["is_special_file"]:
+                    yield o
+            except KeyError:
+                if o not in self._cache:
+                    self._cache[o] = {}
+                self._cache[o]["is_special_file"] = Path(o).\
+                                                    is_special_file()
+                if self._cache[o]["is_special_file"]:
+                    yield o
+
+    @property
+    def has_special_files(self):
+        """
+        Check if directory contains special files
+        """
+        for o in self.special_files:
+            return True
+        return False
+
+    @property
     def is_empty(self):
         """
         Check if directory is empty
@@ -653,6 +709,7 @@ class Directory:
 
     def verify_copy(self,d,follow_symlinks=False,
                     broken_symlinks_placeholders=False,
+                    exclude_special_files=False,
                     ignore_paths=None):
         """
         Verify the directory contents against a copy
@@ -693,6 +750,10 @@ class Directory:
         The 'broken_symlink_placeholders' option operates
         independently of the 'follow_symlinks' option.
 
+        If 'exclude_special_files' is set to True then any
+        special files in either the source or target will
+        be excluded from the verification.
+
         Arguments:
           d (str): path to directory to check against
           follow_symlinks (bool): if True then checks are
@@ -718,6 +779,9 @@ class Directory:
                     ignore = True
                     break
             if ignore:
+                continue
+            # Exclude special files
+            if exclude_special_files and Path(o).is_special_file():
                 continue
             # Compare with target
             o_ = os.path.join(d, rel_path)
@@ -779,6 +843,9 @@ class Directory:
                     ignore = True
                     break
             if ignore:
+                continue
+            # Exclude special files
+            if exclude_special_files and Path(o).is_special_file():
                 continue
             # Check also exists in source
             o_ = os.path.join(self._path, rel_path)
@@ -1698,6 +1765,7 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
         'source_has_symlinks': d.has_symlinks,
         'source_has_unresolvable_symlinks': d.has_unresolvable_symlinks,
         'source_has_unreadable_files': not d.is_readable,
+        'source_has_special_files': d.has_special_files,
         'source_has_case_sensitive_filenames': d.has_case_sensitive_filenames,
         'type': ArchiveDirectory.__name__,
         'subarchives': [],
@@ -1713,15 +1781,19 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     source_timestamp = os.path.getmtime(d.path)
     archive_metadata["source_date"] = datetime.datetime.fromtimestamp(
         source_timestamp).strftime(DATE_FORMAT)
-    # Get list of unreadable objects that can't be archived
+    # Get list of unreadable objects and special files that can't
+    # be archived
     # These will be excluded from the archive dir
     unreadable = list(d.unreadable_files)
-    if unreadable:
-        logger.warning("Excluding %s unreadable objects from the "
-                       "archive" % len(unreadable))
+    special = list(d.special_files)
+    if unreadable or special:
+        logger.warning(f"Excluding {len(unreadable)+len(special)} "
+                       f"unarchiveable objects from the archive")
         excluded = os.path.join(ngsarchiver_dir,"excluded.txt")
         with open(excluded,'wt') as fp:
             for f in unreadable:
+                fp.write("%s\n" % Path(f).relative_to(d.path))
+            for f in special:
                 fp.write("%s\n" % Path(f).relative_to(d.path))
         logger.warning("Wrote list of excluded objects to '%s'" %
                        excluded)
@@ -1850,6 +1922,9 @@ def make_archive_dir(d,out_dir=None,sub_dirs=None,
     with open(file_list, "wt") as fp:
         for o in d.walk():
             o = Path(o)
+            if o.is_special_file():
+                # Exclude special file
+                continue
             rel_path = str(o.relative_to(d.path))
             if o.is_symlink():
                 # Append link target
