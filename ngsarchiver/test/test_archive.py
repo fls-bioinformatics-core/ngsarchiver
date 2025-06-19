@@ -696,6 +696,52 @@ class TestDirectory(unittest.TestCase):
                                   os.path.join(p, "subdir1", "ex2.txt"))]))
         self.assertTrue(d.has_case_sensitive_filenames)
 
+    def test_directory_case_sensitive_filenames_unreadable_subdir(self):
+        """
+        Directory: detect case-sensitive file names (unreadable subdir)
+        """
+        # Build example dir without collisions but with an
+        # unreadable subdir
+        example_dir = UnittestDir(os.path.join(self.wd,"example1"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex1.txt",type="file")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/ex1.txt",type="file")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir2/ex1.txt",type="file")
+        example_dir.add("subdir2/ex2.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        try:
+            # Make subdir1 unreadable
+            os.chmod(os.path.join(p, "subdir1"), 0o000)
+            d = Directory(p)
+            self.assertEqual(sorted(list(d.case_sensitive_filenames)), [])
+            self.assertFalse(d.has_case_sensitive_filenames)
+        finally:
+            os.chmod(os.path.join(p, "subdir1"), 0o777)
+        # Build example dir with collisions but with an
+        # unreadable subdir
+        example_dir = UnittestDir(os.path.join(self.wd,"example2"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex1.txt",type="file")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/Ex2.txt",type="file")
+        example_dir.add("SubDir1/ex1.txt",type="file")
+        example_dir.add("SubDir1/ex2.txt",type="file")
+        example_dir.create()
+        p = example_dir.path
+        try:
+            # Make subdir1 unreadable
+            os.chmod(os.path.join(p, "subdir1"), 0o000)
+            d = Directory(p)
+            self.assertEqual(sorted(list(d.case_sensitive_filenames)),
+                             sorted([(os.path.join(p, "SubDir1"),
+                                      os.path.join(p, "subdir1")),]))
+            self.assertTrue(d.has_case_sensitive_filenames)
+        finally:
+            os.chmod(os.path.join(p, "subdir1"), 0o777)
+
     def test_directory_special_files(self):
         """
         Directory: detect special files
