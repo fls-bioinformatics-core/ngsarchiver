@@ -2,6 +2,14 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.11.0 (2025-06-19)
+---------------------------
+
+* Bug fix for case-sensitive file detection, which crashed
+  if the directory structure being examined included any
+  unreadable subdirectories (PR #92)
+
+---------------------------
 Version 1.11.0 (2025-06-16)
 ---------------------------
 
