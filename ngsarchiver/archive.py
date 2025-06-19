@@ -521,9 +521,11 @@ class Directory:
         for f in group_case_sensitive_names(Path(self.path).iterdir()):
             yield f
         for o in self.walk():
-            if not Path(o).is_symlink() and Path(o).is_dir():
-                for f in group_case_sensitive_names(Path(o).iterdir()):
-                    yield f
+            p = Path(o)
+            if not p.is_symlink() and p.is_dir():
+                if os.access(o, os.R_OK):
+                    for f in group_case_sensitive_names(p.iterdir()):
+                        yield f
 
     @property
     def has_case_sensitive_filenames(self):
