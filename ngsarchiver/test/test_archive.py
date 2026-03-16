@@ -1201,6 +1201,37 @@ class TestDirectory(unittest.TestCase):
                                                            "extra_dir",
                                                            "extra_dir/*")))
 
+    def test_directory_verify_copy_no_md5s(self):
+        """
+        Directory: check 'verify_copy' method (no MD5 sum checks)
+        """
+        # Build identical example dirs
+        example_dir = UnittestDir(os.path.join(self.wd,"example"))
+        example_dir.add("ex1.txt",type="file",content="example 1")
+        example_dir.add("subdir1/ex2.txt",type="file")
+        example_dir.add("subdir1/subdir12/ex3.txt",type="file")
+        dir1 = os.path.join(os.path.join(self.wd,"example1"))
+        example_dir.create(dir1)
+        dir2 = os.path.join(os.path.join(self.wd,"example2"))
+        example_dir.create(dir2)
+        # Check verification when identical
+        d1 = Directory(dir1)
+        d2 = Directory(dir2)
+        self.assertTrue(d1.verify_copy(dir2, check_md5s=False))
+        self.assertTrue(d2.verify_copy(dir1, check_md5s=False))
+        # Change contents of a file
+        with open(os.path.join(dir2, "ex1.txt"), "wt") as fp:
+            fp.write("example 1 altered")
+        self.assertFalse(d1.verify_copy(dir2, check_md5s=True))
+        self.assertFalse(d2.verify_copy(dir1, check_md5s=True))
+        self.assertTrue(d1.verify_copy(dir2, check_md5s=False))
+        self.assertTrue(d2.verify_copy(dir1, check_md5s=False))
+        # Add a file to second directory
+        with open(os.path.join(dir2,"extra.txt"),'wt') as fp:
+            fp.write("extra stuff")
+        self.assertFalse(d1.verify_copy(dir2, check_md5s=False))
+        self.assertFalse(d2.verify_copy(dir1, check_md5s=False))
+
     def test_directory_chown(self):
         """
         Directory: check 'chown' method
