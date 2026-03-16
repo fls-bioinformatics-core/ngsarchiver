@@ -2,12 +2,20 @@ Version History and Changes
 ===========================
 
 ---------------------------
+Version 1.12.0 (2026-03-16)
+---------------------------
+
+* Add new ``--no-md5s`` option to the ``compare`` command,
+  to skip MD5 sum checks for regular files and only check
+  for file existence (PR #84)
+
+---------------------------
 Version 1.11.0 (2025-06-19)
 ---------------------------
 
 * Bug fix for case-sensitive file detection, which crashed
   if the directory structure being examined included any
-  unreadable subdirectories (PR #92)
+  unreadable subdirectories (PR #82)
 
 ---------------------------
 Version 1.11.0 (2025-06-16)
