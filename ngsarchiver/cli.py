@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 #     cli.py: command line interface classes and functions
-#     Copyright (C) University of Manchester 2023-2025 Peter Briggs
+#     Copyright (C) University of Manchester 2023-2026 Peter Briggs
 #
 
 """
@@ -206,6 +206,10 @@ def main(argv=None):
     parser_compare = s.add_parser('compare',
                                   help="check if two directories have the "
                                   "same contents")
+    parser_compare.add_argument('--no-md5s',
+                                action='store_true',
+                                help="check for file existence only (don't "
+                                "check MD5 sums)")
     parser_compare.add_argument('--exclude-special',
                                 action='store_true',
                                 help="excludes special files (e.g. sockets) "
@@ -604,9 +608,12 @@ def main(argv=None):
             logger.error(ex)
             return CLIStatus.ERROR
         print("Comparing %s against %s" % (d1,args.dir2))
+        if args.no_md5s:
+            print("-- MD5 sums won't be checked (only file existence)")
         if args.exclude_special:
             print("-- excluding special files from the comparison")
         if d1.verify_copy(args.dir2,
+                          check_md5s=(not args.no_md5s),
                           exclude_special_files=args.exclude_special):
             print("-- ok")
             return CLIStatus.OK
