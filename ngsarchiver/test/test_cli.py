@@ -598,6 +598,49 @@ b4f9ae8d540e6dc361c6377d5749faf9  example_cs/ex1.txt
                                example_dir4.path]),
                          CLIStatus.ERROR)
 
+    def test_compare_no_md5s(self):
+        """
+        CLI: test the 'compare' command without MD5 checks
+        """
+        # Make example directories to compare
+        example_dir1 = UnittestDir(os.path.join(self.wd,"example1"))
+        example_dir1.add("ex1.txt",type="file",content="example 1")
+        example_dir1.add("subdir1/ex2.txt",type="file")
+        example_dir1.create()
+        example_dir2 = UnittestDir(os.path.join(self.wd,"example2"))
+        example_dir2.add("ex1.txt",type="file",content="example 1")
+        example_dir2.add("subdir1/ex2.txt",type="file")
+        example_dir2.create()
+        example_dir3 = UnittestDir(os.path.join(self.wd,"example3"))
+        example_dir3.add("ex1.txt",type="file",content="example 3")
+        example_dir3.add("subdir1/ex2.txt",type="file")
+        example_dir3.create()
+        example_dir4 = UnittestDir(os.path.join(self.wd,"example4"))
+        example_dir4.add("ex1.txt",type="file",content="example 1")
+        example_dir4.add("ex3.txt",type="file",content="example 3")
+        example_dir4.add("subdir1/ex2.txt",type="file")
+        example_dir4.create()
+        self.assertEqual(main(['compare',
+                               '--no-md5s',
+                               example_dir1.path,
+                               example_dir2.path]),
+                         CLIStatus.OK)
+        self.assertEqual(main(['compare',
+                               '--no-md5s',
+                               example_dir2.path,
+                               example_dir1.path]),
+                         CLIStatus.OK)
+        self.assertEqual(main(['compare',
+                               '--no-md5s',
+                               example_dir1.path,
+                               example_dir3.path]),
+                         CLIStatus.OK)
+        self.assertEqual(main(['compare',
+                               '--no-md5s',
+                               example_dir1.path,
+                               example_dir4.path]),
+                         CLIStatus.ERROR)
+
     def test_search(self):
         """
         CLI: test the 'search' command
