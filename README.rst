@@ -506,9 +506,13 @@ archive to be checked against the original directory
 
    archiver compare /PATH/TO/DIR1 /PATH/TO/DIR2
 
-The comparison checks for missing and extra files, and
-that files have the same checksums. (Note however that
-it doesn't check timestamps, permissions or ownership.)
+By default the comparison checks for missing and extra
+files, and that files have the same checksums. If the
+``--no-md5s`` option is specified then only file
+existence is checked.
+
+Note that ``compare`` doesn't check if timestamps,
+permissions or ownership differ.
 
 If one or other of the directories being compared
 contain special files (for example, socket files) then
